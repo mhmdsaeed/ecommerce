@@ -2,6 +2,9 @@
 spring:
   application:
     name: ecommerce
+  # Each security chain brings its own authentication; Boot's generated in-memory "user" must never exist.
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
   threads:
     virtual:
       enabled: true
@@ -39,6 +42,8 @@ server:
       cookie:
         http-only: true
         same-site: lax
+        # SPEC 10. Only plain-http local development turns this off.
+        secure: ${SESSION_COOKIE_SECURE:true}
 
 management:
   endpoints:
@@ -56,3 +61,7 @@ app:
   platform-datasource:
     username: ${DB_PLATFORM_USER}
     password: ${DB_PLATFORM_PASSWORD}
+  # Creates the first platform admin on startup while no platform user exists (PlatformAdminBootstrap).
+  platform-admin:
+    email: ${PLATFORM_ADMIN_EMAIL:}
+    password: ${PLATFORM_ADMIN_PASSWORD:}

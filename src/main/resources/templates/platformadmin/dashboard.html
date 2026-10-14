@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/platform}">
+<head>
+    <title th:text="#{platform.dashboard.title}">Stores</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <h1 class="text-2xl font-bold" th:text="#{platform.dashboard.title}">Stores</h1>
+    <p class="mt-1 text-gray-600" th:text="#{platform.dashboard.store-count(${storeCount})}">0 stores</p>
+
+    <p th:if="${stores.isEmpty()}" class="mt-6 text-gray-600" th:text="#{platform.dashboard.empty}">No stores yet.</p>
+    <section th:unless="${stores.isEmpty()}" class="mt-6 overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-600">
+            <tr>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.name}">Name</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.slug}">Address</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.status}">Status</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.created}">Created</th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+            <tr th:each="store : ${stores}">
+                <td class="px-4 py-3" th:text="${store.name().in(#locale)}">Name</td>
+                <td class="px-4 py-3" dir="ltr" th:text="${store.slug()}">slug</td>
+                <td class="px-4 py-3" th:text="#{store.status.__${store.status()}__}">Status</td>
+                <td class="px-4 py-3" dir="ltr" th:text="${store.createdOn()}">2026-10-14</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+</main>
+</body>
+</html>

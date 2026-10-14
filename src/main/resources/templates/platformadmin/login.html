@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/platform}">
+<head>
+    <title th:text="#{platform.login.title}">Platform login</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <section class="mx-auto max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <h1 class="text-2xl font-bold" th:text="#{platform.login.heading}">Platform admin</h1>
+        <div class="mt-4 space-y-2">
+            <th:block th:if="${param.error}"><div th:replace="~{fragments/forms :: alert(kind='error', message=#{auth.login.failed})}"></div></th:block>
+            <th:block th:if="${param.locked}"><div th:replace="~{fragments/forms :: alert(kind='error', message=#{auth.login.locked})}"></div></th:block>
+            <th:block th:if="${param.disabled}"><div th:replace="~{fragments/forms :: alert(kind='error', message=#{auth.login.disabled})}"></div></th:block>
+            <th:block th:if="${param.logout}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{auth.logout.done})}"></div></th:block>
+        </div>
+        <form th:action="@{/platform/login}" method="post" class="mt-4 space-y-4">
+            <div class="space-y-1">
+                <label for="username" class="block text-sm font-medium text-gray-800" th:text="#{platform.field.email}">Email</label>
+                <input id="username" name="username" type="email" dir="ltr" required autocomplete="username"
+                       class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+            </div>
+            <div class="space-y-1">
+                <label for="password" class="block text-sm font-medium text-gray-800" th:text="#{auth.field.password}">Password</label>
+                <input id="password" name="password" type="password" required autocomplete="current-password"
+                       class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+            </div>
+            <button th:replace="~{fragments/forms :: submit(label=#{auth.submit})}">Log in</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

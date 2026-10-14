@@ -1,14 +1,26 @@
 <!DOCTYPE html>
-<!--/* Layout for the admin area. Pages use layout:decorate="~{layouts/admin}" and fill the "content" fragment. */-->
+<!--/* Layout for the merchant admin (and signup/login on the main site). Pages fill the "content" fragment.
+       currentStaff and currentStore come from AdminModelAdvice and are null on public pages. */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/base}">
 <body>
-<div layout:fragment="body" class="flex min-h-screen flex-col" data-area="admin">
-    <header class="border-b border-gray-200">
-        <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-            <span class="text-lg font-semibold" th:text="#{app.name}">App</span>
-            <nav class="flex gap-3 text-sm">
+<div layout:fragment="body" class="flex min-h-screen flex-col bg-gray-50" data-area="admin">
+    <header class="border-b border-gray-200 bg-white">
+        <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+            <a th:href="${currentStaff != null} ? @{/admin} : @{/}" class="text-lg font-semibold"
+               th:text="${currentStore != null} ? ${currentStore.name().in(#locale)} : #{app.name}">App</a>
+            <nav class="flex flex-wrap items-center gap-4 text-sm">
+                <th:block th:if="${currentStaff != null}">
+                    <a th:href="@{/admin}" th:text="#{admin.nav.dashboard}">Dashboard</a>
+                    <a th:if="${currentStaff.role().managesStaff()}" th:href="@{/admin/staff}"
+                       th:text="#{admin.nav.staff}">Staff</a>
+                    <span class="text-gray-500" th:text="${currentStaff.name()}">Name</span>
+                    <form th:action="@{/admin/logout}" method="post">
+                        <button type="submit" class="text-brand-700 hover:underline"
+                                th:text="#{auth.logout}">Log out</button>
+                    </form>
+                </th:block>
                 <a th:href="@{''(lang='ar')}" lang="ar" th:text="#{lang.ar}">العربية</a>
                 <a th:href="@{''(lang='en')}" lang="en" th:text="#{lang.en}">English</a>
             </nav>

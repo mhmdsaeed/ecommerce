@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<!--/* Form building blocks. Call inside a th:object form, passing named arguments (all optional except field
+       and label), e.g.  th:replace="~{fragments/forms :: input(field='email', label=#{x}, type='email', ltr=true)}"
+       ltr: for emails, phones and slugs, which read left to right even on Arabic pages. */-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<div th:fragment="input" class="space-y-1">
+    <label th:for="${field}" class="block text-sm font-medium text-gray-800" th:text="${label}">Label</label>
+    <input th:type="${type != null} ? ${type} : 'text'"
+           th:field="*{__${field}__}"
+           th:attr="autocomplete=${autocomplete}, dir=${ltr} ? 'ltr' : null, aria-invalid=${#fields.hasErrors('__${field}__')}"
+           class="w-full rounded-md border bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"
+           th:classappend="${#fields.hasErrors('__${field}__')} ? 'border-red-500' : 'border-gray-300'">
+    <p th:if="${hint != null}" class="text-xs text-gray-500" th:text="${hint}">Hint</p>
+    <p th:if="${#fields.hasErrors('__${field}__')}" th:errors="*{__${field}__}" class="text-sm text-red-600">Error</p>
+</div>
+
+<button th:fragment="submit" type="submit"
+        class="w-full rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 sm:w-auto"
+        th:text="${label}">Submit</button>
+
+<div th:fragment="alert" class="rounded-md border px-4 py-3 text-sm"
+     th:classappend="${kind == 'error'} ? 'border-red-200 bg-red-50 text-red-800' : 'border-brand-100 bg-brand-50 text-brand-700'"
+     th:attr="role=${kind == 'error'} ? 'alert' : 'status'"
+     th:text="${message}">Message</div>
+
+</body>
+</html>

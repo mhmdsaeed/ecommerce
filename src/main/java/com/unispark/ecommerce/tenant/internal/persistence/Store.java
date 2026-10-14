@@ -1,6 +1,7 @@
 package com.unispark.ecommerce.tenant.internal.persistence;
 
 import java.util.Locale;
+import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -13,13 +14,14 @@ import org.hibernate.type.SqlTypes;
 
 import com.unispark.ecommerce.shared.BaseEntity;
 import com.unispark.ecommerce.shared.Currency;
+import com.unispark.ecommerce.shared.Ids;
 import com.unispark.ecommerce.shared.LocalizedText;
 import com.unispark.ecommerce.tenant.StoreStatus;
 import com.unispark.ecommerce.tenant.StoreSummary;
 
 /**
  * A merchant's store; its id is the tenant id. Platform entity, so it does not extend {@code TenantScopedEntity}.
- * {@code plan_code}, {@code theme} and {@code created_by} are mapped when billing, theming and signup need them.
+ * {@code plan_code} and {@code theme} are mapped when billing (M12) and theming (M5) need them.
  */
 @Entity
 @Table(name = "store")
@@ -52,16 +54,32 @@ public class Store extends BaseEntity {
 
     private String whatsapp;
 
+    @Column(name = "created_by")
+    private UUID createdBy;
+
     protected Store() {
     }
 
     public Store(String slug, LocalizedText name, StoreStatus status) {
+        this(Ids.newId(), slug, name, status, Locale.forLanguageTag("ar"));
+    }
+
+    public Store(UUID id, String slug, LocalizedText name, StoreStatus status, Locale defaultLocale) {
+        super(id);
         this.slug = slug;
         this.name = name;
         this.status = status;
-        this.defaultLocale = "ar";
+        this.defaultLocale = "en".equals(defaultLocale.getLanguage()) ? "en" : "ar";
         this.baseCurrency = Currency.SYP;
         this.displayCurrency = Currency.SYP;
+    }
+
+    public void setContactPhone(String contactPhone) {
+        this.contactPhone = contactPhone;
+    }
+
+    public void recordCreator(UUID createdBy) {
+        this.createdBy = createdBy;
     }
 
     public StoreSummary toSummary() {

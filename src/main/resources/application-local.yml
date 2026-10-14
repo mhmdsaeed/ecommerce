@@ -18,10 +18,21 @@ spring:
       cache:
         period: 0
 
+server:
+  servlet:
+    session:
+      cookie:
+        # Local runs are plain http, where browsers drop Secure cookies.
+        secure: ${SESSION_COOKIE_SECURE:false}
+
 app:
   platform-datasource:
     username: ${DB_PLATFORM_USER:app_platform}
     password: ${DB_PLATFORM_PASSWORD:app_platform_local}
+  # Local-only credentials: http://admin.lvh.me:8080
+  platform-admin:
+    email: ${PLATFORM_ADMIN_EMAIL:admin@lvh.me}
+    password: ${PLATFORM_ADMIN_PASSWORD:local-admin-pass}
 
 management:
   endpoint:

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<!--/* Staff login for both areas: area is 'admin' or 'driver'. Posts store, username (email or phone), password. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{${layout}}">
+<head>
+    <title th:text="#{__${area}__.login.title}">Log in</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <section class="mx-auto max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <h1 class="text-2xl font-bold" th:text="#{__${area}__.login.heading}">Log in</h1>
+
+        <div class="mt-4 space-y-2">
+            <th:block th:if="${param.error}"><div th:replace="~{fragments/forms :: alert(kind='error', message=#{auth.login.failed})}"></div></th:block>
+            <th:block th:if="${param.locked}"><div th:replace="~{fragments/forms :: alert(kind='error', message=#{auth.login.locked})}"></div></th:block>
+            <th:block th:if="${param.disabled}"><div th:replace="~{fragments/forms :: alert(kind='error', message=#{auth.login.disabled})}"></div></th:block>
+            <th:block th:if="${param.expired}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{auth.session.expired})}"></div></th:block>
+            <th:block th:if="${param.logout}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{auth.logout.done})}"></div></th:block>
+        </div>
+
+        <form th:action="@{${loginAction}}" method="post" class="mt-4 space-y-4">
+            <div class="space-y-1">
+                <label for="store" class="block text-sm font-medium text-gray-800" th:text="#{auth.field.store}">Store</label>
+                <div dir="ltr" class="flex items-stretch">
+                    <input id="store" name="store" type="text" th:value="${store}" required autocomplete="organization"
+                           autocapitalize="none" spellcheck="false"
+                           class="min-w-0 flex-1 rounded-s-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                    <span class="flex items-center rounded-e-md border border-s-0 border-gray-300 bg-gray-100 px-3 text-sm text-gray-600"
+                          th:text="${storeDomain}">.example.com</span>
+                </div>
+            </div>
+            <div class="space-y-1">
+                <label for="username" class="block text-sm font-medium text-gray-800"
+                       th:text="#{auth.field.username}">Email or phone</label>
+                <input id="username" name="username" type="text" dir="ltr" required autocomplete="username"
+                       autocapitalize="none" spellcheck="false"
+                       class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+            </div>
+            <div class="space-y-1">
+                <label for="password" class="block text-sm font-medium text-gray-800"
+                       th:text="#{auth.field.password}">Password</label>
+                <input id="password" name="password" type="password" required autocomplete="current-password"
+                       class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+            </div>
+            <div class="flex flex-col items-start gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+                <button th:replace="~{fragments/forms :: submit(label=#{auth.submit})}">Log in</button>
+                <a th:if="${area == 'admin'}" th:href="@{/signup}" class="text-sm text-brand-700 hover:underline"
+                   th:text="#{admin.login.signup-link}">Open a new store</a>
+            </div>
+        </form>
+    </section>
+</main>
+</body>
+</html>

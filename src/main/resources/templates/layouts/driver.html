@@ -1,23 +1,25 @@
 <!DOCTYPE html>
-<!--/* Layout for the driver area. Pages use layout:decorate="~{layouts/driver}" and fill the "content" fragment. */-->
+<!--/* Layout for the driver view: phone-first, one column. Pages fill the "content" fragment. */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/base}">
 <body>
 <div layout:fragment="body" class="flex min-h-screen flex-col" data-area="driver">
     <header class="border-b border-gray-200">
-        <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-            <span class="text-lg font-semibold" th:text="#{app.name}">App</span>
-            <nav class="flex gap-3 text-sm">
+        <div class="mx-auto flex max-w-xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+            <span class="text-lg font-semibold"
+                  th:text="${currentStore != null} ? ${currentStore.name().in(#locale)} : #{app.name}">App</span>
+            <nav class="flex flex-wrap items-center gap-4 text-sm">
+                <form th:if="${currentStaff != null}" th:action="@{/driver/logout}" method="post">
+                    <button type="submit" class="text-brand-700 hover:underline"
+                            th:text="#{auth.logout}">Log out</button>
+                </form>
                 <a th:href="@{''(lang='ar')}" lang="ar" th:text="#{lang.ar}">العربية</a>
                 <a th:href="@{''(lang='en')}" lang="en" th:text="#{lang.en}">English</a>
             </nav>
         </div>
     </header>
-    <main id="content" class="mx-auto w-full max-w-5xl flex-1 px-4 py-8" layout:fragment="content"></main>
-    <footer class="border-t border-gray-200 py-4 text-center text-xs text-gray-500" th:text="#{layout.footer}">
-        All rights reserved
-    </footer>
+    <main id="content" class="mx-auto w-full max-w-xl flex-1 px-4 py-6" layout:fragment="content"></main>
 </div>
 </body>
 </html>

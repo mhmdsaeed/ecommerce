@@ -15,8 +15,8 @@ import com.unispark.ecommerce.tenant.StoreSummary;
 
 /**
  * Resolves the storefront tenant from the host (SPEC 4.1) and makes it current for the rest of the request.
- * Unknown, closed or malformed store hosts get a 404 page. Platform hosts pass through without a tenant; the
- * merchant admin and driver areas take their tenant from the logged-in user (M2).
+ * Unknown, closed or malformed store hosts get a 404 page. The main and platform admin hosts pass through without
+ * a tenant; the merchant admin and driver areas take their tenant from the logged-in staff member.
  */
 class TenantResolutionFilter extends OncePerRequestFilter {
 
@@ -46,7 +46,8 @@ class TenantResolutionFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         switch (hosts.match(request.getServerName())) {
-            case StoreHosts.PlatformHost platform -> chain.doFilter(request, response);
+            case StoreHosts.MainHost main -> chain.doFilter(request, response);
+            case StoreHosts.PlatformAdminHost platformAdmin -> chain.doFilter(request, response);
             case StoreHosts.InvalidStoreHost invalid -> response.sendError(HttpServletResponse.SC_NOT_FOUND);
             case StoreHosts.StoreHost(var slug) -> {
                 var store = stores.findBySlug(slug)

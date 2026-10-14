@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
@@ -81,12 +82,19 @@ class TenantResolutionIT {
     }
 
     @Test
-    void treatsTheBaseDomainReservedSubdomainsAndOtherHostsAsPlatform() throws Exception {
-        for (var host : new String[] {"lvh.me:8080", "admin.lvh.me:8080", "www.lvh.me:8080", "localhost"}) {
+    void treatsTheBaseDomainWwwAndOtherHostsAsTheMainSite() throws Exception {
+        for (var host : new String[] {"lvh.me:8080", "www.lvh.me:8080", "localhost"}) {
             mvc.perform(get("http://" + host + "/"))
                     .andExpect(status().isOk())
                     .andExpect(content().string(containsString("متجرك على الإنترنت خلال دقائق")));
         }
+    }
+
+    @Test
+    void sendsThePlatformAdminHostRootToThePlatformLogin() throws Exception {
+        mvc.perform(get("http://admin.lvh.me:8080/"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/platform/login"));
     }
 
     @Test

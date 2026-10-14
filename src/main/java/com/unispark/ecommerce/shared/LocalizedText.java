@@ -2,10 +2,13 @@ package com.unispark.ecommerce.shared;
 
 import java.util.Locale;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 /**
  * Text entered in Arabic and/or English, stored as {@code jsonb {"ar": "...", "en": "..."}} (SPEC 11).
  * At least one language is required; {@link #in(Locale)} falls back to the other language.
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record LocalizedText(String ar, String en) {
 
     public LocalizedText {

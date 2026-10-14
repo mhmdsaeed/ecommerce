@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<!--/* Rendered by Spring Boot's error controller when a logged-in user opens a page their role does not allow. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/storefront}">
+<head>
+    <title th:text="#{error.forbidden.title}">Access denied</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <section class="mx-auto max-w-2xl py-16 text-center">
+        <p class="text-sm font-medium text-brand-600">403</p>
+        <h1 class="mt-3 text-3xl font-bold tracking-tight" th:text="#{error.forbidden.heading}">Access denied</h1>
+        <p class="mt-4 text-gray-600" th:text="#{error.forbidden.body}">Body</p>
+    </section>
+</main>
+</body>
+</html>

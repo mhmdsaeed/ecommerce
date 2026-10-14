@@ -23,14 +23,15 @@ import org.springframework.test.context.ActiveProfiles;
 class RlsCoverageIT {
 
     /** Tables without tenant_id (SPEC 5 "Platform tables"). Add new platform tables here deliberately. */
-    static final Set<String> PLATFORM_TABLES = Set.of("flyway_schema_history", "event_publication", "store");
+    static final Set<String> PLATFORM_TABLES = Set.of(
+            "flyway_schema_history", "event_publication", "store", "platform_user");
 
     @Autowired
     JdbcTemplate jdbc;
 
     @Test
-    void checksAtLeastTheIsolationProbeTable() {
-        assertThat(tenantTables()).contains("isolation_probe");
+    void checksTheKnownTenantTables() {
+        assertThat(tenantTables()).contains("isolation_probe", "staff_user");
     }
 
     @Test
@@ -97,16 +98,17 @@ class RlsCoverageIT {
     @Test
     void uniqueAndCompositeIndexesOnTenantTablesStartWithTenantId() {
         for (var table : tenantTables()) {
+            // LEFT JOIN: an index led by an expression (indkey[0] = 0) has no first column and counts as offending.
             var offending = jdbc.queryForList("""
                     SELECT index_class.relname
                     FROM pg_index i
                     JOIN pg_class index_class ON index_class.oid = i.indexrelid
-                    JOIN pg_attribute first_column ON first_column.attrelid = i.indrelid
-                                                  AND first_column.attnum = i.indkey[0]
+                    LEFT JOIN pg_attribute first_column ON first_column.attrelid = i.indrelid
+                                                       AND first_column.attnum = i.indkey[0]
                     WHERE i.indrelid = to_regclass(?)
                       AND NOT i.indisprimary
                       AND (i.indisunique OR i.indnatts > 1)
-                      AND first_column.attname <> 'tenant_id'
+                      AND (first_column.attname IS NULL OR first_column.attname <> 'tenant_id')
                     """, String.class, "public." + table);
 
             assertThat(offending).as("%s: indexes must lead with tenant_id (SPEC 5)", table).isEmpty();

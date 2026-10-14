@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ import com.unispark.ecommerce.tenant.internal.persistence.StoreRepository;
  */
 @Component
 @Profile("local")
+@Order(10)
 class LocalDemoStores implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(LocalDemoStores.class);

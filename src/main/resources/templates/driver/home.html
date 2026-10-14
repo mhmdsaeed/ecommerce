@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/driver}">
+<head>
+    <title th:text="#{driver.home.title}">Deliveries</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <h1 class="text-xl font-bold" th:text="#{driver.home.greeting(${currentStaff.name()})}">Hello</h1>
+    <section class="mt-6 rounded-lg border border-dashed border-gray-300 p-6 text-center">
+        <p class="text-gray-600" th:text="#{driver.home.empty}">No deliveries assigned.</p>
+    </section>
+</main>
+</body>
+</html>

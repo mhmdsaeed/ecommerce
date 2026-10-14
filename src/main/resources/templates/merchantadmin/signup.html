@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="#{signup.title}">Open your store</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <section class="mx-auto max-w-lg rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <h1 class="text-2xl font-bold" th:text="#{signup.heading}">Open your store</h1>
+        <p class="mt-2 text-gray-600" th:text="#{signup.intro}">Intro</p>
+
+        <form th:action="@{/signup}" th:object="${form}" method="post" class="mt-6 space-y-4" novalidate>
+            <th:block th:if="${#fields.hasGlobalErrors()}">
+                <div th:replace="~{fragments/forms :: alert(kind='error', message=${#fields.globalErrors()[0]})}"></div>
+            </th:block>
+
+            <div th:replace="~{fragments/forms :: input(field='storeName', label=#{signup.field.storeName},
+                    autocomplete='organization')}"></div>
+
+            <div class="space-y-1">
+                <label for="slug" class="block text-sm font-medium text-gray-800"
+                       th:text="#{signup.field.slug}">Store address</label>
+                <div dir="ltr" class="flex items-stretch">
+                    <input type="text" th:field="*{slug}" autocomplete="off" autocapitalize="none" spellcheck="false"
+                           class="min-w-0 flex-1 rounded-s-md border bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"
+                           th:classappend="${#fields.hasErrors('slug')} ? 'border-red-500' : 'border-gray-300'"
+                           th:attr="aria-invalid=${#fields.hasErrors('slug')}">
+                    <span class="flex items-center rounded-e-md border border-s-0 border-gray-300 bg-gray-100 px-3 text-sm text-gray-600"
+                          th:text="${storeDomain}">.example.com</span>
+                </div>
+                <p class="text-xs text-gray-500" th:text="#{signup.field.slug.hint}">Hint</p>
+                <p th:if="${#fields.hasErrors('slug')}" th:errors="*{slug}" class="text-sm text-red-600">Error</p>
+            </div>
+
+            <div th:replace="~{fragments/forms :: input(field='ownerName', label=#{signup.field.ownerName},
+                    autocomplete='name')}"></div>
+            <div th:replace="~{fragments/forms :: input(field='phone', label=#{signup.field.phone}, type='tel',
+                    autocomplete='tel', ltr=true, hint=#{signup.field.phone.hint})}"></div>
+            <div th:replace="~{fragments/forms :: input(field='email', label=#{signup.field.email}, type='email',
+                    autocomplete='email', ltr=true, hint=#{signup.field.email.hint})}"></div>
+            <div th:replace="~{fragments/forms :: input(field='password', label=#{signup.field.password},
+                    type='password', autocomplete='new-password', hint=#{signup.field.password.hint})}"></div>
+
+            <div class="flex flex-col items-start gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+                <button th:replace="~{fragments/forms :: submit(label=#{signup.submit})}">Create</button>
+                <a th:href="@{/admin/login}" class="text-sm text-brand-700 hover:underline"
+                   th:text="#{signup.have-account}">Already have a store? Log in</a>
+            </div>
+        </form>
+    </section>
+</main>
+</body>
+</html>

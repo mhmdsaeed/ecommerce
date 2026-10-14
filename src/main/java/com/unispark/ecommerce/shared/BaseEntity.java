@@ -1,6 +1,7 @@
 package com.unispark.ecommerce.shared;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 import jakarta.persistence.Column;
@@ -32,6 +33,14 @@ public abstract class BaseEntity {
 
     @Version
     private Long version;
+
+    protected BaseEntity() {
+    }
+
+    /** For entities whose id is chosen up front, such as a store id that is also the new tenant id. */
+    protected BaseEntity(UUID id) {
+        this.id = Objects.requireNonNull(id, "id");
+    }
 
     public UUID getId() {
         return id;
