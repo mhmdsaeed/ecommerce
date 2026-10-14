@@ -1,16 +1,14 @@
 package com.unispark.ecommerce.merchantadmin.internal.web.catalog;
 
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.util.Locale;
-
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Component;
 
+import com.unispark.ecommerce.pricing.PriceFormatter;
 import com.unispark.ecommerce.shared.Money;
 
 /**
- * Admin display of amounts, used from templates as the bean named money: 150,000 or 12.50, Western digits for now.
- * Store-specific formatting (digits, rounding, display currency) arrives with pricing (M4, SPEC 7).
+ * Prices in admin templates, used as the bean named money. Formats with the request locale, which carries the
+ * store's digit setting.
  *
  * <p>Javadoc here ends up in Spring Modulith's generated docs, whose JSON reader trips over braces combined with
  * quoted commas; keep such examples out of comments in this package.
@@ -18,12 +16,19 @@ import com.unispark.ecommerce.shared.Money;
 @Component("money")
 class MoneyText {
 
+    private final PriceFormatter formatter;
+
+    MoneyText(PriceFormatter formatter) {
+        this.formatter = formatter;
+    }
+
+    /** Amount with its currency, as the bundle places it. */
+    public String format(Money money) {
+        return money == null ? "" : formatter.format(money, LocaleContextHolder.getLocale());
+    }
+
+    /** Amount only. */
     public String amount(Money money) {
-        if (money == null) {
-            return "";
-        }
-        var whole = money.amount().stripTrailingZeros().scale() <= 0;
-        var format = new DecimalFormat(whole ? "#,##0" : "#,##0.00", DecimalFormatSymbols.getInstance(Locale.ROOT));
-        return format.format(money.amount());
+        return money == null ? "" : formatter.number(money, LocaleContextHolder.getLocale());
     }
 }

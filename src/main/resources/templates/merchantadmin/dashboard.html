@@ -16,6 +16,11 @@
               th:text="#{store.status.__${currentStore.status()}__}">Trial</span>
     </p>
 
+    <div th:if="${rateMissing}" class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <span th:text="#{dashboard.rate-missing}">Set your exchange rate.</span>
+        <a th:href="@{/admin/settings/pricing}" class="font-medium underline" th:text="#{dashboard.rate-missing.link}">Set rate</a>
+    </div>
+
     <section class="mt-8 rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center">
         <h2 class="text-lg font-semibold" th:text="#{dashboard.empty.heading}">Nothing here yet</h2>
         <p class="mx-auto mt-2 max-w-md text-gray-600" th:text="#{dashboard.empty.body}">Body</p>

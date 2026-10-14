@@ -29,6 +29,7 @@ import com.unispark.ecommerce.catalog.Products.ProductResult;
 import com.unispark.ecommerce.catalog.Products.Saved;
 import com.unispark.ecommerce.shared.Currency;
 import com.unispark.ecommerce.shared.Htmx;
+import com.unispark.ecommerce.tenant.StoreSettings;
 
 /**
  * Products (SPEC 9.3): list with live search, create, and the edit page. The edit page has independent sections;
@@ -46,10 +47,12 @@ class ProductController {
 
     private final Products products;
     private final Categories categories;
+    private final StoreSettings settings;
 
-    ProductController(Products products, Categories categories) {
+    ProductController(Products products, Categories categories, StoreSettings settings) {
         this.products = products;
         this.categories = categories;
+        this.settings = settings;
     }
 
     @GetMapping
@@ -64,7 +67,9 @@ class ProductController {
 
     @GetMapping("/new")
     String newPage(Model model) {
-        model.addAttribute("form", new ProductForm());
+        var form = new ProductForm();
+        form.setPriceCurrency(settings.current().baseCurrency());
+        model.addAttribute("form", form);
         return newForm(model);
     }
 

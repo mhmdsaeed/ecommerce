@@ -16,6 +16,9 @@ import com.unispark.ecommerce.shared.BaseEntity;
 import com.unispark.ecommerce.shared.Currency;
 import com.unispark.ecommerce.shared.Ids;
 import com.unispark.ecommerce.shared.LocalizedText;
+import com.unispark.ecommerce.shared.NumberDigits;
+import com.unispark.ecommerce.shared.RoundingRule;
+import com.unispark.ecommerce.tenant.StoreSettings;
 import com.unispark.ecommerce.tenant.StoreStatus;
 import com.unispark.ecommerce.tenant.StoreSummary;
 
@@ -49,6 +52,14 @@ public class Store extends BaseEntity {
     @Column(name = "display_currency", nullable = false)
     private Currency displayCurrency;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "rounding_rule", nullable = false)
+    private RoundingRule roundingRule;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "number_digits", nullable = false)
+    private NumberDigits numberDigits;
+
     @Column(name = "contact_phone")
     private String contactPhone;
 
@@ -72,6 +83,20 @@ public class Store extends BaseEntity {
         this.defaultLocale = "en".equals(defaultLocale.getLanguage()) ? "en" : "ar";
         this.baseCurrency = Currency.SYP;
         this.displayCurrency = Currency.SYP;
+        this.roundingRule = RoundingRule.NEAREST_5;
+        this.numberDigits = NumberDigits.WESTERN;
+    }
+
+    public void updatePricing(Currency baseCurrency, Currency displayCurrency, RoundingRule roundingRule,
+            NumberDigits numberDigits) {
+        this.baseCurrency = baseCurrency;
+        this.displayCurrency = displayCurrency;
+        this.roundingRule = roundingRule;
+        this.numberDigits = numberDigits;
+    }
+
+    public StoreSettings.Settings toSettings() {
+        return new StoreSettings.Settings(getId(), baseCurrency, displayCurrency, roundingRule, numberDigits);
     }
 
     public void setContactPhone(String contactPhone) {

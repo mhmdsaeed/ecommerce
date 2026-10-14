@@ -61,8 +61,7 @@
                     <td class="px-4 py-3 whitespace-nowrap">
                         <th:block th:if="${item.lowestPrice() != null}">
                             <span th:if="${item.variantCount() > 1}" class="text-gray-500" th:text="#{product.price.from}">from</span>
-                            <span dir="ltr" th:text="${@money.amount(item.lowestPrice())}">0</span>
-                            <span class="text-gray-500" th:text="#{currency.__${item.lowestPrice().currency()}__}">SYP</span>
+                            <bdi th:text="${@money.format(item.lowestPrice())}">150,000 SYP</bdi>
                         </th:block>
                     </td>
                     <td class="px-4 py-3" th:text="${item.variantCount()}">1</td>

@@ -8,6 +8,7 @@ import java.util.Locale;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,12 +19,15 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.i18n.CookieLocaleResolver;
 
+import com.unispark.ecommerce.shared.LocaleAdjuster;
+
 /**
- * Locale comes from the {@code lang} cookie, defaulting to Arabic (SPEC 11).
- * {@code ?lang=ar|en} switches it; the {@code /lang/{ar|en}} route arrives with the storefront in M5.
+ * Locale comes from the {@code lang} cookie, defaulting to Arabic (SPEC 11), then {@link LocaleAdjuster}s refine it
+ * (the store's digits). {@code ?lang=ar|en} switches it; the {@code /lang/{ar|en}} route arrives with the
+ * storefront in M5.
  */
 @Configuration(proxyBeanMethods = false)
-class LocaleConfig implements WebMvcConfigurer {
+class LocaleConfig {
 
     static final Locale DEFAULT_LOCALE = Locale.forLanguageTag("ar");
     static final List<Locale> SUPPORTED_LOCALES = List.of(DEFAULT_LOCALE, Locale.ENGLISH);
@@ -44,18 +48,42 @@ class LocaleConfig implements WebMvcConfigurer {
     }
 
     @Bean
-    LocaleResolver localeResolver() {
-        var resolver = new CookieLocaleResolver("lang");
-        resolver.setDefaultLocale(DEFAULT_LOCALE);
-        resolver.setCookieMaxAge(Duration.ofDays(365));
-        resolver.setCookieSameSite("Lax");
-        resolver.setCookieHttpOnly(true);
-        return resolver;
+    LocaleResolver localeResolver(ObjectProvider<LocaleAdjuster> adjusters) {
+        var cookie = new CookieLocaleResolver("lang");
+        cookie.setDefaultLocale(DEFAULT_LOCALE);
+        cookie.setCookieMaxAge(Duration.ofDays(365));
+        cookie.setCookieSameSite("Lax");
+        cookie.setCookieHttpOnly(true);
+        return new AdjustingLocaleResolver(cookie, adjusters);
     }
 
-    @Override
-    public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new SupportedLocaleChangeInterceptor(localeResolver()));
+    @Bean
+    WebMvcConfigurer localeChangeInterceptor(LocaleResolver localeResolver) {
+        return new WebMvcConfigurer() {
+            @Override
+            public void addInterceptors(InterceptorRegistry registry) {
+                registry.addInterceptor(new SupportedLocaleChangeInterceptor(localeResolver));
+            }
+        };
+    }
+
+    /** The cookie keeps only the language; adjustments (such as digits) are applied on every resolve. */
+    record AdjustingLocaleResolver(LocaleResolver delegate, ObjectProvider<LocaleAdjuster> adjusters)
+            implements LocaleResolver {
+
+        @Override
+        public Locale resolveLocale(HttpServletRequest request) {
+            var locale = delegate.resolveLocale(request);
+            for (var adjuster : adjusters) {
+                locale = adjuster.adjust(locale);
+            }
+            return locale;
+        }
+
+        @Override
+        public void setLocale(HttpServletRequest request, HttpServletResponse response, Locale locale) {
+            delegate.setLocale(request, response, locale == null ? null : Locale.forLanguageTag(locale.getLanguage()));
+        }
     }
 
     /** Like Spring's {@code LocaleChangeInterceptor}, but ignores languages we have no bundle for. */

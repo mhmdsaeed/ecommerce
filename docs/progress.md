@@ -277,6 +277,70 @@ Also run manually: `docker compose up -d postgres` + `./mvnw spring-boot:run -Ds
 - **Orphaned objects:** an upload whose row insert fails is discarded, but a crash between upload and insert leaves objects behind. Add a sweep with the M11 jobs.
 - **Production (M15):** set `S3_MANAGE_BUCKET=false`, create the bucket and its `public/*` read policy (or a CDN in front). The `webp-imageio` natives need glibc, so not an Alpine image.
 
-### Next: M4, pricing
+## M4: Pricing (done, 2026-10-14)
 
-Currencies, exchange rate admin, rounding, `Money`.
+**Done when:** unit tests for conversion and rounding pass. `CurrencyConversionTest` (28 cases) passes.
+
+### What was built
+
+- **`pricing` module (new):**
+  - `CurrencyConversion`: pure arithmetic, so an order can repeat a conversion from its rate snapshot.
+    - The rate is pounds per dollar.
+    - To SYP: multiply, then apply the store's `RoundingRule`.
+    - To USD: divide and round half up to cents.
+    - A positive price never converts to zero; a free item stays free.
+    - A price already in the target currency is returned untouched; merchants' own prices are never rounded.
+  - `ExchangeRates`: append-only USD→SYP history. The current rate is cached per store for 60 s, and setting a rate evicts the entry. Rates are typed like amounts, with up to 6 decimals (`١١٨٫٥` is accepted). Zero, negative, ambiguous `12,5` and above 1,000,000 are rejected.
+  - `Prices.display(Money)`: a price in the store's display currency, plus the rate used (null when nothing was converted). Without a rate, the price shows in its own currency.
+  - `PriceFormatter`: grouped digits in the locale's numbering system; decimals only when there are any; currency placed by the bundle (`price.format.SYP={0} ل.س`, `price.format.USD=${0}` in English).
+- **`shared`:**
+  - `RoundingRule` (NONE, NEAREST_5/10/100; half up to the nearest step; never rounds to zero).
+  - `NumberDigits` (WESTERN, ARABIC_INDIC via the Unicode `nu` locale extension).
+  - `LocaleAdjuster` hook; `LocaleConfig` now wraps the cookie resolver and runs adjusters on every resolve.
+  - `Amounts.parse(input, maxDecimals)`.
+  - A `Clock` bean.
+- **Digits everywhere:** the tenant module's `StoreSettingsService` is a `LocaleAdjuster`: the request locale becomes `ar-u-nu-latn` or `ar-u-nu-arab`. Every `NumberFormat` and `MessageFormat` on the page follows (prices, counts like "الصور (٢ من ١٠)", the rate line), while the language, bundles and text direction stay the same. Pages without a store (signup, platform admin) use Western digits. Form inputs keep plain digits, and the parsers accept both.
+- **`tenant`:** a `StoreSettings` API (base currency, display currency, rounding rule, digits), cached for 60 s and evicted on update.
+- **Migration `V6__pricing.sql`:**
+  - `store.rounding_rule` (default NEAREST_5) and `store.number_digits` (default WESTERN), with CHECKs.
+  - `staff_user UNIQUE (tenant_id, id)`.
+  - `exchange_rate` tenant table with RLS, `rate > 0`, the composite foreign key `(tenant_id, set_by)` to staff, and an index for the current-rate lookup.
+- **Merchant admin:**
+  - Settings → Prices and currency (owners and managers; `@PreAuthorize` on the controller):
+    - display and base currency, rounding rule and digits (post/redirect/get);
+    - an HTMX rate section with the current rate ("1 USD = 118.5 SYP since …, set by …"), a set-rate form, a preview of 5 sample conversions under the current rule, and history (last 10, names from staff).
+  - A dashboard nudge for owners and managers while no rate is set.
+  - New products default to the base currency.
+  - Product list prices go through `PriceFormatter` (`@money.format`).
+
+### Tests (325, all green: 202 unit, 123 integration)
+
+| Test | Checks |
+|---|---|
+| `CurrencyConversionTest` (28) | USD→SYP under each rule (e.g. $4.50 × 118.5 = 533.25 → 535 / 530 / 500); half-up boundaries per rule; never rounds to zero (in both directions); free stays free; SYP→USD to cents (1,000 → $8.44; the pound rule never applies to dollars); prices in the target currency untouched; large amounts exact; invalid rates refused |
+| `PriceFormatterTest` | `150,000 ل.س` / `١٥٠٬٠٠٠ ل.س` / `12.50 $` / `١٢٫٥٠ $` / `$4.50` / `$25` / `150,000 SYP`; decimals only when present; rates with their own decimals |
+| `NumberDigitsTest`, `AmountsTest` | `nu` extension only (language unchanged), `MessageFormat` follows it; rates up to 6 decimals |
+| `PricingIT` (7) | Setting rates over HTMX (fragment, preview 535 / 120 / 126.58 $, history with the setter's name, Arabic-digit input); invalid rates; `Prices.display` with and without a rate and under NEAREST_100; switching to Arabic-Indic changes the product list and counts while inputs stay plain; another store keeps its own settings and has no rate; dashboard nudge and the base-currency default; STAFF gets 403 |
+| `RlsCoverageIT` | Covers `exchange_rate` |
+
+**Live check** (local profile): dashboard nudge shown → rate `١١٨٫٥` set over HTMX → "1 دولار = 118.5 ل.س" with the preview $1 → 120, $4.50 → 535, $25 → 2,965, 1,000 ل.س → 8.44 $ → nudge gone. The product list went from `95,000 ل.س | 4.50 $ | 155,000 ل.س` to `٩٥٬٠٠٠ ل.س | ٤٫٥٠ $ | ١٥٥٬٠٠٠ ل.س` after switching digits; the NEAREST_10 preview showed 2,960. One inconsistency was found and fixed: the literal "1" in "1 دولار =" stayed Western; it's now a formatted argument, with an assertion added.
+
+### Decisions and deviations
+
+- **Defaults: NEAREST_5 rounding and Western digits.** Unrounded conversions show odd amounts like 532.13 ل.س, and Western digits are the norm for prices on Levantine e-commerce. Both are per-store settings.
+- **Rounding is half up to the nearest step**, as SPEC 7 says "nearest". A merchant who wants to protect margins would want "round up"; that could be added as a rule later.
+- **Only conversions are rounded.** A price the merchant typed in the display currency is shown exactly as typed.
+- **USD amounts in Arabic read `12.50 $`.**
+- **Digits through the locale**, not per-call options, so nothing on a page can disagree. `LocaleAdjuster` keeps `shared` free of module dependencies.
+- **Spring Modulith's documenter** broke again on Javadoc, this time on commas inside quoted text and between code tags. The rule is noted on `PriceFormatter` and `MoneyText`. `ModularityTests` catches it in seconds.
+
+### Notes for later milestones
+
+- **M5 storefront:** use `Prices.display` + `PriceFormatter` for every shown price. `compare_at_price` converts the same way.
+- **M8 orders:** store `rate_snapshot = DisplayPrice.rate()` and both totals. Re-render past orders with `CurrencyConversion` and the snapshot, never with the current rate.
+- **Rate cache:** 60 s per instance. With several instances, a new rate can take up to a minute to show everywhere.
+- **Rate staleness:** there's no reminder when the rate is weeks old; consider a dashboard hint (M13).
+
+### Next: M5, storefront browse
+
+Home, category, product, search, locale switch, theme settings; Lighthouse mobile performance ≥ 90.

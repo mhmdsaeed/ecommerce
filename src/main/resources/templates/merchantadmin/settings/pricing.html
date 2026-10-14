@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<!--/* Pricing settings. The "rate" fragment (current rate, form, preview, history) is swapped over HTMX. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="#{settings.pricing.title}">Pricing</title>
+</head>
+<body>
+<main layout:fragment="content" class="space-y-8">
+    <div>
+        <h1 class="text-2xl font-bold" th:text="#{settings.pricing.title}">Pricing</h1>
+        <div class="mt-4 space-y-2">
+            <th:block th:if="${param.saved}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{settings.pricing.saved})}"></div></th:block>
+            <th:block th:if="${param.rate}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{settings.rate.saved})}"></div></th:block>
+        </div>
+    </div>
+
+    <section id="rate" th:fragment="rate" class="rounded-lg border border-gray-200 bg-white p-6">
+        <h2 class="text-lg font-semibold" th:text="#{settings.rate.heading}">Exchange rate</h2>
+        <th:block th:if="${rateNotice != null}"><div class="mt-3" th:replace="~{fragments/forms :: alert(kind='info', message=#{${rateNotice}})}"></div></th:block>
+
+        <p th:if="${currentRate != null}" class="mt-3 text-gray-800">
+            <span class="text-xl font-semibold" th:text="#{settings.rate.value(1, ${currentRate.rate()})}">1 USD = 118 SYP</span>
+            <span class="block text-sm text-gray-500" th:text="#{settings.rate.since(${currentRate.setAt()}, ${currentRate.setBy()})}">since</span>
+        </p>
+        <th:block th:if="${currentRate == null}">
+            <div class="mt-3" th:replace="~{fragments/forms :: alert(kind='error', message=#{settings.rate.missing})}"></div>
+        </th:block>
+
+        <form th:action="@{/admin/settings/pricing/rate}" method="post" novalidate class="mt-4 flex flex-wrap items-end gap-3"
+              th:hx-post="@{/admin/settings/pricing/rate}" hx-target="#rate" hx-swap="outerHTML">
+            <div class="space-y-1">
+                <label for="rate-input" class="block text-sm font-medium text-gray-800" th:text="#{settings.rate.field}">New rate</label>
+                <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-600" th:text="#{settings.rate.prefix(1)}">1 USD =</span>
+                    <input id="rate-input" name="rate" type="text" inputmode="decimal" dir="ltr" th:value="${rateInput}"
+                           class="w-36 rounded-md border px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"
+                           th:classappend="${rateError != null} ? 'border-red-500' : 'border-gray-300'"
+                           th:attr="aria-invalid=${rateError != null}">
+                    <span class="text-sm text-gray-600" th:text="#{currency.SYP}">SYP</span>
+                </div>
+                <p th:if="${rateError != null}" class="text-sm text-red-600" th:text="#{${rateError}}">Error</p>
+            </div>
+            <button th:replace="~{fragments/forms :: submit(label=#{settings.rate.submit})}">Set rate</button>
+        </form>
+        <p class="mt-2 text-xs text-gray-500" th:text="#{settings.rate.hint}">Hint</p>
+
+        <div th:if="${!examples.isEmpty()}" class="mt-6">
+            <h3 class="text-sm font-semibold text-gray-700" th:text="#{settings.preview.heading}">Preview</h3>
+            <ul class="mt-2 grid gap-1 text-sm sm:grid-cols-2">
+                <li th:each="example : ${examples}" class="text-gray-700">
+                    <bdi th:text="${example.stored()}">$1</bdi> → <bdi class="font-medium" th:text="${example.shown()}">120 SYP</bdi>
+                </li>
+            </ul>
+        </div>
+
+        <div th:if="${history.size() > 1}" class="mt-6">
+            <h3 class="text-sm font-semibold text-gray-700" th:text="#{settings.rate.history}">History</h3>
+            <table class="mt-2 w-full text-sm">
+                <tbody class="divide-y divide-gray-100">
+                <tr th:each="row : ${history}">
+                    <td class="py-2 font-medium" dir="ltr" th:text="${row.rate()}">118</td>
+                    <td class="py-2 text-gray-600" th:text="${row.setAt()}">date</td>
+                    <td class="py-2 text-gray-600" th:text="${row.setBy()}">name</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="rounded-lg border border-gray-200 bg-white p-6">
+        <h2 class="text-lg font-semibold" th:text="#{settings.display.heading}">Display</h2>
+        <form th:action="@{/admin/settings/pricing}" th:object="${form}" method="post" class="mt-4 max-w-lg space-y-4" novalidate>
+            <div th:each="field : ${ {'displayCurrency', 'baseCurrency'} }" class="space-y-1">
+                <label th:for="${field}" class="block text-sm font-medium text-gray-800" th:text="#{settings.field.__${field}__}">Currency</label>
+                <select th:field="*{__${field}__}"
+                        class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                    <option th:each="currency : ${currencies}" th:value="${currency}" th:text="#{currency.name.__${currency}__}">SYP</option>
+                </select>
+                <p class="text-xs text-gray-500" th:text="#{settings.field.__${field}__.hint}">Hint</p>
+            </div>
+            <div class="space-y-1">
+                <label for="roundingRule" class="block text-sm font-medium text-gray-800" th:text="#{settings.field.roundingRule}">Rounding</label>
+                <select th:field="*{roundingRule}"
+                        class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                    <option th:each="rule : ${roundingRules}" th:value="${rule}" th:text="#{settings.rounding.__${rule}__}">None</option>
+                </select>
+                <p class="text-xs text-gray-500" th:text="#{settings.field.roundingRule.hint}">Hint</p>
+            </div>
+            <fieldset class="space-y-2">
+                <legend class="text-sm font-medium text-gray-800" th:text="#{settings.field.numberDigits}">Digits</legend>
+                <label th:each="option : ${digitOptions}" class="flex items-center gap-2 text-sm">
+                    <input type="radio" th:field="*{numberDigits}" th:value="${option}" class="h-4 w-4">
+                    <span th:text="#{settings.digits.__${option}__}">Western</span>
+                </label>
+            </fieldset>
+            <button th:replace="~{fragments/forms :: submit(label=#{settings.pricing.save})}">Save</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

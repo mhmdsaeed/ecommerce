@@ -26,4 +26,16 @@ class AmountsTest {
     void rejectsAnythingAmbiguousOrInvalid(String input) {
         assertThat(Amounts.parse(input)).isEmpty();
     }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {"118.375|118.375", "١١٨٫٥|118.5", "12,500|12500", "118.123456|118.123456"})
+    void parsesExchangeRatesWithUpToSixDecimals(String input, String expected) {
+        assertThat(Amounts.parse(input, 6)).contains(new BigDecimal(expected));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"118.1234567", "12,5", "abc"})
+    void rejectsRatesWithTooManyDecimalsOrAmbiguousCommas(String input) {
+        assertThat(Amounts.parse(input, 6)).isEmpty();
+    }
 }
