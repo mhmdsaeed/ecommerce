@@ -1,4 +1,13 @@
 # Integration tests. Database properties are supplied by TestcontainersConfig.
+spring:
+  flyway:
+    # db/testmigration holds test-only tables, such as the isolation_probe tenant table.
+    locations: classpath:db/migration, classpath:db/testmigration
+
+app:
+  # Fixed so tests do not depend on the developer's APP_BASE_DOMAIN.
+  base-domain: lvh.me:8080
+
 management:
   endpoint:
     health:

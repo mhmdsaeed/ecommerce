@@ -13,13 +13,13 @@ import org.testcontainers.utility.MountableFile;
 @TestConfiguration(proxyBeanMethods = false)
 public class TestcontainersConfig {
 
-    static final String DATABASE = "ecommerce";
-    static final String OWNER_USER = "app_owner";
-    static final String OWNER_PASSWORD = "app_owner_test";
-    static final String APP_USER = "app_user";
-    static final String APP_PASSWORD = "app_user_test";
-    static final String PLATFORM_USER = "app_platform";
-    static final String PLATFORM_PASSWORD = "app_platform_test";
+    public static final String DATABASE = "ecommerce";
+    public static final String OWNER_USER = "app_owner";
+    public static final String OWNER_PASSWORD = "app_owner_test";
+    public static final String APP_USER = "app_user";
+    public static final String APP_PASSWORD = "app_user_test";
+    public static final String PLATFORM_USER = "app_platform";
+    public static final String PLATFORM_PASSWORD = "app_platform_test";
 
     @Bean
     PostgreSQLContainer<?> postgres() {
@@ -42,12 +42,15 @@ public class TestcontainersConfig {
             registry.add("spring.datasource.url", () -> jdbcUrl(postgres));
             registry.add("spring.datasource.username", () -> APP_USER);
             registry.add("spring.datasource.password", () -> APP_PASSWORD);
+            registry.add("spring.flyway.url", () -> jdbcUrl(postgres));
             registry.add("spring.flyway.user", () -> OWNER_USER);
             registry.add("spring.flyway.password", () -> OWNER_PASSWORD);
+            registry.add("app.platform-datasource.username", () -> PLATFORM_USER);
+            registry.add("app.platform-datasource.password", () -> PLATFORM_PASSWORD);
         };
     }
 
-    static String jdbcUrl(PostgreSQLContainer<?> postgres) {
+    public static String jdbcUrl(PostgreSQLContainer<?> postgres) {
         return "jdbc:postgresql://%s:%d/%s".formatted(
                 postgres.getHost(), postgres.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT), DATABASE);
     }

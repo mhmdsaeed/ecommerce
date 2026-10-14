@@ -5,6 +5,7 @@ spring:
     username: ${DB_APP_USER:app_user}
     password: ${DB_APP_PASSWORD:app_user_local}
   flyway:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/ecommerce}
     user: ${DB_OWNER_USER:app_owner}
     password: ${DB_OWNER_PASSWORD:app_owner_local}
   # Edit templates and CSS without restarting (run ./scripts/tailwind.sh --watch alongside).
@@ -16,6 +17,11 @@ spring:
       static-locations: file:src/main/resources/static/, file:target/classes/static/
       cache:
         period: 0
+
+app:
+  platform-datasource:
+    username: ${DB_PLATFORM_USER:app_platform}
+    password: ${DB_PLATFORM_PASSWORD:app_platform_local}
 
 management:
   endpoint:

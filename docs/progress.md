@@ -44,6 +44,66 @@ Also run manually: `docker compose up -d postgres` + `./mvnw spring-boot:run -Ds
 - **Placeholder route:** `GET /` lives in `storefront.internal.web.PlaceholderController` and is replaced by the tenant-resolved home page (M1 resolution, M5 page).
 - **Product name** is still an open question (SPEC 19); the bundles use the neutral "منصة المتاجر" / "Store Platform".
 
-### Next: M1, tenancy core
+## M1: Tenancy core (done, 2026-10-14)
 
-`store` table, `TenantContext`, subdomain `TenantResolutionFilter`, Hibernate `@TenantId`, `TenantAwareDataSource`, platform DataSource on `app_platform`, RLS on a sample table, `TenantIsolationIT`, `RlsCoverageIT`.
+**Done when:** `TenantIsolationIT` and `RlsCoverageIT` pass. Both green, inside a green `./mvnw verify` (96 tests).
+
+### What was built
+
+- **`shared` (public API):**
+  - `TenantContext`: ThreadLocal, `enter()` scopes restore the previous tenant, plus `runAs`/`callAs` for jobs.
+  - `BaseEntity`: UUIDv7 id assigned in Java (`Ids`), `created_at`, `updated_at`, `@Version`.
+  - `TenantScopedEntity`: `@TenantId tenant_id`; `@PrePersist` refuses to save outside a tenant context.
+  - `LocalizedText`: ar/en jsonb with fallback. `Currency`: SYP, USD.
+  - `PlatformDatabase`: a `JdbcClient` on `app_platform` (BYPASSRLS).
+- **`shared.internal.persistence`:**
+  - `TenantAwareDataSource`: wraps the Hikari pool. On borrow it sets `app.tenant_id` to the tenant, or `''` when there is none; on close it clears it. Setting on every borrow means a failed reset can never leak a tenant.
+  - `TenantIdentifierResolver`: with no tenant it returns the nil UUID, deliberately not a root tenant, so tenant queries return nothing in both layers.
+  - `PersistenceConfig`: builds both pools. The platform pool is not a `DataSource` bean, so it can't be injected by accident.
+- **`tenant` module (new):**
+  - `store` entity, plus the `StoreLookup` / `StoreSummary` / `StoreStatus` API.
+  - `StoreHosts` classifies a host as platform, store, or invalid store host. `admin` and `www` are reserved; ports and case are ignored.
+  - `TenantResolutionFilter` runs before where Spring Security will sit and skips static paths and actuator. Unknown, closed or malformed store hosts get a 404.
+  - `LocalDemoStores` seeds `demo1` and `demo2` in the `local` profile.
+- **Migrations:**
+  - `V2__store.sql`: slug is one DNS label, 3 to 32 characters; CHECKs on status, locale and currencies.
+  - `V3__tenant_rls_helper.sql`: `enable_tenant_rls(regclass)` enables and forces RLS and creates the `tenant_isolation` policy. **Every future tenant table calls `SELECT enable_tenant_rls('<table>');` in its migration.**
+  - The policy uses `NULLIF(current_setting('app.tenant_id', true), '')::uuid`. After a reset, `current_setting` returns `''`, and a plain `::uuid` cast would raise an error.
+- **Sample RLS table:** `isolation_probe` is test-only (`src/test/resources/db/testmigration`, enabled in `application-test.yml`), so the production schema has no throwaway table.
+- **Web:** the placeholder page greets shoppers with the store name on a store subdomain. A localized `error/404.html` is added.
+
+### Tests (96, all green: 44 unit, 52 integration)
+
+| Test | Checks |
+|---|---|
+| `TenantIsolationIT` | SPEC 4.4 with tenants A and B: JPA `findAll`/`findById`/derived/JPQL show only A; nothing is visible without a tenant; saving without a tenant is refused; raw SQL as A sees and changes no B rows, and inserting or moving rows into B violates RLS; a plain `app_user` connection with `app.tenant_id = A` sees zero B rows; the platform role sees both tenants; HTTP on A's host shows only A's data; the platform host shows none |
+| `RlsCoverageIT` | Every table with `tenant_id`: RLS enabled and forced, exactly one `tenant_isolation` policy (permissive, ALL commands, all roles, USING + WITH CHECK), `tenant_id` NOT NULL, unique and composite indexes lead with `tenant_id`. Every table without `tenant_id` is on the platform allowlist (`flyway_schema_history`, `event_publication`, `store`) |
+| `TenantAwareDataSourceIT` | On one physical connection: binds to the tenant, binds to `''` with no tenant, clears on return, overwrites a stale tenant, survives a rollback of the first transaction, double close is safe |
+| `TenantResolutionIT` | Store name on its subdomain (ar/en); port and case ignored; TRIAL and SUSPENDED stores served; unknown, closed, multi-label and too-short hosts get 404; base, `admin.`, `www.` and `localhost` hosts are platform; static assets skip lookup; tenant cleared after the request |
+| `NotFoundPageIT` | Real server, raw `Host` header: the unknown-store 404 page in Arabic and in the cookie language; unknown paths get the HTML page, not JSON |
+| `TenancyArchitectureTests` | Only `platformadmin`, `billing` and `shared` may use `PlatformDatabase`; `@TenantId` appears only in `TenantScopedEntity` |
+| Unit | `TenantContextTest`, `IdsTest`, `LocalizedTextTest`, `StoreHostsTest` |
+
+**Checking the tests catch real breakage:** with `enable_tenant_rls` removed from the probe table, `RlsCoverageIT` (2 tests) and the 4 raw-SQL isolation tests fail. The JPA and HTTP isolation tests still pass, which shows the Hibernate layer isolates tenants on its own.
+
+**Manual check:** with docker-compose Postgres and the `local` profile, V2 and V3 applied and `demo1`/`demo2` were seeded. With the `Host` header set: `demo1.lvh.me:8080` shows "أهلاً بك في متجر الياسمين" ("Welcome to Jasmine Store" with `?lang=en`), `demo2` shows its own name, `nosuch.lvh.me:8080` returns the 404 page, `lvh.me:8080` shows the platform placeholder, and health is UP.
+
+### Decisions and deviations
+
+- **Spring problem details turned off** (`spring.mvc.problemdetails.enabled: false`). With it on, every unknown URL answered browsers with JSON. RFC 7807 errors return with the REST API in M14, scoped to `/api/**`.
+- **`spring.flyway.url` is set explicitly** (`${DB_URL:}`). Flyway cannot derive the URL from the wrapped DataSource. The empty default only covers auto-configuration condition evaluation in tests.
+- **The filter takes `@Lazy StoreLookup`.** Tomcat creates filters before the rest of the context; eager JPA there broke `RANDOM_PORT` tests and slows startup.
+- **Store status:** CLOSED stores answer 404. SUSPENDED stores are still served until billing (M12) adds the "temporarily unavailable" page.
+- **Unmapped `store` columns:** `plan_code`, `theme` and `created_by` exist in the schema but are mapped in M12, M5 and M2.
+- **Hibernate 6.6 has no UUIDv7 generator**, so `Ids` implements RFC 9562 v7 with `SecureRandom`.
+
+### Notes for later milestones
+
+- **Switch tenants only outside a transaction.** The connection is bound when it is borrowed. A mismatch fails closed (both layers return nothing), but it is still a bug.
+- **Async event listeners (M8+) don't inherit `TenantContext`.** Events must carry `tenantId`, and listeners wrap their work in `TenantContext.runAs`.
+- **M2:** merchant admin and driver set the tenant from the session principal. Signup must reject `StoreHosts.RESERVED_SUBDOMAINS` as slugs.
+- **New platform tables** must be added to `RlsCoverageIT.PLATFORM_TABLES`.
+
+### Next: M2, identity
+
+Platform admin login, merchant signup (creates store + owner), staff roles, merchant login, security chains.

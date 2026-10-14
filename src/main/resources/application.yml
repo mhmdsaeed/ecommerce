@@ -10,8 +10,11 @@ spring:
     url: ${DB_URL}
     username: ${DB_APP_USER}
     password: ${DB_APP_PASSWORD}
-  # Flyway connects separately as the schema owner.
+  # Flyway connects separately as the schema owner. The url is explicit because Flyway cannot derive it from
+  # the tenant-bound DataSource wrapper. The empty default only matters while auto-configuration conditions are
+  # evaluated, before test properties exist; a missing DB_URL still fails on the application DataSource.
   flyway:
+    url: ${DB_URL:}
     user: ${DB_OWNER_USER}
     password: ${DB_OWNER_PASSWORD}
     locations: classpath:db/migration
@@ -21,9 +24,11 @@ spring:
       ddl-auto: validate
     properties:
       hibernate.jdbc.time_zone: UTC
+  # Global problem details would answer every unknown URL with JSON, even for browsers. RFC 7807 errors come with
+  # the REST API (M14), scoped to /api/**; pages get the localized error templates.
   mvc:
     problemdetails:
-      enabled: true
+      enabled: false
 
 server:
   error:
@@ -47,3 +52,7 @@ management:
 
 app:
   base-domain: ${APP_BASE_DOMAIN:lvh.me:8080}
+  # Cross-tenant access for platform admin and billing (PlatformDatabase): same database, BYPASSRLS role.
+  platform-datasource:
+    username: ${DB_PLATFORM_USER}
+    password: ${DB_PLATFORM_PASSWORD}
