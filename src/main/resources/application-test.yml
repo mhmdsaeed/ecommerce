@@ -1,0 +1,5 @@
+# Integration tests. Database properties are supplied by TestcontainersConfig.
+management:
+  endpoint:
+    health:
+      show-details: always

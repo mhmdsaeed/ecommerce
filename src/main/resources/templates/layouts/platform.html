@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<!--/* Layout for the platform area. Pages use layout:decorate="~{layouts/platform}" and fill the "content" fragment. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/base}">
+<body>
+<div layout:fragment="body" class="flex min-h-screen flex-col" data-area="platform">
+    <header class="border-b border-gray-200">
+        <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
+            <span class="text-lg font-semibold" th:text="#{app.name}">App</span>
+            <nav class="flex gap-3 text-sm">
+                <a th:href="@{''(lang='ar')}" lang="ar" th:text="#{lang.ar}">العربية</a>
+                <a th:href="@{''(lang='en')}" lang="en" th:text="#{lang.en}">English</a>
+            </nav>
+        </div>
+    </header>
+    <main id="content" class="mx-auto w-full max-w-5xl flex-1 px-4 py-8" layout:fragment="content"></main>
+    <footer class="border-t border-gray-200 py-4 text-center text-xs text-gray-500" th:text="#{layout.footer}">
+        All rights reserved
+    </footer>
+</div>
+</body>
+</html>

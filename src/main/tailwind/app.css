@@ -1,0 +1,20 @@
+/*
+ * Tailwind CSS v4 input, built by scripts/tailwind.sh into static/css/app.css.
+ * RTL rule: only logical utilities (ms-, me-, ps-, pe-, start-, end-, text-start, text-end).
+ * RtlSafeTemplatesTest fails the build on ml-, mr-, pl-, pr-, left-, right-, text-left, ...
+ */
+@import "tailwindcss" source(none);
+
+@source "../resources/templates";
+@source "../resources/static/js";
+
+@theme {
+  /* System fonts only: no web-font download on slow connections (SPEC 9.5, 18). */
+  --font-sans: "Segoe UI", Tahoma, "Noto Sans Arabic", "Geeza Pro", system-ui, -apple-system, Roboto, Arial, sans-serif;
+
+  --color-brand-50: oklch(0.97 0.02 165);
+  --color-brand-100: oklch(0.93 0.05 165);
+  --color-brand-500: oklch(0.65 0.14 165);
+  --color-brand-600: oklch(0.56 0.13 165);
+  --color-brand-700: oklch(0.48 0.11 165);
+}

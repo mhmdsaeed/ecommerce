@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      th:lang="${#locale.language}"
+      th:dir="${#locale.language == 'ar'} ? 'rtl' : 'ltr'">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title layout:title-pattern="$CONTENT_TITLE · $LAYOUT_TITLE" th:text="#{app.name}">App</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script th:src="@{/js/htmx.min.js}" defer></script>
+    <script th:src="@{/js/alpine.min.js}" defer></script>
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<!--/* hx-headers carries the CSRF token on every HTMX request once Spring Security is added (M2). */-->
+<body class="min-h-screen bg-white font-sans text-gray-900 antialiased"
+      th:hx-headers='${_csrf != null} ? |{"${_csrf.headerName}": "${_csrf.token}"}| : null'>
+<a href="#content" class="sr-only focus:not-sr-only focus:absolute focus:start-2 focus:top-2"
+   th:text="#{layout.skip-to-content}">Skip to content</a>
+<div layout:fragment="body"></div>
+</body>
+</html>

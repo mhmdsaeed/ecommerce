@@ -1,0 +1,49 @@
+# Shared configuration. Secrets and connection details come from environment variables (SPEC 15).
+spring:
+  application:
+    name: ecommerce
+  threads:
+    virtual:
+      enabled: true
+  # Runtime connections use app_user (NOBYPASSRLS, owns nothing).
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_APP_USER}
+    password: ${DB_APP_PASSWORD}
+  # Flyway connects separately as the schema owner.
+  flyway:
+    user: ${DB_OWNER_USER}
+    password: ${DB_OWNER_PASSWORD}
+    locations: classpath:db/migration
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  mvc:
+    problemdetails:
+      enabled: true
+
+server:
+  error:
+    include-stacktrace: never
+    include-message: never
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        same-site: lax
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+app:
+  base-domain: ${APP_BASE_DOMAIN:lvh.me:8080}

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/storefront}">
+<head>
+    <title th:text="#{placeholder.title}">Coming soon</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <section class="mx-auto max-w-2xl py-16 text-center">
+        <p class="text-sm font-medium text-brand-600" th:text="#{placeholder.title}">Coming soon</p>
+        <h1 class="mt-3 text-3xl font-bold tracking-tight sm:text-4xl" th:text="#{placeholder.heading}">Heading</h1>
+        <p class="mt-4 text-start text-gray-600 sm:text-center" th:text="#{placeholder.body}">Body</p>
+    </section>
+</main>
+</body>
+</html>
