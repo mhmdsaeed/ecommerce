@@ -8,7 +8,7 @@ Multi-tenant e-commerce SaaS for small merchants in Syria: Spring Boot modular m
 
 ## Quick start
 
-Requirements: Java 21 and Docker. No Node.js.
+Requirements: Java 21 and Docker. No Node.js. Compose publishes PostgreSQL on port 5433 (set `DB_PORT` and `DB_URL` to change it).
 
 ```bash
 cp .env.example .env               # local-only defaults

@@ -16,7 +16,8 @@ services:
       DB_PLATFORM_USER: ${DB_PLATFORM_USER:-app_platform}
       DB_PLATFORM_PASSWORD: ${DB_PLATFORM_PASSWORD:-app_platform_local}
     ports:
-      - "5432:5432"
+      # Host port 5433 so a PostgreSQL installed on the machine (usually on 5432) does not clash.
+      - "${DB_PORT:-5433}:5432"
     volumes:
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
       - postgres-data:/var/lib/postgresql/data

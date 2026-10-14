@@ -1,7 +1,7 @@
 # Local development against docker-compose. Defaults match .env.example.
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/ecommerce}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/ecommerce}
     username: ${DB_APP_USER:app_user}
     password: ${DB_APP_PASSWORD:app_user_local}
   flyway:
