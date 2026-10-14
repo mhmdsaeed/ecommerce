@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<!--/* Edit one delivery zone. The "fields" fragment is shared with the add form on the zones page. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="#{zone.edit.title}">Edit delivery zone</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <a th:href="@{/admin/delivery}" class="text-sm text-brand-700 hover:underline" th:text="#{zone.back}">Delivery zones</a>
+    <h1 class="mt-2 text-2xl font-bold" th:text="#{zone.edit.title}">Edit delivery zone</h1>
+
+    <form th:action="@{/admin/delivery/{id}(id=${zoneId})}" th:object="${form}" method="post"
+          class="mt-6 max-w-lg space-y-4 rounded-lg border border-gray-200 bg-white p-6" novalidate>
+        <th:block th:fragment="fields">
+            <th:block th:if="${#fields.hasGlobalErrors()}">
+                <div th:replace="~{fragments/forms :: alert(kind='error', message=${#fields.globalErrors()[0]})}"></div>
+            </th:block>
+            <div class="space-y-1">
+                <label for="governorate" class="block text-sm font-medium text-gray-800" th:text="#{zone.field.governorate}">Governorate</label>
+                <select th:field="*{governorate}" th:attr="aria-invalid=${#fields.hasErrors('governorate')}"
+                        class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                    <option value="" th:text="#{zone.field.governorate.choose}">Choose</option>
+                    <option th:each="governorate : ${governorates}" th:value="${governorate}"
+                            th:text="#{governorate.__${governorate}__}">Damascus</option>
+                </select>
+                <p th:if="${#fields.hasErrors('governorate')}" th:errors="*{governorate}" class="text-sm text-red-600">Error</p>
+            </div>
+            <div th:replace="~{fragments/forms :: input(field='city', label=#{zone.field.city}, hint=#{zone.field.city.hint})}"></div>
+            <div th:replace="~{fragments/forms :: input(field='area', label=#{zone.field.area}, hint=#{zone.field.area.hint})}"></div>
+            <div class="grid grid-cols-3 gap-3">
+                <div class="col-span-2" th:insert="~{fragments/forms :: input(field='fee', label=#{zone.field.fee}, inputmode='decimal', ltr=true, hint=#{zone.field.fee.hint})}"></div>
+                <div class="space-y-1">
+                    <label for="currency" class="block text-sm font-medium text-gray-800" th:text="#{zone.field.currency}">Currency</label>
+                    <select th:field="*{currency}"
+                            class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                        <option th:each="currency : ${currencies}" th:value="${currency}"
+                                th:text="#{currency.name.__${currency}__}">SYP</option>
+                    </select>
+                    <p th:if="${#fields.hasErrors('currency')}" th:errors="*{currency}" class="text-sm text-red-600">Error</p>
+                </div>
+            </div>
+            <div th:replace="~{fragments/forms :: input(field='minOrder', label=#{zone.field.minOrder}, inputmode='decimal', ltr=true, hint=#{zone.field.minOrder.hint})}"></div>
+            <div th:replace="~{fragments/forms :: input(field='freeOver', label=#{zone.field.freeOver}, inputmode='decimal', ltr=true, hint=#{zone.field.freeOver.hint})}"></div>
+            <div th:replace="~{fragments/forms :: input(field='etaAr', label=#{zone.field.etaAr}, hint=#{zone.field.eta.hint})}"></div>
+            <div th:replace="~{fragments/forms :: input(field='etaEn', label=#{zone.field.etaEn}, ltr=true)}"></div>
+        </th:block>
+        <button th:replace="~{fragments/forms :: submit(label=#{zone.edit.submit})}">Save</button>
+    </form>
+</main>
+</body>
+</html>

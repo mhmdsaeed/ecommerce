@@ -23,6 +23,7 @@ import com.unispark.ecommerce.catalog.Categories.InUse;
 import com.unispark.ecommerce.catalog.Categories.Invalid;
 import com.unispark.ecommerce.catalog.Categories.NotFound;
 import com.unispark.ecommerce.catalog.Categories.Saved;
+import com.unispark.ecommerce.merchantadmin.internal.web.FormErrors;
 import com.unispark.ecommerce.shared.Htmx;
 
 /**

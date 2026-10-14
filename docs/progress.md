@@ -491,6 +491,82 @@ Run with a portable Node.js 24 and `npm install lighthouse` in the session scrat
 - **Stock is changed through SQL, not JPA:** `StockLevel` is read-only in practice. Optimistic locking of the entity is replaced by conditional updates, which is stronger for this case.
 - **Variant deletion** (redefining options) cascades to stock and cart lines. Once orders exist (M8), deleting a variant with reservations must be blocked.
 
-### Next: M7, delivery zones and customer addresses
+## M7: Delivery zones and customer addresses (done, 2026-10-14)
 
-Zone matching tests pass; checkout fee computed.
+**Done when:** zone matching tests pass (`ZoneMatcherTest`, plus matching through the database in `DeliveryZonesIT`); the checkout fee is computed (`FeeRulesTest`, `DeliveryQuotes` in `DeliveryZonesIT` and `CustomerIT`, and shown under the cart in `DeliveryEstimateIT` and live).
+
+### What was built
+
+- **Migration `V9__delivery_and_customers.sql`:** three tenant tables, all with `enable_tenant_rls`.
+  - `delivery_zone`: governorate (CHECK against the 14), optional city, optional area (needs a city), fee, currency, optional `min_order` and `free_over`, `eta_text` jsonb, active.
+    - `city_key` and `area_key` hold the names folded for matching.
+    - `UNIQUE NULLS NOT DISTINCT (tenant_id, governorate, city_key, area_key)`: one zone per destination, including whole-governorate zones.
+  - `customer`: phone in E.164, unique per store; name, blocked, block reason, order and refusal counts.
+  - `customer_address`: governorate, city, optional area, landmark and/or details (at least one), optional phone, optional lat/lng pair (range checks). It has a composite foreign key to its customer.
+- **`delivery` module (new):**
+  - `Governorate` enum and `Destination` (governorate, city, area; names trimmed, `key()` folds them).
+  - `DeliveryZones`: list, find, create, update, pause/resume, delete; `match(destination)`; `coverage()` (where active zones deliver, for address forms).
+  - **Matching** (`ZoneMatcher`, pure): among the active zones of the governorate, an area zone beats a city zone, which beats a whole-governorate zone. Names match after folding: hamza forms, ta marbuta, alef maksura, diacritics, tatweel, case and spaces, so "المزه" finds "المزة".
+  - **Fees** (`FeeRules`, pure):
+    - zone amounts go through `Prices.display`, so a dollar zone shows in pounds at the store's rate and rounding, like product prices;
+    - below the minimum gives `BelowMinimum` (with the shortfall); at or above free-over, delivery is free;
+    - `Deliverable` carries fee, total, "add X for free delivery" and the ETA;
+    - thresholds that cannot be converted (no rate yet) are not applied, so a missing rate never blocks delivery.
+  - `DeliveryQuotes.quote(destination, subtotal)` goes through the SPEC 8 SPI: a sealed `ShippingProvider` with its one implementation `MerchantDeliveryProvider`.
+- **`customer` module (new):** `Customers` with `register(phone, name)` (any Syrian spelling; `INSERT … ON CONFLICT DO NOTHING`, so concurrent checkouts with one new phone share the customer) and add, update, remove and list addresses, at most 10 per customer. Validation reports field problems. `AddressView.destination()` feeds the quote. There is no UI yet: checkout and OTP (M8) create customers.
+- **`shared`:** `ArabicText.fold` (the search normalization from M5, now shared; `ProductSearch` delegates to it). `Money.plus`, `minus`, `isLessThan` and `sameCurrency` refuse to mix currencies.
+- **Merchant admin, Delivery** (`/admin/delivery`, owners and managers; the nav link only shows for them):
+  - the list shows destination and scope, fee or "free", minimum, free-over and ETA, and status;
+  - the add form swaps the section over HTMX; editing uses its own page with post/redirect/get; pause/resume and delete (with confirm) also use HTMX;
+  - amounts accept Arabic digits and grouping, and new zones default to the base currency;
+  - errors stay on their fields, and a duplicate destination (in any spelling) gets a form-level message.
+  - `FormErrors` moved up to `merchantadmin.internal.web` to be shared.
+- **Storefront cart, delivery box** (only when the store has active zones and the cart has items):
+  - governorate select (only governorates the store delivers to), plus city and area inputs with `<datalist>` suggestions taken from the zones;
+  - changes ask `GET /cart/delivery` over HTMX (no CSRF needed). The answer is the quote fragment, with the suggestion lists swapped out of band, so the inputs keep focus;
+  - the box asks for the next level (city, then area) instead of saying "not delivered" too early, then shows fee or free, ETA, total with delivery, "add X for free delivery", the minimum order shortfall, or "we do not deliver there";
+  - the choice is kept in an HttpOnly `delivery_to` cookie (Base64url), so quantity changes keep the quote, and checkout (M8) can start from it. Without JavaScript the form's GET sets the cookie and redirects to `/cart`.
+- **Local seed** (`LocalDemoDelivery`):
+  - demo1: Damascus city 2,000 (free from 50,000), Mazzeh area 1,500, all of Rif Dimashq 3,500 (minimum 10,000), Aleppo city $5 (minimum $20);
+  - demo2: Homs city 2,500.
+- **Fix to M6:** the cart controller read the `cart` cookie with `@CookieValue`, which URL-decodes it, so a tampered value like `%%%` answered 500. Both cart cookies are now read raw (`CartCookies.token`), and a malformed token is just no cart.
+
+### Verified live (local profile, curl on demo1)
+
+- V9 applied, and the zones were seeded.
+- 4 coffee mugs added (4 × 535 = 2,140). The cart shows the delivery box with Damascus, Rif Dimashq and Aleppo only.
+  - Damascus → "enter your city", with دمشق suggested.
+  - دمشق / المزه (another spelling) → fee 1,500, "same day", total 3,640, "add 47,860 for free delivery".
+  - Rif Dimashq, any city → minimum 10,000, add 7,860.
+  - Aleppo → the $20 minimum shown as 2,370 ل.س at the demo rate, add 230.
+  - Homs (not covered) → asks for a governorate again.
+- Admin `/admin/delivery` as the owner: the 4 zones, with scope, fee (`5 $` for Aleppo), rules and ETA.
+- **Found and fixed:** a garbage `cart` cookie gave 500 (see above). It now answers 200 with an empty cart. A garbage `delivery_to` cookie was already safe.
+
+### Tests (422, all green: 245 unit, 177 integration)
+
+| Test | Checks |
+|---|---|
+| `ZoneMatcherTest` (9) | Area beats city beats governorate, whatever the order; a city zone covers its other areas; a governorate zone covers every city; nothing outside the zones; the same city name in another governorate or the same area name in another city doesn't match; paused zones fall back to broader ones; spelling variants (spaces, diacritics, tatweel, ة/ه, hamza, Latin case) |
+| `FeeRulesTest` (7) | Fee plus subtotal; free zone; free from the threshold (49,999 vs 50,000); minimum with shortfall; dollar zone at 118.5 (fee 595, minimum 2,370, free from 4,740); no rate: thresholds skipped and no total; unknown subtotal |
+| `DeliveryZonesIT` (8) | HTMX add with Arabic digits and grouping; validation (area without city, European `12,50`, zero minimum, crafted governorate); duplicate in another spelling; edit, pause and delete; STAFF gets 403 and no nav link; another store gets 404 and can reuse the destination; quotes through the database (most specific zone, free over, conversion before and after a rate is set); coverage; `NULLS NOT DISTINCT` refuses a second whole-governorate zone even through raw SQL |
+| `CustomerIT` (8) | One customer per phone in any spelling, with the name updated; invalid phone and name; 8 concurrent registrations give one customer; addresses saved (trimmed, phone normalized, coordinates scaled), updated, removed, listed in order; validation; 10-address limit; another customer or store can't touch them, the same phone is a separate customer elsewhere, and the composite foreign key refuses a cross-store address; a saved address priced by its area zone |
+| `DeliveryEstimateIT` (4) | Cart box: prompts for governorate, then city; fee, total, ETA, "add 30,000"; area zone; free zone; minimum; not delivered; the cookie keeps the destination across quantity changes, up to free delivery at the threshold; no-JS redirect; crafted governorate, script in the city and a garbage cookie handled; no box without zones or items |
+| Unit | `ArabicTextTest`, `CartCookiesTest` (round trip, tampering), `MoneyTest` (arithmetic, mixed currencies refused) |
+| `CartIT` | New: a malformed cart cookie is an empty cart, not a 500 |
+| `RlsCoverageIT` | Covers `delivery_zone`, `customer` and `customer_address` automatically |
+
+### Decisions and deviations
+
+- **Whole-governorate zones** (city left empty) were added to SPEC 8's governorate → city → area. Many Syrian merchants charge one fee per governorate outside their own city.
+- **Zone names are free text with folded matching**, not a fixed list of cities and areas: there is no reliable public list for Syria, and merchants name areas the way their customers do. Shoppers get suggestions from the zones but may type anything; an unknown city falls back to a whole-governorate zone if there is one.
+- **Fees are converted like prices** (display currency, store rounding), so they add up with the cart. The order (M8) will snapshot the fee with the rate.
+- **The minimum order and free delivery compare against the cart subtotal before delivery.** If the subtotal mixes currencies (no rate yet), only the fee is shown.
+- **Customers have no admin page yet.** The customer list, blocking and refusal history arrive with order management (M9), where they are used.
+- **Deleting a zone is allowed.** Orders will keep a snapshot and `zone_id` (M8); if a foreign key is added then, deleting a used zone should become pausing.
+
+### Notes for M8 (checkout and orders)
+
+- Start the address form from the `delivery_to` cookie, and require an address whose `DeliveryQuotes.quote` is `Deliverable`. Re-quote on submit, because zones may change.
+- Snapshot the fee in the charge currency, plus the rate. `Deliverable.zone()` carries the zone's own amounts.
+- `Customers.register` on checkout; the counters (`order_count`, `refused_count`) and `blocked` feed the SPEC 6.4 limits.

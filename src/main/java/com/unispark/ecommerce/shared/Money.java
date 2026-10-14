@@ -31,4 +31,28 @@ public record Money(BigDecimal amount, Currency currency) {
     public boolean isPositive() {
         return amount.signum() > 0;
     }
+
+    public boolean sameCurrency(Money other) {
+        return other != null && currency == other.currency;
+    }
+
+    /** Both amounts must be in the same currency; converting is the pricing module's job. */
+    public Money plus(Money other) {
+        return new Money(amount.add(requireSameCurrency(other).amount), currency);
+    }
+
+    public Money minus(Money other) {
+        return new Money(amount.subtract(requireSameCurrency(other).amount), currency);
+    }
+
+    public boolean isLessThan(Money other) {
+        return amount.compareTo(requireSameCurrency(other).amount) < 0;
+    }
+
+    private Money requireSameCurrency(Money other) {
+        if (!sameCurrency(other)) {
+            throw new IllegalArgumentException("Different currencies: " + this + " and " + other);
+        }
+        return other;
+    }
 }

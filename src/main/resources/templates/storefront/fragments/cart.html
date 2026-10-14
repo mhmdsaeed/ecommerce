@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--/* Cart fragments.
-       cart:  the whole cart (model: cart, optional notice). Quantity buttons and remove swap it over HTMX.
+       cart:  the whole cart (model: cart, delivery, optional notice). Quantity buttons and remove swap it over HTMX.
        added: the answer to "add to cart" on the product page (model: notice, null when all was added). */-->
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
@@ -71,13 +71,101 @@
                 <th:block th:each="total, state : ${cart.totals()}"><bdi class="font-bold"
                         th:text="${@shopPrices.format(total)}">3,000</bdi><span th:unless="${state.last}"> + </span></th:block>
             </p>
-            <p class="text-sm text-gray-600" th:text="#{shop.cart.subtotal.note}">Delivery is calculated at checkout.</p>
+            <p th:unless="${delivery.shown()}" class="text-sm text-gray-600" th:text="#{shop.cart.subtotal.note}">Delivery is calculated at checkout.</p>
+        </div>
+
+        <th:block th:if="${delivery.shown()}"><section th:replace="~{storefront/fragments/cart :: delivery}"></section></th:block>
+
+        <div class="flex justify-end">
             <button type="button" disabled
                     class="w-full rounded-md bg-brand-600 px-4 py-3 font-medium text-white opacity-60 sm:w-auto"
                     th:text="#{shop.cart.checkout-soon}">Checkout (coming soon)</button>
         </div>
     </th:block>
 </section>
+
+<!--/* Delivery box (model: delivery, a DeliveryEstimate). Changing the destination asks GET /cart/delivery, which
+       answers with "delivery-update": the quote, plus the suggestion lists swapped out of band. */-->
+<section th:fragment="delivery" id="delivery" class="rounded-lg border border-gray-200 p-4" aria-labelledby="delivery-heading">
+    <h2 id="delivery-heading" class="font-semibold" th:text="#{shop.delivery.heading}">Delivery</h2>
+    <form th:action="@{/cart/delivery}" method="get" th:hx-get="@{/cart/delivery}" hx-trigger="change, submit"
+          hx-target="#delivery-quote" hx-swap="outerHTML" class="mt-3 grid gap-3 sm:grid-cols-3">
+        <div class="space-y-1">
+            <label for="delivery-governorate" class="block text-sm font-medium" th:text="#{shop.delivery.governorate}">Governorate</label>
+            <select id="delivery-governorate" name="governorate" autocomplete="address-level1"
+                    class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                <option value="" th:text="#{shop.delivery.governorate.choose}">Choose</option>
+                <option th:each="covered : ${delivery.coverage().governorates()}" th:value="${covered.governorate()}"
+                        th:selected="${covered.governorate() == delivery.governorate()}"
+                        th:text="#{governorate.__${covered.governorate()}__}">Damascus</option>
+            </select>
+        </div>
+        <div class="space-y-1">
+            <label for="delivery-city" class="block text-sm font-medium" th:text="#{shop.delivery.city}">City</label>
+            <input id="delivery-city" name="city" type="text" list="delivery-cities" maxlength="80" autocomplete="address-level2"
+                   th:value="${delivery.destination()?.city()}"
+                   class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+        </div>
+        <div class="space-y-1">
+            <label for="delivery-area" class="block text-sm font-medium" th:text="#{shop.delivery.area}">Area</label>
+            <input id="delivery-area" name="area" type="text" list="delivery-areas" maxlength="80" autocomplete="address-level3"
+                   th:value="${delivery.destination()?.area()}"
+                   class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+        </div>
+        <div class="sm:col-span-3">
+            <button type="submit" class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:border-brand-600"
+                    th:text="#{shop.delivery.calculate}">Calculate</button>
+        </div>
+    </form>
+    <th:block th:replace="~{storefront/fragments/cart :: delivery-lists(oob=false)}"></th:block>
+    <div th:replace="~{storefront/fragments/cart :: delivery-quote}"></div>
+</section>
+
+<th:block th:fragment="delivery-update">
+    <div th:replace="~{storefront/fragments/cart :: delivery-quote}"></div>
+    <th:block th:replace="~{storefront/fragments/cart :: delivery-lists(oob=true)}"></th:block>
+</th:block>
+
+<th:block th:fragment="delivery-lists(oob)">
+    <datalist id="delivery-cities" th:attr="hx-swap-oob=${oob} ? 'true' : null">
+        <option th:each="city : ${delivery.cities()}" th:value="${city}"></option>
+    </datalist>
+    <datalist id="delivery-areas" th:attr="hx-swap-oob=${oob} ? 'true' : null">
+        <option th:each="area : ${delivery.areas()}" th:value="${area}"></option>
+    </datalist>
+</th:block>
+
+<div th:fragment="delivery-quote" id="delivery-quote" class="mt-4 text-sm" role="status">
+    <p th:if="${delivery.prompt() != null}" class="text-gray-600"
+       th:text="#{shop.delivery.prompt.__${delivery.prompt()}__}">Choose your governorate.</p>
+    <p th:if="${delivery.notDelivered()}" class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-red-800"
+       th:text="#{shop.delivery.not-delivered}">We do not deliver there yet.</p>
+    <th:block th:with="below=${delivery.belowMinimum()}">
+        <p th:if="${below != null}" class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900"
+           th:text="#{shop.delivery.below-minimum(${@shopPrices.format(below.minimum())}, ${@shopPrices.format(below.shortBy())})}">Minimum order.</p>
+    </th:block>
+    <th:block th:with="quote=${delivery.deliverable()}">
+        <div th:if="${quote != null}" class="space-y-2">
+            <dl class="space-y-1">
+                <div class="flex justify-between gap-4">
+                    <dt th:text="#{shop.delivery.fee}">Delivery</dt>
+                    <dd th:if="${quote.free()}" class="font-medium text-brand-700" th:text="#{shop.delivery.free}">Free</dd>
+                    <dd th:unless="${quote.free()}"><bdi class="font-medium" th:text="${@shopPrices.format(quote.fee())}">2,000</bdi></dd>
+                </div>
+                <div th:if="${quote.eta() != null}" class="flex justify-between gap-4 text-gray-600">
+                    <dt th:text="#{shop.delivery.eta}">Delivery time</dt>
+                    <dd th:text="${quote.eta().in(#locale)}">Within a day</dd>
+                </div>
+                <div th:if="${quote.total() != null}" class="flex justify-between gap-4 border-t border-gray-200 pt-2 text-base">
+                    <dt class="font-semibold" th:text="#{shop.delivery.total}">Total</dt>
+                    <dd><bdi class="font-bold" th:text="${@shopPrices.format(quote.total())}">5,000</bdi></dd>
+                </div>
+            </dl>
+            <p th:if="${quote.untilFree() != null}" class="text-brand-700"
+               th:text="#{shop.delivery.until-free(${@shopPrices.format(quote.untilFree())})}">Add more for free delivery.</p>
+        </div>
+    </th:block>
+</div>
 
 <div th:fragment="added" th:switch="${notice == null ? 'ADDED' : notice.name()}" role="status" class="text-sm">
     <p th:case="'ADDED'" class="rounded-md border border-brand-600 bg-brand-50 px-3 py-2 text-brand-700">

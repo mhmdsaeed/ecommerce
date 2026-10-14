@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<!--/* Delivery zones. The "section" fragment (list + add form) is what HTMX requests get back. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="#{zone.title}">Delivery zones</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <h1 class="text-2xl font-bold" th:text="#{zone.title}">Delivery zones</h1>
+    <p class="mt-2 max-w-3xl text-sm text-gray-600" th:text="#{zone.intro}">Most specific zone wins.</p>
+    <div class="mt-4 space-y-2">
+        <th:block th:if="${param.created}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{zone.created})}"></div></th:block>
+        <th:block th:if="${param.updated}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{zone.updated})}"></div></th:block>
+    </div>
+
+    <section id="zones" th:fragment="section" class="mt-6 grid gap-8 lg:grid-cols-3">
+        <div class="space-y-3 lg:col-span-2">
+            <th:block th:if="${notice != null}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{${notice}})}"></div></th:block>
+
+            <p th:if="${zones.isEmpty()}" class="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-gray-600"
+               th:text="#{zone.empty}">No zones yet.</p>
+
+            <div th:unless="${zones.isEmpty()}" class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 text-gray-600">
+                    <tr>
+                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{zone.col.destination}">Destination</th>
+                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{zone.col.fee}">Fee</th>
+                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{zone.col.rules}">Rules</th>
+                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{zone.col.status}">Status</th>
+                        <th scope="col" class="px-4 py-3"><span class="sr-only" th:text="#{zone.col.actions}">Actions</span></th>
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                    <tr th:each="zone : ${zones}">
+                        <td class="px-4 py-3">
+                            <div class="font-medium">
+                                <span th:text="#{governorate.__${zone.governorate()}__}">Damascus</span><th:block th:if="${zone.city() != null}"> › <span th:text="${zone.city()}">City</span></th:block><th:block th:if="${zone.area() != null}"> › <span th:text="${zone.area()}">Area</span></th:block>
+                            </div>
+                            <div class="text-xs text-gray-500"
+                                 th:text="${zone.coversWholeGovernorate()} ? #{zone.scope.governorate} : (${zone.coversWholeCity()} ? #{zone.scope.city} : #{zone.scope.area})">Whole city</div>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <bdi th:if="${zone.fee().isPositive()}" th:text="${@money.format(zone.fee())}">2,000</bdi>
+                            <span th:unless="${zone.fee().isPositive()}" th:text="#{zone.free}">Free</span>
+                        </td>
+                        <td class="px-4 py-3 text-gray-600">
+                            <div th:if="${zone.minOrder() != null}" th:text="#{zone.rule.min(${@money.format(zone.minOrder())})}">Min order</div>
+                            <div th:if="${zone.freeOver() != null}" th:text="#{zone.rule.free-over(${@money.format(zone.freeOver())})}">Free over</div>
+                            <div th:if="${zone.eta() != null}" th:text="${zone.eta().in(#locale)}">ETA</div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span th:if="${zone.active()}" class="rounded-full bg-brand-50 px-2 py-0.5 text-xs text-brand-700" th:text="#{zone.status.active}">Active</span>
+                            <span th:unless="${zone.active()}" class="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600" th:text="#{zone.status.paused}">Paused</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex flex-wrap items-center justify-end gap-3">
+                                <a th:href="@{/admin/delivery/{id}/edit(id=${zone.id()})}" class="text-brand-700 hover:underline"
+                                   th:text="#{zone.action.edit}">Edit</a>
+                                <form th:action="@{/admin/delivery/{id}/active(id=${zone.id()})}" method="post"
+                                      th:hx-post="@{/admin/delivery/{id}/active(id=${zone.id()})}" hx-target="#zones" hx-swap="outerHTML">
+                                    <input type="hidden" name="active" th:value="${!zone.active()}">
+                                    <button type="submit" class="text-brand-700 hover:underline"
+                                            th:text="${zone.active()} ? #{zone.action.pause} : #{zone.action.resume}">Pause</button>
+                                </form>
+                                <form th:action="@{/admin/delivery/{id}/delete(id=${zone.id()})}" method="post"
+                                      th:hx-post="@{/admin/delivery/{id}/delete(id=${zone.id()})}" hx-target="#zones" hx-swap="outerHTML"
+                                      th:hx-confirm="#{zone.delete.confirm}">
+                                    <button type="submit" class="text-red-700 hover:underline" th:text="#{zone.action.delete}">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="rounded-lg border border-gray-200 bg-white p-6">
+            <h2 class="text-lg font-semibold" th:text="#{zone.add.heading}">Add a zone</h2>
+            <form th:action="@{/admin/delivery}" th:object="${form}" method="post" class="mt-4 space-y-4" novalidate
+                  th:hx-post="@{/admin/delivery}" hx-target="#zones" hx-swap="outerHTML">
+                <th:block th:replace="~{merchantadmin/delivery/zone-edit :: fields}"></th:block>
+                <button th:replace="~{fragments/forms :: submit(label=#{zone.add.submit})}">Add</button>
+            </form>
+        </div>
+    </section>
+</main>
+</body>
+</html>

@@ -27,6 +27,7 @@ import com.unispark.ecommerce.catalog.Products.NotFound;
 import com.unispark.ecommerce.catalog.Products.ProductDetails;
 import com.unispark.ecommerce.catalog.Products.ProductResult;
 import com.unispark.ecommerce.catalog.Products.Saved;
+import com.unispark.ecommerce.merchantadmin.internal.web.FormErrors;
 import com.unispark.ecommerce.shared.Currency;
 import com.unispark.ecommerce.shared.Htmx;
 import com.unispark.ecommerce.tenant.StoreSettings;

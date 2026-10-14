@@ -16,6 +16,8 @@
                     <a th:href="@{/admin/products}" th:text="#{admin.nav.products}">Products</a>
                     <a th:href="@{/admin/categories}" th:text="#{admin.nav.categories}">Categories</a>
                     <a th:href="@{/admin/inventory}" th:text="#{admin.nav.inventory}">Inventory</a>
+                    <a th:if="${currentStaff.role().managesStaff()}" th:href="@{/admin/delivery}"
+                       th:text="#{admin.nav.delivery}">Delivery</a>
                     <a th:if="${currentStaff.role().managesStaff()}" th:href="@{/admin/settings}"
                        th:text="#{admin.nav.settings}">Settings</a>
                     <a th:if="${currentStaff.role().managesStaff()}" th:href="@{/admin/staff}"

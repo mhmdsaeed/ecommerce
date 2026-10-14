@@ -253,6 +253,13 @@ class CartIT {
     }
 
     @Test
+    void malformedCartCookieIsAnEmptyCart() throws Exception {
+        mvc.perform(get(shop + "/cart").cookie(new Cookie("cart", "%%%")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("سلتك فارغة.")));
+    }
+
+    @Test
     void deletesExpiredCarts() throws Exception {
         var shopper = new Shopper();
         shopper.visit("/");
