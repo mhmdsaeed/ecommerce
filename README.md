@@ -16,6 +16,8 @@ docker compose up -d               # PostgreSQL, MinIO, Mailpit
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
+In IntelliJ IDEA, use the shared run configuration **EcommerceApplication (local)** (`.run/`), which activates the `local` profile. Without that profile the app has no database URL and stops with `'url' must start with "jdbc"`. Set the project SDK to Java 21.
+
 Open http://lvh.me:8080 (Arabic, RTL) or http://lvh.me:8080/?lang=en. `lvh.me` and its subdomains resolve to 127.0.0.1, so each site gets its own host. Health: http://lvh.me:8080/actuator/health.
 
 The `local` profile seeds demo data. These credentials exist only in local databases:
