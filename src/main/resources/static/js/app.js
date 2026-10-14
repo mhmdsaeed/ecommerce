@@ -1,6 +1,31 @@
 // Application-wide behaviour. Keep small: the storefront JS budget is 40 KB gzipped in total (SPEC 9.5).
-// The CSRF header for HTMX requests is set declaratively via hx-headers on <body> (layouts/base.html).
 // Loaded before Alpine, so components registered on alpine:init exist when Alpine starts.
+
+function readCookie(name) {
+  var match = document.cookie.match(new RegExp("(?:^|;\\s*)" + name + "=([^;]*)"));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+// CSRF for HTMX requests. Admin pages set the header via hx-headers on <body> (layouts/base.html). Storefronts
+// keep the token in the XSRF-TOKEN cookie instead (no session per shopper), so copy it into the header here.
+document.addEventListener("htmx:configRequest", function (event) {
+  var token = readCookie("XSRF-TOKEN");
+  if (token) {
+    event.detail.headers["X-XSRF-TOKEN"] = token;
+  }
+});
+
+// Storefront header: the cart's item count, from the cart_count cookie the server sets on every cart change.
+// Refreshed on the cart-changed event (HX-Trigger) and when the page comes back from the back/forward cache.
+document.addEventListener("alpine:init", function () {
+  window.Alpine.data("cartBadge", function () {
+    return {
+      count: 0,
+      init: function () { this.refresh(); },
+      refresh: function () { this.count = parseInt(readCookie("cart_count") || "0", 10) || 0; }
+    };
+  });
+});
 
 // htmx does not swap 4xx/5xx responses, so a failed request would otherwise look like nothing happened.
 // Pages that want feedback include an element with id "htmx-error" holding the localized message.
@@ -16,8 +41,9 @@
   document.addEventListener("htmx:sendError", function () { showError(true); });
 })();
 
-// Product page: picks the variant matching the chosen option values and shows its price.
-// data-variants holds [{id, values: [label per option], price, compareAt}] for the available variants.
+// Product page: picks the variant matching the chosen option values and shows its price and stock.
+// data-variants holds [{id, values: [label per option], price, compareAt, inStock}] for the available variants.
+// Starts on the first variant in stock.
 document.addEventListener("alpine:init", function () {
   window.Alpine.data("variantPicker", function () {
     return {
@@ -27,10 +53,12 @@ document.addEventListener("alpine:init", function () {
       compareAt: "",
       variantId: null,
       unavailable: false,
+      soldOut: false,
       init: function () {
         this.variants = JSON.parse(this.$el.dataset.variants || "[]");
-        if (this.variants.length > 0) {
-          this.chosen = this.variants[0].values.slice();
+        var first = this.variants.find(function (variant) { return variant.inStock; }) || this.variants[0];
+        if (first) {
+          this.chosen = first.values.slice();
         }
         this.update();
         this.$watch("chosen", this.update.bind(this));
@@ -41,6 +69,7 @@ document.addEventListener("alpine:init", function () {
           return variant.values.every(function (value, index) { return value === chosen[index]; });
         });
         this.unavailable = !match;
+        this.soldOut = !!match && !match.inStock;
         this.variantId = match ? match.id : null;
         if (match) {
           this.price = match.price;

@@ -1,5 +1,6 @@
 package com.unispark.ecommerce.tenant;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -9,4 +10,7 @@ public interface StoreLookup {
     Optional<StoreSummary> findBySlug(String slug);
 
     Optional<StoreSummary> findById(UUID id);
+
+    /** Every store id, for jobs that visit each tenant in turn (SPEC 14). */
+    List<UUID> allIds();
 }

@@ -11,6 +11,8 @@ public final class Htmx {
     public static final String REQUEST = "HX-Request";
     /** Response header: htmx navigates the whole page there instead of swapping a fragment. */
     public static final String REDIRECT = "HX-Redirect";
+    /** Response header: htmx fires these events on the requesting element; they bubble up to the window. */
+    public static final String TRIGGER = "HX-Trigger";
 
     private Htmx() {
     }

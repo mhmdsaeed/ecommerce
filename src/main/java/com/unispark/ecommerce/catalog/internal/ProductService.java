@@ -65,6 +65,19 @@ class ProductService implements Products {
 
     @Override
     @Transactional(readOnly = true)
+    public VariantPage variants(String query, int page) {
+        var normalized = ProductSearch.normalize(query);
+        var pattern = normalized.isEmpty() ? null : ProductSearch.containsPattern(normalized);
+        var result = variants.search(pattern, PageRequest.of(Math.max(page, 0), VARIANT_PAGE_SIZE));
+        return new VariantPage(result.getContent().stream()
+                .map(variant -> new VariantRow(variant.getId(), variant.getProduct().getId(),
+                        variant.getProduct().getName(), variant.getProduct().getStatus(),
+                        String.join(" / ", variant.getOptionValues()), variant.getSku(), variant.isActive()))
+                .toList(), result.getNumber(), result.getTotalPages(), result.getTotalElements());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<ProductDetails> find(UUID id) {
         return products.findById(id).map(CatalogViews::details);
     }

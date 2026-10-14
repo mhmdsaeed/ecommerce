@@ -65,6 +65,10 @@ public class ProductVariant extends TenantScopedEntity {
         this.position = position;
     }
 
+    public Product getProduct() {
+        return product;
+    }
+
     public int getPosition() {
         return position;
     }

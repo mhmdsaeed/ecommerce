@@ -25,4 +25,9 @@ class ShopPrices {
     public String show(Money price) {
         return price == null ? null : formatter.format(prices.display(price).amount(), LocaleContextHolder.getLocale());
     }
+
+    /** An amount that is already in display terms, such as a cart total: formatted only. */
+    public String format(Money amount) {
+        return amount == null ? null : formatter.format(amount, LocaleContextHolder.getLocale());
+    }
 }

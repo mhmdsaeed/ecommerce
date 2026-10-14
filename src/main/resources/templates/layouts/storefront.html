@@ -24,10 +24,20 @@
                 <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
                         th:text="#{shop.search.submit}">Search</button>
             </form>
-            <nav class="flex gap-3 text-sm" th:attr="aria-label=#{shop.language}">
-                <a th:href="@{/lang/ar}" lang="ar" hreflang="ar" th:text="#{lang.ar}" rel="nofollow">العربية</a>
-                <a th:href="@{/lang/en}" lang="en" hreflang="en" th:text="#{lang.en}" rel="nofollow">English</a>
-            </nav>
+            <div class="flex items-center gap-4 text-sm">
+                <nav class="flex gap-3" th:attr="aria-label=#{shop.language}">
+                    <a th:href="@{/lang/ar}" lang="ar" hreflang="ar" th:text="#{lang.ar}" rel="nofollow">العربية</a>
+                    <a th:href="@{/lang/en}" lang="en" hreflang="en" th:text="#{lang.en}" rel="nofollow">English</a>
+                </nav>
+                <!--/* The count comes from the cart_count cookie (app.js: cartBadge), so the page is the same for everyone. */-->
+                <a th:if="${shop != null}" th:href="@{/cart}" x-data="cartBadge"
+                   x-on:cart-changed.window="refresh()" x-on:pageshow.window="refresh()"
+                   class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 font-medium hover:border-brand-600">
+                    <span th:text="#{shop.cart}">Cart</span>
+                    <span x-show="count > 0" x-text="count" x-cloak
+                          class="min-w-5 rounded-full bg-brand-600 px-1.5 text-center text-xs leading-5 text-white"></span>
+                </a>
+            </div>
         </div>
         <nav th:if="${navigation != null and !navigation.isEmpty()}" class="border-t border-gray-100" th:attr="aria-label=#{shop.categories}">
             <ul class="mx-auto flex max-w-6xl gap-4 overflow-x-auto px-4 py-2 text-sm">
@@ -37,6 +47,10 @@
             </ul>
         </nav>
     </header>
+    <!--/* Shown by app.js when an HTMX request fails. */-->
+    <div id="htmx-error" role="alert" hidden
+         class="mx-auto mt-4 w-full max-w-6xl rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+         th:text="#{shop.htmx-error}">Something went wrong.</div>
     <main id="content" class="mx-auto w-full max-w-6xl flex-1 px-4 py-6" layout:fragment="content"></main>
     <footer class="border-t border-gray-200 py-4 text-center text-xs text-gray-500">
         <span th:text="${shop != null} ? ${shop.name().in(#locale)} : #{app.name}">Store</span> ·

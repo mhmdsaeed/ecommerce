@@ -27,6 +27,8 @@ import com.unispark.ecommerce.catalog.StorefrontCatalog;
 import com.unispark.ecommerce.catalog.StorefrontCatalog.PriceScale;
 import com.unispark.ecommerce.catalog.StorefrontCatalog.ProductView;
 import com.unispark.ecommerce.catalog.StorefrontCatalog.Sort;
+import com.unispark.ecommerce.catalog.StorefrontCatalog.VariantOffer;
+import com.unispark.ecommerce.inventory.Inventory;
 import com.unispark.ecommerce.pricing.ExchangeRates;
 import com.unispark.ecommerce.shared.Currency;
 import com.unispark.ecommerce.shared.TenantContext;
@@ -47,9 +49,11 @@ class StorefrontController {
     private final ShopPrices shopPrices;
     private final LocaleResolver locales;
     private final ObjectMapper json;
+    private final Inventory inventory;
 
     StorefrontController(StorefrontCatalog catalog, StoreSettings settings, ExchangeRates rates, ShopPrices shopPrices,
-            LocaleResolver locales, ObjectMapper json) {
+            LocaleResolver locales, ObjectMapper json, Inventory inventory) {
+        this.inventory = inventory;
         this.catalog = catalog;
         this.settings = settings;
         this.rates = rates;
@@ -134,14 +138,16 @@ class StorefrontController {
                 .orElse(PriceScale.NONE);
     }
 
-    /** For the Alpine variant picker: each available variant's values and its displayed prices. */
+    /** For the Alpine variant picker: each available variant's values, displayed prices and whether it is in stock. */
     private String variantsJson(ProductView product) throws JsonProcessingException {
+        var stock = inventory.levels(product.variants().stream().map(VariantOffer::id).toList());
         var variants = product.variants().stream().map(variant -> {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("id", variant.id().toString());
             entry.put("values", variant.optionValues());
             entry.put("price", shopPrices.show(variant.price()));
             entry.put("compareAt", shopPrices.show(variant.compareAtPrice()));
+            entry.put("inStock", stock.inStock(variant.id()));
             return entry;
         }).toList();
         return json.writeValueAsString(variants);

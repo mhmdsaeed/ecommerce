@@ -1,7 +1,9 @@
 package com.unispark.ecommerce.catalog;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -30,6 +32,12 @@ public interface StorefrontCatalog {
     Optional<ProductView> product(String slug);
 
     ResultPage search(String query, int page);
+
+    /**
+     * The variants among {@code variantIds} that shoppers may buy now: available variants of visible products.
+     * Missing ids are not for sale (archived product, hidden category, unknown id).
+     */
+    Map<UUID, Offer> offers(Collection<UUID> variantIds);
 
     enum Sort {
         NEWEST,
@@ -74,5 +82,14 @@ public interface StorefrontCatalog {
     /** Only available variants; {@code options} list only values that some available variant has. */
     record ProductView(UUID id, LocalizedText name, LocalizedText description, String slug, CategoryLink category,
             List<OptionView> options, List<VariantOffer> variants, List<ImageView> images) {
+    }
+
+    /** A purchasable variant as a cart line shows it. The image is the variant's own photo if it has one. */
+    record Offer(UUID variantId, UUID productId, LocalizedText productName, String productSlug, List<Choice> choices,
+            Money price, ImageView image) {
+    }
+
+    /** One option value of a variant, such as Size M. */
+    record Choice(LocalizedText option, LocalizedText value) {
     }
 }

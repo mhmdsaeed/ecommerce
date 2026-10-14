@@ -25,6 +25,7 @@ public interface Products {
     int MAX_VALUES_PER_OPTION = 20;
     int MAX_VARIANTS = 100;
     int PAGE_SIZE = 25;
+    int VARIANT_PAGE_SIZE = 50;
 
     ProductPage search(String query, ProductStatus status, int page);
 
@@ -43,6 +44,9 @@ public interface Products {
     ProductResult defineOptions(UUID id, List<OptionDraft> options);
 
     ProductResult updateVariants(UUID id, List<VariantDraft> variants);
+
+    /** Every variant of every product, for the inventory page. The query matches product names and SKUs. */
+    VariantPage variants(String query, int page);
 
     /** Blank slug: generated from the name. */
     record ProductDraft(String nameAr, String nameEn, String descriptionAr, String descriptionEn, String slug,
@@ -65,6 +69,22 @@ public interface Products {
         public boolean hasNext() {
             return page + 1 < totalPages;
         }
+    }
+
+    record VariantPage(List<VariantRow> items, int page, int totalPages, long totalItems) {
+
+        public boolean hasPrevious() {
+            return page > 0;
+        }
+
+        public boolean hasNext() {
+            return page + 1 < totalPages;
+        }
+    }
+
+    /** {@code label} joins the option values, empty for a product without options. */
+    record VariantRow(UUID id, UUID productId, LocalizedText productName, ProductStatus status, String label,
+            String sku, boolean active) {
     }
 
     record ProductSummary(UUID id, LocalizedText name, String slug, ProductStatus status, Money lowestPrice,

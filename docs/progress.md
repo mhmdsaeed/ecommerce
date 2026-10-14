@@ -418,6 +418,79 @@ Run with a portable Node.js 24 and `npm install lighthouse` in the session scrat
 - **The theme colour input can't be empty**, so the form starts from the platform green (#13896a). There's no "reset to default" yet.
 - **Hiding a category hides its products everywhere** (pages, search, home), not just its page.
 
-### Next: M6, cart and inventory reservations
+## M6: Cart and inventory reservations (done, 2026-10-14)
 
-Cart via HTMX; stock cannot go negative under a concurrent test.
+**Done when:** the cart works via HTMX (`CartIT` with the real CSRF cookie, and live in headless Edge on demo1); stock cannot go negative under a concurrent test (`InventoryIT`: 40 threads racing for 10 units, exactly 10 win).
+
+### What was built
+
+- **Inventory module** (`V8__inventory_and_cart.sql`, `stock_level`): stock per variant, `on_hand` and `reserved`.
+  - A variant without a row is **not tracked** and can always be bought. That keeps existing catalogs working and suits merchants who don't count stock.
+  - `Inventory.reserve` is all or nothing; also `release`, `deduct` (on delivery, from M8) and `setOnHand` (null stops tracking).
+  - Every change is a single conditional `UPDATE … WHERE on_hand - reserved >= :qty`. PostgreSQL re-checks the condition on the row it locks, so concurrent orders cannot oversell. Variants are updated in id order (no deadlocks).
+  - A failed multi-variant reservation undoes its own partial updates instead of marking the transaction rollback-only, so a caller's transaction (order placement, M8) stays usable.
+  - Table checks back this up: `on_hand >= 0` and `0 <= reserved <= on_hand`.
+  - Lowering stock below what is reserved, or untracking while reserved, is refused.
+  - SQL names `tenant_id` explicitly on top of RLS.
+- **Cart module** (`cart`, `cart_item`): carts found by a random 256-bit token in an HttpOnly cookie. The table stores only its SHA-256.
+  - Carts hold variants and quantities only. Names, prices (display currency, store rounding) and availability are looked up on every read, so the cart shows what checkout would charge now.
+  - What may be bought comes from the new `StorefrontCatalog.offers`, which applies the same visibility rule as the pages.
+  - Rules:
+    - quantities are capped by stock and 99 per line, with at most 50 lines;
+    - adding asks: sold out, limited, unavailable, cart full;
+    - lowering a quantity is always allowed;
+    - unavailable lines stay visible, with a remove button, and are left out of the totals.
+  - Changes lock the cart row (two tabs apply in turn). A cart lives 30 days after its last change.
+  - `CartExpiryJob` deletes expired carts hourly, store by store inside each tenant context. It uses Spring `@Scheduled` until JobRunr arrives (M11), and is disabled in tests via `app.scheduling.enabled`.
+  - Without an exchange rate, foreign-currency prices can't be converted; totals then show one amount per currency.
+- **Storefront** (SPEC 9.2): `GET /cart`, `POST /cart/items`, `PATCH /cart/items/{id}` (0 removes), `DELETE /cart/items/{id}`.
+  - HTMX requests get fragments: a status line on the product page, the whole cart on the cart page. Each change sends `HX-Trigger: cart-changed`. Cart responses are `no-store`.
+  - Product page: quantity and "Add to cart". The variant picker starts on the first variant in stock, marks sold-out combinations and disables the button.
+  - Header badge: the count comes from a readable `cart_count` cookie (Alpine `cartBadge`), refreshed on `cart-changed` and on back/forward navigation. So browse pages stay identical for everyone, and the badge costs no query.
+- **CSRF without sessions** (resolves the M5 open point):
+  - Storefronts get their own security chain with `CookieCsrfTokenRepository`. The token lives in a readable `XSRF-TOKEN` cookie, issued on the first storefront page.
+  - `app.js` copies it into `X-XSRF-TOKEN` on HTMX requests (double submit). Pages never contain the token, and still create no session.
+  - The main site and admin keep session tokens.
+- **Admin inventory page** (`/admin/inventory`, all admin roles):
+  - lists every variant with search by name or SKU;
+  - saves per row over HTMX, accepting Arabic digits and grouping;
+  - shows reserved and available;
+  - an empty field stops tracking.
+- **Local seed:** `LocalDemoStock` tracks every other demo1 variant (5 on hand, the first one sold out).
+
+### Verified live (demo1, headless Edge via puppeteer-core, production-like caching)
+
+- **First page:** sets only `XSRF-TOKEN` (no session), and the badge is hidden.
+- **Product page:** the picker chose the first in-stock variant. Adding 2 answered "تمت الإضافة إلى سلتك." and the badge became 2.
+- **Cart page:** the line shows options, unit price and total.
+  - "+" changed the line to 3 and the badge to 3.
+  - "Remove" emptied the cart and hid the badge.
+- **Errors:** no failed requests and no JS errors.
+- **Headers:**
+  - `/cart` sends `Cache-Control: no-store`;
+  - a POST without the token gets 403.
+- **Bug found and fixed:** demo products have photos, and calling a bean inside `th:src` is forbidden by Thymeleaf, so `/cart` failed with images. The URL is now computed in `th:with`, and `CartIT` adds image rows to cover it.
+- **JS budget:** 38.2 KB gzipped (Alpine 19.9, htmx 16.9, app 1.4) of 40.
+
+### Tests (378, all green: 222 unit, 156 integration)
+
+| Test | Checks |
+|---|---|
+| `InventoryIT` (10) | **Concurrency:** 40 threads × 1 unit against 10 → exactly 10 reserved. 12 × 3 against 10 → 3 succeed, 1 left. Reservations racing with a merchant lowering stock never leave reserved > on hand. **All or nothing:** a shortage on one variant reserves nothing. **Rules:** untracked variants always reserve; release and deduct; releasing more than reserved fails loudly; on hand can't go below reserved, and tracking can't stop while reserved; bad input; unknown variant. **Isolation:** another store can't see or change the stock |
+| `CartIT` (10) | Full HTMX flow with the real CSRF cookie: add (fragment, `HX-Trigger`, cookies), mixed-currency total (2 × 1,000 + $4.50 → 2,535 ل.س), cart page and fragment with images. Change and remove lines. Stock limits: sold out, partial add, raise refused, stock drops below the cart. Archived and unknown items. Missing or forged token → 403. CSRF cookie issued once, never in the page, no session. Cookie flags, and only the token hash stored. A token is useless on another store. Expired carts look empty and are deleted. Sold-out flag in the product JSON |
+| `InventoryAdminIT` (3) | List and HTMX search, saving with Arabic digits (١٢ → 12), untracking, invalid and below-reserved messages, unknown variant → 404 |
+| `CartTokensTest` (3) | Unique, well-formed tokens; tampered tokens rejected; hashing |
+
+### Decisions and deviations
+
+- **No reservation at add-to-cart.** SPEC 6.4 reserves at order placement. The cart only checks stock, so abandoned carts never hold stock. Two shoppers can both have the last unit in their carts; the first to order gets it (M8 must show a clear message to the other).
+- **No `currency` column on `cart`** (SPEC 5 lists one): carts store no prices, so there's nothing to tag. The order snapshots currency and rate (M8).
+- **`customer_id` on `cart`** is deferred to M8 (OTP login), when carts can merge into a customer's.
+- **Cart edits need JavaScript.** The product picker needs it anyway, and plain form fallbacks would put the CSRF token into page HTML.
+- **No sold-out badge on product cards** in listings yet; only the product page knows stock. Add it if merchants ask (it needs inventory in the catalog queries).
+- **Stock is changed through SQL, not JPA:** `StockLevel` is read-only in practice. Optimistic locking of the entity is replaced by conditional updates, which is stronger for this case.
+- **Variant deletion** (redefining options) cascades to stock and cart lines. Once orders exist (M8), deleting a variant with reservations must be blocked.
+
+### Next: M7, delivery zones and customer addresses
+
+Zone matching tests pass; checkout fee computed.

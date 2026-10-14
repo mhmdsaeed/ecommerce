@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -17,7 +18,7 @@ import com.unispark.ecommerce.tenant.StoreSettings;
 
 /**
  * Everything the storefront layout needs on every page: the store, its navigation and theme. Also marks the page
- * as a storefront page (no CSRF token, so no session for anonymous visitors) and lets browsers reuse it for a
+ * as a storefront page (no CSRF token in the page; it travels in a cookie) and lets browsers reuse it for a
  * minute. Not shared caches: the language comes from a cookie, so the same URL differs per visitor.
  */
 @ControllerAdvice(basePackageClasses = StorefrontAdvice.class)
@@ -43,6 +44,12 @@ class StorefrontAdvice {
         }
         if (TenantContext.currentTenantId().isEmpty()) {
             return;
+        }
+        // Issues the XSRF-TOKEN cookie on a shopper's first page (only then: an existing cookie is reused), so
+        // app.js can send it with the cart's HTMX requests. The page itself never contains the token. Stores only:
+        // the main site keeps its token in the session.
+        if (request.getAttribute(CsrfToken.class.getName()) instanceof CsrfToken csrf) {
+            csrf.getToken();
         }
         var shop = settings.current();
         model.addAttribute("shop", shop);

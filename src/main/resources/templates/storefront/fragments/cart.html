@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<!--/* Cart fragments.
+       cart:  the whole cart (model: cart, optional notice). Quantity buttons and remove swap it over HTMX.
+       added: the answer to "add to cart" on the product page (model: notice, null when all was added). */-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<section id="cart" th:fragment="cart" class="space-y-6" th:attr="aria-label=#{shop.cart.title}">
+    <p th:if="${notice != null}" role="status"
+       class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+       th:text="#{shop.cart.notice.__${notice}__}">Notice</p>
+
+    <div th:if="${cart.isEmpty()}" class="rounded-lg border border-dashed border-gray-300 p-8 text-center">
+        <p class="text-gray-600" th:text="#{shop.cart.empty}">Your cart is empty.</p>
+        <a th:href="@{/}" class="mt-4 inline-block font-medium text-brand-700 hover:underline"
+           th:text="#{shop.cart.continue}">Continue shopping</a>
+    </div>
+
+    <th:block th:unless="${cart.isEmpty()}">
+        <ul class="divide-y divide-gray-200 border-y border-gray-200">
+            <li th:each="line : ${cart.lines()}" class="flex gap-4 py-4">
+                <th:block th:if="${line.problem() != null and line.problem().name() == 'UNAVAILABLE'}">
+                    <span class="h-16 w-16 shrink-0 rounded bg-gray-100" aria-hidden="true"></span>
+                    <p class="flex-1 text-sm text-gray-600" th:text="#{shop.cart.line.unavailable}">No longer available.</p>
+                </th:block>
+                <th:block th:unless="${line.problem() != null and line.problem().name() == 'UNAVAILABLE'}">
+                    <!--/* URL attributes may not call beans directly, so compute the URL first. */-->
+                    <img th:if="${line.image() != null}" th:with="url=${@shopImages.small(line.image().storageKey())}" th:src="${url}" alt=""
+                         width="64" height="64" loading="lazy" class="h-16 w-16 shrink-0 rounded bg-gray-100 object-cover">
+                    <span th:if="${line.image() == null}" class="h-16 w-16 shrink-0 rounded bg-gray-100" aria-hidden="true"></span>
+                    <div class="min-w-0 flex-1 space-y-1">
+                        <a th:href="@{/p/{slug}(slug=${line.productSlug()})}" class="font-medium hover:text-brand-700"
+                           th:text="${line.productName().in(#locale)}">Product</a>
+                        <p th:unless="${line.choices().isEmpty()}" class="text-sm text-gray-600">
+                            <th:block th:each="choice, state : ${line.choices()}"><span
+                                    th:text="|${choice.option().in(#locale)}: ${choice.value().in(#locale)}|">Size: M</span><span
+                                    th:unless="${state.last}"> · </span></th:block>
+                        </p>
+                        <p class="text-sm text-gray-600" th:text="#{shop.cart.each(${@shopPrices.format(line.unitPrice())})}">1,000 each</p>
+                        <p th:if="${line.problem() != null}" class="text-sm text-red-700"
+                           th:text="#{shop.cart.line.not-enough(${line.available()})}">Only 2 left.</p>
+                    </div>
+                </th:block>
+                <div class="flex shrink-0 flex-col items-end gap-2">
+                    <bdi th:if="${line.lineTotal() != null}" class="font-semibold"
+                         th:text="${@shopPrices.format(line.lineTotal())}">2,000</bdi>
+                    <div th:if="${line.lineTotal() != null}" class="flex items-center gap-1">
+                        <form th:hx-patch="@{/cart/items/{id}(id=${line.itemId()})}" hx-target="#cart" hx-swap="outerHTML">
+                            <input type="hidden" name="quantity" th:value="${line.quantity() - 1}">
+                            <button type="submit" class="h-8 w-8 rounded-md border border-gray-300 hover:border-brand-600"
+                                    th:attr="aria-label=#{shop.cart.decrease}">−</button>
+                        </form>
+                        <span class="w-8 text-center"><span class="sr-only" th:text="#{shop.cart.quantity}">Quantity</span>
+                            <span th:text="${line.quantity()}">1</span></span>
+                        <form th:hx-patch="@{/cart/items/{id}(id=${line.itemId()})}" hx-target="#cart" hx-swap="outerHTML">
+                            <input type="hidden" name="quantity" th:value="${line.quantity() + 1}">
+                            <button type="submit" th:disabled="${line.quantity() >= line.maxQuantity()}"
+                                    class="h-8 w-8 rounded-md border border-gray-300 hover:border-brand-600 disabled:cursor-not-allowed disabled:opacity-40"
+                                    th:attr="aria-label=#{shop.cart.increase}">+</button>
+                        </form>
+                    </div>
+                    <button type="button" th:hx-delete="@{/cart/items/{id}(id=${line.itemId()})}" hx-target="#cart" hx-swap="outerHTML"
+                            class="text-sm text-gray-600 underline hover:text-red-700" th:text="#{shop.cart.remove}">Remove</button>
+                </div>
+            </li>
+        </ul>
+
+        <div class="flex flex-col items-end gap-2">
+            <p class="text-lg">
+                <span th:text="#{shop.cart.subtotal}">Subtotal</span>:
+                <th:block th:each="total, state : ${cart.totals()}"><bdi class="font-bold"
+                        th:text="${@shopPrices.format(total)}">3,000</bdi><span th:unless="${state.last}"> + </span></th:block>
+            </p>
+            <p class="text-sm text-gray-600" th:text="#{shop.cart.subtotal.note}">Delivery is calculated at checkout.</p>
+            <button type="button" disabled
+                    class="w-full rounded-md bg-brand-600 px-4 py-3 font-medium text-white opacity-60 sm:w-auto"
+                    th:text="#{shop.cart.checkout-soon}">Checkout (coming soon)</button>
+        </div>
+    </th:block>
+</section>
+
+<div th:fragment="added" th:switch="${notice == null ? 'ADDED' : notice.name()}" role="status" class="text-sm">
+    <p th:case="'ADDED'" class="rounded-md border border-brand-600 bg-brand-50 px-3 py-2 text-brand-700">
+        <span th:text="#{shop.cart.added}">Added to your cart.</span>
+        <a th:href="@{/cart}" class="ms-2 font-medium underline" th:text="#{shop.cart.view}">View cart</a>
+    </p>
+    <p th:case="'LIMITED'" class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+        <span th:text="#{shop.cart.notice.LIMITED}">Limited stock.</span>
+        <a th:href="@{/cart}" class="ms-2 font-medium underline" th:text="#{shop.cart.view}">View cart</a>
+    </p>
+    <p th:case="*" class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-red-800"
+       th:text="#{shop.cart.notice.__${notice}__}">Sold out.</p>
+</div>
+
+</body>
+</html>

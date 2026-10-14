@@ -1,5 +1,6 @@
 package com.unispark.ecommerce.tenant.internal;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,6 +34,11 @@ class StoreDirectory implements StoreLookup, StoreRegistration {
     @Override
     public Optional<StoreSummary> findById(UUID id) {
         return stores.findById(id).map(Store::toSummary);
+    }
+
+    @Override
+    public List<UUID> allIds() {
+        return stores.findAllIds();
     }
 
     @Override

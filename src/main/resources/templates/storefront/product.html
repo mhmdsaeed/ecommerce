@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--/* Product page. The variant picker (app.js: variantPicker) reads the available variants from data-variants and
        shows the price of the chosen combination. The first image is the largest contentful paint: eager, high
-       priority. Adding to the cart arrives with M6. */-->
+       priority. Adding to the cart posts the chosen variant over HTMX and shows the answer in #cart-status. */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/storefront}">
@@ -55,10 +55,22 @@
                 </div>
             </fieldset>
             <p x-show="unavailable" x-cloak class="text-sm text-red-700" th:text="#{shop.product.unavailable}">Not available</p>
+            <p x-show="soldOut" x-cloak class="text-sm text-red-700" th:text="#{shop.product.sold-out}">Sold out</p>
 
-            <button type="button" disabled
-                    class="w-full rounded-md bg-brand-600 px-4 py-3 font-medium text-white opacity-60 sm:w-auto"
-                    th:text="#{shop.product.cart-soon}">Add to cart (soon)</button>
+            <!--/* Needs JavaScript (the chosen variant comes from the picker), so the button starts disabled. */-->
+            <form th:hx-post="@{/cart/items}" hx-target="#cart-status" hx-swap="innerHTML"
+                  class="flex flex-wrap items-end gap-3">
+                <input type="hidden" name="variantId" x-bind:value="variantId">
+                <label class="block text-sm font-medium text-gray-800">
+                    <span th:text="#{shop.cart.quantity}">Quantity</span>
+                    <input type="number" name="quantity" value="1" min="1" max="99" inputmode="numeric" required
+                           class="mt-1 block w-20 rounded-md border border-gray-300 px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                </label>
+                <button type="submit" disabled x-bind:disabled="unavailable || soldOut"
+                        class="flex-1 rounded-md bg-brand-600 px-4 py-3 font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none"
+                        th:text="#{shop.cart.add}">Add to cart</button>
+            </form>
+            <div id="cart-status" aria-live="polite"></div>
 
             <div th:if="${product.description() != null}" class="whitespace-pre-line text-gray-700"
                  th:text="${product.description().in(#locale)}">Description</div>

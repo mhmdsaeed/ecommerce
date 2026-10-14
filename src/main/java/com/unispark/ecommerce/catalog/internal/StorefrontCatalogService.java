@@ -2,6 +2,7 @@ package com.unispark.ecommerce.catalog.internal;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -24,8 +25,10 @@ import com.unispark.ecommerce.catalog.internal.persistence.Category;
 import com.unispark.ecommerce.catalog.internal.persistence.CategoryRepository;
 import com.unispark.ecommerce.catalog.internal.persistence.Product;
 import com.unispark.ecommerce.catalog.internal.persistence.ProductImage;
+import com.unispark.ecommerce.catalog.internal.persistence.ProductOption;
 import com.unispark.ecommerce.catalog.internal.persistence.ProductRepository;
 import com.unispark.ecommerce.catalog.internal.persistence.ProductVariant;
+import com.unispark.ecommerce.shared.LocalizedText;
 
 /**
  * Shopper-facing catalog reads. Visibility is decided in one place ({@link #VISIBLE}); categories are few, so the
@@ -146,6 +149,40 @@ class StorefrontCatalogService implements StorefrontCatalog {
                 .setParameter("pattern", ProductSearch.containsPattern(normalized))
                 .getSingleResult();
         return page(found, page, count);
+    }
+
+    @Override
+    public Map<UUID, Offer> offers(Collection<UUID> variantIds) {
+        if (variantIds.isEmpty()) {
+            return Map.of();
+        }
+        var visible = new Visible(categories.findAll());
+        var found = entityManager.createQuery("""
+                        select v from ProductVariant v join fetch v.product p
+                        where v.id in :ids and v.active = true and p.status = :active
+                          and (p.categoryId is null or p.categoryId in :visibleCategories)
+                        """, ProductVariant.class)
+                .setParameter("ids", variantIds)
+                .setParameter("active", ProductStatus.ACTIVE)
+                .setParameter("visibleCategories", visible.ids())
+                .getResultList();
+        return found.stream().collect(Collectors.toMap(ProductVariant::getId, StorefrontCatalogService::offer));
+    }
+
+    private static Offer offer(ProductVariant variant) {
+        var product = variant.getProduct();
+        var choices = new ArrayList<Choice>();
+        for (var option : product.getOptions().stream().sorted(Comparator.comparingInt(ProductOption::getPosition)).toList()) {
+            var label = variant.getOptionValues().get(option.getPosition() - 1);
+            var value = option.getChoices().stream().filter(choice -> label.equals(VariantMatrix.label(choice)))
+                    .findFirst().orElse(LocalizedText.of(label, null));
+            choices.add(new Choice(option.getName(), value));
+        }
+        var images = product.getImages().stream().sorted(Comparator.comparingInt(ProductImage::getSortOrder)).toList();
+        var image = images.stream().filter(candidate -> variant.getId().equals(candidate.getVariantId())).findFirst()
+                .or(() -> images.stream().findFirst()).map(CatalogViews::image).orElse(null);
+        return new Offer(variant.getId(), product.getId(), product.getName(), product.getSlug(), List.copyOf(choices),
+                variant.price(), image);
     }
 
     private static ResultPage page(List<Product> found, int page, long count) {

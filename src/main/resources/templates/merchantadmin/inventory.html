@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<!--/* Inventory. The search box swaps "results"; each row's stock form swaps itself ("stock"). */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="#{inventory.title}">Inventory</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <h1 class="text-2xl font-bold" th:text="#{inventory.title}">Inventory</h1>
+    <p class="mt-2 text-sm text-gray-600" th:text="#{inventory.intro}">Leave the quantity empty for items you don't track.</p>
+    <th:block th:if="${param.saved}"><div class="mt-4" th:replace="~{fragments/forms :: alert(kind='info', message=#{inventory.saved})}"></div></th:block>
+    <th:block th:if="${param.invalid}"><div class="mt-4" th:replace="~{fragments/forms :: alert(kind='error', message=#{inventory.not-saved})}"></div></th:block>
+
+    <form method="get" th:action="@{/admin/inventory}" class="mt-6 flex gap-3" role="search"
+          th:hx-get="@{/admin/inventory}" hx-target="#inventory-results" hx-push-url="true"
+          hx-trigger="input delay:300ms from:#q, submit">
+        <label for="q" class="sr-only" th:text="#{inventory.search}">Search</label>
+        <input id="q" name="q" type="search" th:value="${q}" th:placeholder="#{inventory.search}"
+               class="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+        <noscript><button type="submit" class="rounded-md border border-gray-300 px-4 py-2" th:text="#{inventory.search}">Search</button></noscript>
+    </form>
+
+    <div id="inventory-results" th:fragment="results" class="mt-4">
+        <p th:if="${result.items().isEmpty()}" class="rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center text-gray-600"
+           th:text="${q == null or q.isBlank()} ? #{inventory.empty} : #{inventory.no-match}">No products yet.</p>
+
+        <div th:unless="${result.items().isEmpty()}" class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 text-gray-600">
+                <tr>
+                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{inventory.col.product}">Product</th>
+                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{inventory.col.variant}">Variant</th>
+                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{inventory.col.sku}">SKU</th>
+                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{inventory.col.on-hand}">On hand</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                <tr th:each="row : ${result.items()}">
+                    <td class="px-4 py-3">
+                        <a th:href="@{/admin/products/{id}(id=${row.productId()})}" class="font-medium hover:underline"
+                           th:text="${row.productName().in(#locale)}">Product</a>
+                        <th:block th:if="${row.status().name() != 'ACTIVE'}">
+                            <span th:replace="~{merchantadmin/fragments/catalog :: status-badge(status=${row.status()})}">Status</span>
+                        </th:block>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span th:text="${row.label().isEmpty()} ? '—' : ${row.label()}">M / أحمر</span>
+                        <span th:unless="${row.active()}" class="ms-1 text-xs text-gray-500" th:text="#{inventory.inactive}">Inactive</span>
+                    </td>
+                    <td class="px-4 py-3 text-gray-600"><bdi th:text="${row.sku()}">SKU-1</bdi></td>
+                    <td class="px-4 py-3"
+                        th:with="level=${levels.of(row.id()).orElse(null)}">
+                        <form th:replace="~{merchantadmin/inventory :: stock(variantId=${row.id()}, level=${level}, value=${level == null ? '' : level.onHand()}, saved=false, error=null, errorArgument=null)}"></form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <nav th:if="${result.totalPages() > 1}" class="mt-4 flex items-center justify-between text-sm" th:attr="aria-label=#{product.pages}">
+            <a th:if="${result.hasPrevious()}"
+               th:href="@{/admin/inventory(q=${q}, page=${result.page() - 1})}"
+               th:hx-get="@{/admin/inventory(q=${q}, page=${result.page() - 1})}" hx-target="#inventory-results" hx-push-url="true"
+               class="text-brand-700 hover:underline" th:text="#{product.page.previous}">Previous</a>
+            <span th:unless="${result.hasPrevious()}"></span>
+            <span class="text-gray-500" th:text="#{product.page.of(${result.page() + 1}, ${result.totalPages()})}">1 / 2</span>
+            <a th:if="${result.hasNext()}"
+               th:href="@{/admin/inventory(q=${q}, page=${result.page() + 1})}"
+               th:hx-get="@{/admin/inventory(q=${q}, page=${result.page() + 1})}" hx-target="#inventory-results" hx-push-url="true"
+               class="text-brand-700 hover:underline" th:text="#{product.page.next}">Next</a>
+        </nav>
+    </div>
+</main>
+
+<!--/* Outside the page content, so the layout leaves it out; rendered only by name. */-->
+<th:block>
+    <!--/* One variant's stock. level is null when it is not tracked; error is a message key, errorArgument its value. */-->
+    <form th:fragment="stock(variantId, level, value, saved, error, errorArgument)"
+          method="post" th:action="@{/admin/inventory/{id}(id=${variantId})}"
+          th:hx-post="@{/admin/inventory/{id}(id=${variantId})}" hx-target="this" hx-swap="outerHTML"
+          class="flex flex-wrap items-center gap-2">
+        <label th:for="|on-hand-${variantId}|" class="sr-only" th:text="#{inventory.col.on-hand}">On hand</label>
+        <input th:id="|on-hand-${variantId}|" name="onHand" th:value="${value}" inputmode="numeric" autocomplete="off"
+               th:placeholder="#{inventory.untracked}"
+               th:attr="aria-invalid=${error != null} ? 'true' : null, aria-describedby=${error != null} ? |on-hand-${variantId}-error| : null"
+               class="w-28 rounded-md border border-gray-300 px-2 py-1.5 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+        <button type="submit" class="rounded-md border border-gray-300 px-3 py-1.5 hover:border-brand-600"
+                th:text="#{inventory.save}">Save</button>
+        <span th:if="${level != null}" class="text-xs text-gray-500"
+              th:text="#{inventory.reserved-available(${level.reserved()}, ${level.available()})}">0 reserved · 5 available</span>
+        <span th:if="${saved}" role="status" class="text-xs text-brand-700" th:text="#{inventory.saved}">Saved</span>
+        <p th:if="${error != null}" th:id="|on-hand-${variantId}-error|" role="alert" class="w-full text-xs text-red-700"
+           th:text="#{__${error}__(${errorArgument})}">Invalid</p>
+    </form>
+</th:block>
+</body>
+</html>

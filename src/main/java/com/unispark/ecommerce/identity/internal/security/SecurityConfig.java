@@ -24,7 +24,10 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.access.AccessDeniedHandlerImpl;
 import org.springframework.security.web.access.DelegatingAccessDeniedHandler;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfException;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.savedrequest.NullRequestCache;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.AndRequestMatcher;
@@ -45,9 +48,10 @@ import com.unispark.ecommerce.tenant.StoreLookup;
  *   <li>platform admin: every request on {@code admin.<base>}; platform admins only, under {@code /platform};
  *   <li>merchant admin: {@code /admin/**} on the main site; owners, managers and staff;
  *   <li>driver: {@code /driver/**} on the main site; drivers;
- *   <li>site: everything else (storefronts, signup, the main site's public pages); open, but an area's paths
- *       answer 404 on the wrong host.
+ *   <li>storefront: every request on a store's host; open, CSRF token in a cookie (no sessions for shoppers);
+ *   <li>site: everything else (signup, the main site's public pages); open.
  * </ol>
+ * An area's paths answer 404 on the wrong host.
  * Sessions are per host (no cookie domain), and roles are checked per chain, so a session from one area grants
  * nothing in another even if its cookie is replayed there. CSRF protection is on in every chain.
  */
@@ -110,14 +114,38 @@ class SecurityConfig {
                 StaffRole.DRIVER);
     }
 
+    /**
+     * Storefronts keep their CSRF token in a cookie instead of the session, so browsing never creates a session and
+     * pages hold nothing per visitor. app.js copies the cookie into a header on HTMX requests (double submit); the
+     * header carries the raw token, so it is compared unmasked. No request cache: nothing here redirects to a login.
+     */
     @Bean
     @Order(4)
-    SecurityFilterChain siteChain(HttpSecurity http, Sites sites) throws Exception {
-        RequestMatcher storefront = request -> sites.siteOf(request) == Site.STOREFRONT;
+    SecurityFilterChain storefrontChain(HttpSecurity http, Sites sites,
+            @Value("${server.servlet.session.cookie.secure:false}") boolean secureCookies) throws Exception {
+        var csrfTokens = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        csrfTokens.setCookieCustomizer(cookie -> cookie.secure(secureCookies).sameSite("Lax"));
+        http.securityMatcher(request -> sites.siteOf(request) == Site.STOREFRONT)
+                .authorizeHttpRequests(authorize -> authorize
+                        // Areas of the main site, on a store's host.
+                        .requestMatchers("/admin/**", "/driver/**", "/platform/**", "/signup/**").denyAll()
+                        .anyRequest().permitAll())
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(csrfTokens)
+                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
+                .requestCache(cache -> cache.requestCache(new NullRequestCache()))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(NOT_FOUND_ENTRY)
+                        .accessDeniedHandler(NOT_FOUND_DENIED));
+        return http.build();
+    }
+
+    @Bean
+    @Order(5)
+    SecurityFilterChain siteChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(authorize -> authorize
                         // Reaching this chain means the wrong host for these areas.
                         .requestMatchers("/admin/**", "/driver/**", "/platform/**").denyAll()
-                        .requestMatchers(new AndRequestMatcher(storefront, path("/signup/**"))).denyAll()
                         .anyRequest().permitAll())
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(NOT_FOUND_ENTRY)

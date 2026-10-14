@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<!--/* Cart page. The cart itself is the "cart" fragment, which every change swaps whole. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/storefront}">
+<head>
+    <title th:text="#{shop.cart.title}">Cart</title>
+    <meta name="robots" content="noindex">
+</head>
+<body>
+<main layout:fragment="content">
+    <h1 class="text-2xl font-bold" th:text="#{shop.cart.title}">Shopping cart</h1>
+    <div class="mt-6" th:insert="~{storefront/fragments/cart :: cart}"></div>
+</main>
+</body>
+</html>
