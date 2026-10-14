@@ -1,4 +1,4 @@
-package com.unispark.ecommerce.identity;
+package com.unispark.ecommerce.shared;
 
 /**
  * A business-rule failure on one form field, e.g. {@code ("slug", "taken")}. Web controllers turn it into the

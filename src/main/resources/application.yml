@@ -27,6 +27,17 @@ spring:
       ddl-auto: validate
     properties:
       hibernate.jdbc.time_zone: UTC
+      # Loads the variants and images of a page of products in a few queries instead of one per product.
+      hibernate.default_batch_fetch_size: 32
+  # Coarse guard only: MediaProperties enforces the 5 MB per image with a proper message.
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 60MB
+  modulith:
+    events:
+      # Event listeners that failed (e.g. storage down while discarding images) run again after a restart.
+      republish-outstanding-events-on-restart: true
   # Global problem details would answer every unknown URL with JSON, even for browsers. RFC 7807 errors come with
   # the REST API (M14), scoped to /api/**; pages get the localized error templates.
   mvc:
@@ -34,6 +45,9 @@ spring:
       enabled: false
 
 server:
+  # Read the rest of an oversized upload, so the browser gets the error page instead of a reset connection.
+  tomcat:
+    max-swallow-size: 64MB
   error:
     include-stacktrace: never
     include-message: never
@@ -65,3 +79,12 @@ app:
   platform-admin:
     email: ${PLATFORM_ADMIN_EMAIL:}
     password: ${PLATFORM_ADMIN_PASSWORD:}
+  # S3-compatible storage for images (SPEC 15). S3_ENDPOINT is empty for AWS S3, set for MinIO or Cloudflare R2.
+  media:
+    endpoint: ${S3_ENDPOINT:}
+    region: ${S3_REGION:us-east-1}
+    bucket: ${S3_BUCKET}
+    access-key: ${S3_ACCESS_KEY}
+    secret-key: ${S3_SECRET_KEY}
+    public-base-url: ${S3_PUBLIC_BASE_URL}
+    manage-bucket: ${S3_MANAGE_BUCKET:false}

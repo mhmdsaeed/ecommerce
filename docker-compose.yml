@@ -36,8 +36,10 @@ services:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
       MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      # Host ports 9100/9101: 9000 is often taken on developer machines (other services bind 127.0.0.1:9000,
+      # which wins over Docker's wildcard bind for IPv4 clients such as the JVM).
+      - "${MINIO_PORT:-9100}:9000"
+      - "${MINIO_CONSOLE_PORT:-9101}:9001"
     volumes:
       - minio-data:/data
 

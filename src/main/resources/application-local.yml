@@ -33,6 +33,14 @@ app:
   platform-admin:
     email: ${PLATFORM_ADMIN_EMAIL:admin@lvh.me}
     password: ${PLATFORM_ADMIN_PASSWORD:local-admin-pass}
+  # docker-compose MinIO (host port 9100). The app creates the bucket and makes public/ readable.
+  media:
+    endpoint: ${S3_ENDPOINT:http://localhost:9100}
+    bucket: ${S3_BUCKET:media}
+    access-key: ${S3_ACCESS_KEY:minioadmin}
+    secret-key: ${S3_SECRET_KEY:minioadmin}
+    public-base-url: ${S3_PUBLIC_BASE_URL:http://localhost:9100/media}
+    manage-bucket: ${S3_MANAGE_BUCKET:true}
 
 management:
   endpoint:

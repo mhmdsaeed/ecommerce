@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<!--/* Catalog building blocks shared by the product list and edit pages. */-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<span th:fragment="status-badge(status)" class="rounded-full px-2 py-0.5 text-xs font-medium"
+      th:classappend="${status.name() == 'ACTIVE'} ? 'bg-brand-50 text-brand-700' : (${status.name() == 'DRAFT'} ? 'bg-amber-50 text-amber-800' : 'bg-gray-100 text-gray-600')"
+      th:text="#{product.status.__${status}__}">Draft</span>
+
+</body>
+</html>

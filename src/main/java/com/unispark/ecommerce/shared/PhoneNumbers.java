@@ -26,7 +26,7 @@ public final class PhoneNumbers {
         if (input == null) {
             return Optional.empty();
         }
-        var digits = SEPARATORS.matcher(toAsciiDigits(input.strip())).replaceAll("");
+        var digits = SEPARATORS.matcher(Digits.toAscii(input.strip())).replaceAll("");
         if (digits.startsWith("00")) {
             digits = "+" + digits.substring(2);
         }
@@ -48,19 +48,5 @@ public final class PhoneNumbers {
             return Optional.empty();
         }
         return Optional.of(candidate);
-    }
-
-    private static String toAsciiDigits(String value) {
-        var result = new StringBuilder(value.length());
-        for (var ch : value.toCharArray()) {
-            if (ch >= '٠' && ch <= '٩') {
-                result.append((char) ('0' + ch - '٠'));
-            } else if (ch >= '۰' && ch <= '۹') {
-                result.append((char) ('0' + ch - '۰'));
-            } else {
-                result.append(ch);
-            }
-        }
-        return result.toString();
     }
 }

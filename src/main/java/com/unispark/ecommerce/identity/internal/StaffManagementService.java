@@ -12,11 +12,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.unispark.ecommerce.identity.FieldProblem;
 import com.unispark.ecommerce.identity.StaffManagement;
 import com.unispark.ecommerce.identity.StaffPrincipal;
 import com.unispark.ecommerce.identity.internal.persistence.StaffUser;
 import com.unispark.ecommerce.identity.internal.persistence.StaffUserRepository;
+import com.unispark.ecommerce.shared.FieldProblem;
 import com.unispark.ecommerce.shared.PhoneNumbers;
 import com.unispark.ecommerce.shared.TenantContext;
 

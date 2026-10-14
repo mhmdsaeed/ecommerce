@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<!--/* Product list. Typing in the search box or changing the status filter swaps the "results" fragment. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="#{product.title}">Products</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <h1 class="text-2xl font-bold" th:text="#{product.title}">Products</h1>
+        <a th:href="@{/admin/products/new}" class="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700"
+           th:text="#{product.new}">New product</a>
+    </div>
+    <th:block th:if="${param.deleted}"><div class="mt-4" th:replace="~{fragments/forms :: alert(kind='info', message=#{product.deleted})}"></div></th:block>
+
+    <form method="get" th:action="@{/admin/products}" class="mt-6 flex flex-wrap gap-3" role="search"
+          th:hx-get="@{/admin/products}" hx-target="#product-results" hx-push-url="true"
+          hx-trigger="input delay:300ms from:#q, change from:#status, submit">
+        <label for="q" class="sr-only" th:text="#{product.search}">Search</label>
+        <input id="q" name="q" type="search" th:value="${q}" th:placeholder="#{product.search}"
+               class="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+        <label for="status" class="sr-only" th:text="#{product.col.status}">Status</label>
+        <select id="status" name="status"
+                class="rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+            <option value="" th:text="#{product.status.all}">All</option>
+            <option th:each="value : ${statuses}" th:value="${value}" th:selected="${value == status}"
+                    th:text="#{product.status.__${value}__}">Status</option>
+        </select>
+        <noscript><button type="submit" class="rounded-md border border-gray-300 px-4 py-2" th:text="#{product.search}">Search</button></noscript>
+    </form>
+
+    <div id="product-results" th:fragment="results" class="mt-4">
+        <p th:if="${result.items().isEmpty()}" class="rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center text-gray-600"
+           th:text="${q == null and status == null} ? #{product.empty} : #{product.no-match}">No products yet.</p>
+
+        <div th:unless="${result.items().isEmpty()}" class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 text-gray-600">
+                <tr>
+                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{product.col.name}">Name</th>
+                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{product.col.status}">Status</th>
+                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{product.col.price}">Price</th>
+                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{product.col.variants}">Variants</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                <tr th:each="item : ${result.items()}">
+                    <td class="px-4 py-3">
+                        <a th:href="@{/admin/products/{id}(id=${item.id()})}" class="flex items-center gap-3 hover:underline">
+                            <img th:if="${item.imageKey() != null}" th:with="url=${@imageUrls.small(item.imageKey())}" th:src="${url}" alt=""
+                                 width="48" height="48" loading="lazy" class="h-12 w-12 rounded object-cover">
+                            <span th:if="${item.imageKey() == null}" class="h-12 w-12 rounded bg-gray-100" aria-hidden="true"></span>
+                            <span class="font-medium" th:text="${item.name().in(#locale)}">Name</span>
+                        </a>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span th:replace="~{merchantadmin/fragments/catalog :: status-badge(status=${item.status()})}">Status</span>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <th:block th:if="${item.lowestPrice() != null}">
+                            <span th:if="${item.variantCount() > 1}" class="text-gray-500" th:text="#{product.price.from}">from</span>
+                            <span dir="ltr" th:text="${@money.amount(item.lowestPrice())}">0</span>
+                            <span class="text-gray-500" th:text="#{currency.__${item.lowestPrice().currency()}__}">SYP</span>
+                        </th:block>
+                    </td>
+                    <td class="px-4 py-3" th:text="${item.variantCount()}">1</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <nav th:if="${result.totalPages() > 1}" class="mt-4 flex items-center justify-between text-sm" th:attr="aria-label=#{product.pages}">
+            <a th:if="${result.hasPrevious()}"
+               th:href="@{/admin/products(q=${q}, status=${status}, page=${result.page() - 1})}"
+               th:hx-get="@{/admin/products(q=${q}, status=${status}, page=${result.page() - 1})}" hx-target="#product-results" hx-push-url="true"
+               class="text-brand-700 hover:underline" th:text="#{product.page.previous}">Previous</a>
+            <span th:unless="${result.hasPrevious()}"></span>
+            <span class="text-gray-500" th:text="#{product.page.of(${result.page() + 1}, ${result.totalPages()})}">1 / 2</span>
+            <a th:if="${result.hasNext()}"
+               th:href="@{/admin/products(q=${q}, status=${status}, page=${result.page() + 1})}"
+               th:hx-get="@{/admin/products(q=${q}, status=${status}, page=${result.page() + 1})}" hx-target="#product-results" hx-push-url="true"
+               class="text-brand-700 hover:underline" th:text="#{product.page.next}">Next</a>
+        </nav>
+    </div>
+</main>
+</body>
+</html>

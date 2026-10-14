@@ -27,6 +27,11 @@ The `local` profile seeds demo data. These credentials exist only in local datab
 | Driver view | http://lvh.me:8080/driver | store `demo1`, phone `0933000002`, password `demo-pass-123` |
 | Platform admin | http://admin.lvh.me:8080 | `admin@lvh.me`, password `local-admin-pass` |
 | New store | http://lvh.me:8080/signup | |
+| MinIO console | http://localhost:9101 | `minioadmin` / `minioadmin` |
+
+demo1 also gets a small catalog (two categories, three products, generated images) the first time it has no products.
+MinIO is published on host port 9100, not 9000, which other software often occupies; after pulling this change run
+`docker compose up -d minio`.
 
 On Windows use `mvnw.cmd` and `scripts\tailwind.cmd`.
 

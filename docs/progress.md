@@ -179,6 +179,104 @@ Also run manually: `docker compose up -d postgres` + `./mvnw spring-boot:run -Ds
 - **Shopper login (OTP, M8)** will need its own chain or rules inside the site chain, which currently has no authentication.
 - **New platform tables** go in `RlsCoverageIT.PLATFORM_TABLES`. New tenant tables call `enable_tenant_rls`.
 
-### Next: M3, catalog and media
+## M3: Catalog and media (done, 2026-10-14)
 
-Categories, products, options and variants, image upload to MinIO with WebP resizing, admin CRUD with HTMX.
+**Done when:** a merchant creates a product with 2 variants and images. Confirmed by `CatalogIT.merchantCreatesAProductWithTwoVariantsAndImages` through the admin UI (forms plus HTMX), and live against docker-compose MinIO. `./mvnw verify` is green with 275 tests.
+
+### What was built
+
+- **`media` module (new):**
+  - `ImageStore` API with `ImageSize` (SMALL 320, MEDIUM 640, LARGE 1024: the §9.5 `srcset` widths) and the `ImageDiscarded` event.
+  - `ImageProcessor`:
+    - sniffs the real format from the bytes (JPEG, PNG and WebP only; a renamed text file or a GIF is rejected);
+    - checks size (5 MB) and pixel count (100 MP) before decoding;
+    - decodes big photos with subsampling, so at most about 2048 px is held in memory, and limits concurrent decodes with a semaphore, since virtual threads would otherwise allow unbounded parallel decoding;
+    - turns photos upright from EXIF orientation 1 to 8, then re-encodes to lossy WebP at quality 0.8 (`webp-imageio` native binaries for Windows, Linux and macOS), which drops all metadata, GPS included;
+    - downscales in halving steps and never upscales.
+  - `S3ImageStore` writes `public/<tenant>/<uuidv7>/<width>.webp` with `Cache-Control: public, max-age=31536000, immutable`. If storage fails mid-upload, the parts already written are removed.
+  - `ImageDiscarded` is handled by an `@ApplicationModuleListener` after commit. It is persisted in the event publication registry and republished on restart if storage was down.
+  - `BucketSetup` (when `app.media.manage-bucket=true`, local and test) creates the bucket and a public-read policy limited to `public/*`. It logs instead of failing when MinIO is down. Production buckets are managed outside the app.
+- **`catalog` module (new):**
+  - `Categories`: two levels, sort order, show or hide; categories with products or subcategories can't be deleted.
+  - `Products`: search with pagination, create (a DRAFT with one default variant), update, status, delete (drafts only), options and variants.
+  - `ProductImages`: add, remove, reorder; at most 10 per product.
+  - **Variants (Shopify model):** every product has at least one variant. `VariantMatrix` parses up to 3 options with comma lists (the Arabic comma `،` too) and generates at most 100 combinations. Variants whose combination still exists keep their id and price; new ones start at the first variant's price. Removing all options goes back to one default variant.
+  - **Prices** are typed as text and parsed by `shared.Amounts`: `150,000`, `١٥٠٬٠٠٠` and `١٢٫٥` are accepted; the European `12,50` is rejected rather than read as 1250. They are stored as `numeric(19,2)` in the product's currency and exposed as `shared.Money`.
+  - **Slugs** may be Arabic (`قميص-قطني`). Diacritics and tatweel are dropped, names are deduplicated with `-2`, `-3`, and slugs are unique per store.
+  - **Publishing** needs an available variant priced above zero. A published product must keep one.
+  - **Uploads** are processed outside any transaction (seconds of work); the row is inserted afterwards, and the image is discarded again if that fails.
+- **Migration `V5__catalog.sql`:**
+  - Tables `category`, `product`, `product_option` (`choices`), `product_variant` and `product_image`. All are tenant tables with `enable_tenant_rls`.
+  - **Composite foreign keys `(tenant_id, <parent>_id)`** against `UNIQUE (tenant_id, id)`, so the database itself rejects any reference into another store: a third isolation layer below Hibernate and RLS.
+  - Product children cascade on delete; `product_image.variant_id` uses `ON DELETE SET NULL (variant_id)` (PostgreSQL 15+).
+  - A generated `product.search_text` column for admin search.
+- **`shared`:**
+  - `Money` (two decimals; sub-cent amounts are rejected, not rounded).
+  - `Amounts`.
+  - `Htmx` (`isHtmx`, `HX-Redirect`).
+  - `FieldProblem` moved here from `identity`.
+  - `Digits`, shared by `PhoneNumbers` and `Amounts`.
+- **HTMX and sessions** (the gap noted in M2):
+  - HTMX requests in the staff chains with no session get 401 with `HX-Redirect: /admin/login?expired`.
+  - CSRF failures on HTMX requests (an expired session has no token) get 403 with the same redirect.
+  - `StaffSessionFilter` ends sessions the same way.
+  - `app.js` shows a localized banner when an HTMX request fails, since htmx ignores 4xx and 5xx responses.
+- **Merchant admin UI:**
+  - Categories: one HTMX section with the list and add form, plus an edit page.
+  - Products: live search and status filter (HTMX, URL pushed into history), pagination, thumbnails, "from" prices.
+  - New product page.
+  - Product edit page: status actions (publish, archive, back to draft, delete drafts with an Alpine confirm); an images section (multi-file HTMX upload with one outcome line per file, reorder, remove); an options and variants editor (HTMX; errors keep what was typed); and a details form.
+- **Upload limits:** multipart allows 10 MB per file and 60 MB per request as a coarse guard; the 5 MB rule per image comes from the processor with its own message. Tomcat swallows up to 64 MB, so an oversized request still gets a response. Requests over the cap reach HTMX as 200 with `HX-Retarget: #upload-error` (`UploadLimitAdvice`), so the images on the page stay put.
+- **Local seed** (`LocalDemoCatalog`, once per empty store): demo1 gets 2 categories; a shirt with Size × Colour (6 variants) and an image; a USD mug with an image; and a draft teapot. All are created through the services, with images generated in Java.
+- **Config:**
+  - `app.media.*` from `S3_*` (plus `S3_REGION`, `S3_MANAGE_BUCKET`).
+  - `hibernate.default_batch_fetch_size: 32` for the product list.
+  - `spring.modulith.events.republish-outstanding-events-on-restart: true`.
+- **Dependencies:** AWS SDK v2 `s3` 2.55.16 (synchronous client only; netty excluded), `webp-imageio` 0.11.0, `metadata-extractor` 2.21.0; for tests, `testcontainers-minio` and `awaitility`.
+
+### Tests (275, all green: 159 unit, 116 integration)
+
+| Test | Checks |
+|---|---|
+| `CatalogIT` (17) | The done-when flow: create (`150,000`) → options `S، M` → prices with Arabic digits and compare-at and SKU → upload JPEG + PNG → publish → list shows "from 150,000" and thumbnails. Then: 3 renditions per image in MinIO (`image/webp`), anonymously readable with the immutable cache header. Also: adding a value keeps existing variant ids and prices; removing options returns to one default variant; option errors keep typed values and the variant table; variant errors show on their row; non-images rejected with nothing stored; uploaded file names escaped; removing an image deletes its renditions (awaited); reorder; publishing needs a price; only drafts can be deleted; Arabic slugs deduplicated; new-product validation; HTMX search (with `%` and `_` escaped); categories (nesting depth, in-use deletes refused, hide); another store gets 404 on view, status, options and upload, and changes nothing; HTMX with an expired session or a stale CSRF token gets `HX-Redirect` |
+| `UploadLimitIT` | Real server, since MockMvc skips Tomcat's limits: an 11 MB upload over HTMX → 200, `HX-Retarget: #upload-error`, localized message |
+| `ImageProcessorTest` (10) | JPEG to 320/640/1024 WebP; PNG with alpha; WebP input; no upscaling; EXIF orientation 6 in a hand-built APP1 segment turns landscape into portrait; pixel transforms for orientations 1, 2, 3, 6 and 8; GIF, SVG, text and empty input → unsupported; truncated JPEG → unreadable; size and pixel limits; a 6000×4000 photo via subsampling |
+| `VariantMatrixTest`, `SlugsTest`, `AmountsTest`, `MoneyTest` | Option parsing and combinations; Arabic and Latin slugs; amount formats including the European `12,50` rejected; `Money` scale and equality |
+| `RlsCoverageIT` | Now covers `category`, `product`, `product_option`, `product_variant` and `product_image` (forced RLS, single policy, `tenant_id` NOT NULL, indexes leading with `tenant_id`) |
+
+**Live check** (local profile, docker-compose MinIO, curl on real hosts with HTMX headers and the page's CSRF token):
+- Bucket created and demo catalog seeded.
+- 3000×2000 JPEG + PNG uploaded in 1.5 s; the 640 rendition is a 4 KB WebP served by MinIO with the immutable cache header.
+- Six variant prices set with `١٥٥٬٠٠٠` → `155000.00 SYP`.
+- Arabic HTMX search returns only the fragment.
+- Probes:
+  - fake `.jpg` → "not a JPEG, PNG or WebP";
+  - 6 MB → "larger than 5 MB";
+  - 12 MB → retargeted message (fixed during the check; it had been a silent 413);
+  - HTMX without CSRF → 403 + `HX-Redirect`; without a session → 401 + `HX-Redirect`;
+  - demo2's owner on demo1's product → 404, upload → 404;
+  - removing an image → its rendition URL returns 404 within a second.
+
+### Decisions and deviations
+
+- **MinIO host port moved to 9100 (console 9101)**, configurable with `MINIO_PORT` / `MINIO_CONSOLE_PORT`. On this machine `ipqservice` binds `127.0.0.1:9000`, which wins over Docker's wildcard bind for IPv4 clients. The JVM got "server failed to respond" while curl (over IPv6) worked. Same pattern as Postgres on 5433. After pulling, run `docker compose up -d minio` (data is in the named volume).
+- **Option values are identified by label** (Arabic, else English). Renaming a value creates a new variant with the default price, rather than renaming the old one.
+- **Variant ↔ image link** (`product_image.variant_id`) is in the schema but has no UI yet. Alt text is likewise not editable yet.
+- **Admin amounts use Western digits** (`MoneyText`); store-level digit and rounding settings come with M4.
+- **Thymeleaf 3.1 restricts expressions in URL attributes:** bean calls go through `th:with` first (`th:with="url=${@imageUrls.small(key)}" th:src="${url}"`).
+- **Conditions vs. test properties:** `@ConditionalOnProperty` is evaluated before Testcontainers registers its properties (like Flyway in M1), so `BucketSetup` checks its flag at run time.
+- **Spring Modulith's documenter** parses generated Javadoc JSON with Boot's `BasicJsonParser`, which failed on one comment mixing `{@code ${…}}` with a quoted `"150,000"`. The comment was reworded and the trap documented on `MoneyText`.
+- **All merchant-admin roles** (owner, manager, staff) can manage the catalog.
+
+### Notes for later milestones
+
+- **M5 storefront:** use `ImageStore.url(key, size)` for `srcset` (320/640/1024) with `width`/`height` from `product_image` (no layout shift); add a trigram index on `product.search_text`; only show ACTIVE products in active categories.
+- **M4 pricing:** `Money` exists; add conversion, rounding and digit settings, and use them in `MoneyText`.
+- **M6 inventory:** `stock_level` per variant. Variants removed by option changes are deleted outright today; once orders reference them (M8), deactivate instead.
+- **M8 orders:** keep product snapshots on `order_item` so later catalog edits never change past orders.
+- **Orphaned objects:** an upload whose row insert fails is discarded, but a crash between upload and insert leaves objects behind. Add a sweep with the M11 jobs.
+- **Production (M15):** set `S3_MANAGE_BUCKET=false`, create the bucket and its `public/*` read policy (or a CDN in front). The `webp-imageio` natives need glibc, so not an Alpine image.
+
+### Next: M4, pricing
+
+Currencies, exchange rate admin, rounding, `Money`.

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<!--/* New product. The "fields" fragment (names, descriptions, slug, category, currency) is shared with the edit page. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="#{product.new}">New product</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <a th:href="@{/admin/products}" class="text-sm text-brand-700 hover:underline" th:text="#{product.back}">Products</a>
+    <h1 class="mt-2 text-2xl font-bold" th:text="#{product.new}">New product</h1>
+
+    <form th:action="@{/admin/products}" th:object="${form}" method="post" novalidate
+          class="mt-6 max-w-2xl space-y-4 rounded-lg border border-gray-200 bg-white p-6">
+        <th:block th:fragment="fields">
+            <th:block th:if="${#fields.hasGlobalErrors()}">
+                <div th:replace="~{fragments/forms :: alert(kind='error', message=${#fields.globalErrors()[0]})}"></div>
+            </th:block>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div th:replace="~{fragments/forms :: input(field='nameAr', label=#{product.field.nameAr})}"></div>
+                <div th:replace="~{fragments/forms :: input(field='nameEn', label=#{product.field.nameEn}, ltr=true)}"></div>
+            </div>
+            <p class="-mt-2 text-xs text-gray-500" th:text="#{product.field.name.hint}">One name is enough.</p>
+            <div class="space-y-1">
+                <label for="descriptionAr" class="block text-sm font-medium text-gray-800" th:text="#{product.field.descriptionAr}">Description</label>
+                <textarea th:field="*{descriptionAr}" rows="4"
+                          class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"></textarea>
+                <p th:if="${#fields.hasErrors('descriptionAr')}" th:errors="*{descriptionAr}" class="text-sm text-red-600">Error</p>
+            </div>
+            <div class="space-y-1">
+                <label for="descriptionEn" class="block text-sm font-medium text-gray-800" th:text="#{product.field.descriptionEn}">Description (English)</label>
+                <textarea th:field="*{descriptionEn}" rows="4" dir="ltr"
+                          class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"></textarea>
+                <p th:if="${#fields.hasErrors('descriptionEn')}" th:errors="*{descriptionEn}" class="text-sm text-red-600">Error</p>
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div class="space-y-1">
+                    <label for="categoryId" class="block text-sm font-medium text-gray-800" th:text="#{product.field.category}">Category</label>
+                    <select th:field="*{categoryId}"
+                            class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                        <option value="" th:text="#{product.field.category.none}">None</option>
+                        <option th:each="category : ${categories}" th:value="${category.id()}"
+                                th:text="${category.topLevel()} ? ${category.name().in(#locale)} : '— ' + ${category.name().in(#locale)}">Category</option>
+                    </select>
+                    <p th:if="${#fields.hasErrors('categoryId')}" th:errors="*{categoryId}" class="text-sm text-red-600">Error</p>
+                </div>
+                <div class="space-y-1">
+                    <label for="priceCurrency" class="block text-sm font-medium text-gray-800" th:text="#{product.field.currency}">Currency</label>
+                    <select th:field="*{priceCurrency}"
+                            class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                        <option th:each="currency : ${currencies}" th:value="${currency}" th:text="#{currency.name.__${currency}__}">SYP</option>
+                    </select>
+                </div>
+            </div>
+            <div th:replace="~{fragments/forms :: input(field='slug', label=#{product.field.slug}, hint=#{product.field.slug.hint})}"></div>
+        </th:block>
+        <div th:replace="~{fragments/forms :: input(field='price', label=#{product.field.price}, ltr=true, inputmode='decimal', hint=#{product.field.price.hint})}"></div>
+        <button th:replace="~{fragments/forms :: submit(label=#{product.create})}">Create</button>
+    </form>
+</main>
+</body>
+</html>

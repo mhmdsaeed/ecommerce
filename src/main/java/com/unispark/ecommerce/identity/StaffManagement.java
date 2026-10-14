@@ -3,6 +3,8 @@ package com.unispark.ecommerce.identity;
 import java.util.List;
 import java.util.UUID;
 
+import com.unispark.ecommerce.shared.FieldProblem;
+
 /**
  * Staff of the current store (the tenant in context). Owners manage everyone but owners; managers manage staff
  * and drivers ({@link StaffRole#canManage}).

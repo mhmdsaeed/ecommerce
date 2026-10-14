@@ -3,6 +3,8 @@ package com.unispark.ecommerce.identity;
 import java.util.List;
 import java.util.Locale;
 
+import com.unispark.ecommerce.shared.FieldProblem;
+
 /**
  * Merchant signup (SPEC 1, 9.3): creates a TRIAL store and its owner in one transaction.
  * Callers validate field presence and length; this checks the business rules (slug, phone, email, password).

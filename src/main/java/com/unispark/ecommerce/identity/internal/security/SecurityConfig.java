@@ -145,6 +145,9 @@ class SecurityConfig {
                 .logout(logout -> logout
                         .logoutUrl(area + "/logout")
                         .logoutSuccessUrl(loginUrl + "?logout"))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(HtmxAware.entryPoint(loginUrl))
+                        .accessDeniedHandler(HtmxAware.accessDenied(loginUrl)))
                 .addFilterAfter(new StaffSessionFilter(accounts, stores, loginUrl), AuthorizationFilter.class);
         return http.build();
     }

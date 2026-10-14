@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <!--/* Form building blocks. Call inside a th:object form, passing named arguments (all optional except field
        and label), e.g.  th:replace="~{fragments/forms :: input(field='email', label=#{x}, type='email', ltr=true)}"
-       ltr: for emails, phones and slugs, which read left to right even on Arabic pages. */-->
+       ltr: for emails, phones and slugs, which read left to right even on Arabic pages.
+       inputmode: e.g. 'decimal' for prices, so phones show a number keypad. */-->
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
@@ -9,7 +10,7 @@
     <label th:for="${field}" class="block text-sm font-medium text-gray-800" th:text="${label}">Label</label>
     <input th:type="${type != null} ? ${type} : 'text'"
            th:field="*{__${field}__}"
-           th:attr="autocomplete=${autocomplete}, dir=${ltr} ? 'ltr' : null, aria-invalid=${#fields.hasErrors('__${field}__')}"
+           th:attr="autocomplete=${autocomplete}, inputmode=${inputmode}, dir=${ltr} ? 'ltr' : null, aria-invalid=${#fields.hasErrors('__${field}__')}"
            class="w-full rounded-md border bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"
            th:classappend="${#fields.hasErrors('__${field}__')} ? 'border-red-500' : 'border-gray-300'">
     <p th:if="${hint != null}" class="text-xs text-gray-500" th:text="${hint}">Hint</p>

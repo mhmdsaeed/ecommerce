@@ -45,7 +45,7 @@ final class StaffSessionFilter extends OncePerRequestFilter {
         try (var scope = TenantContext.enter(staff.tenantId())) {
             if (!stillValid(staff)) {
                 logout.logout(request, response, authentication);
-                response.sendRedirect(request.getContextPath() + loginUrl + "?expired");
+                HtmxAware.redirect(request, response, HttpServletResponse.SC_UNAUTHORIZED, loginUrl + "?expired");
                 return;
             }
             chain.doFilter(request, response);

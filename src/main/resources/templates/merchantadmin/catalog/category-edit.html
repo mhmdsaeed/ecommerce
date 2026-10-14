@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<!--/* Edit one category. The "fields" fragment is shared with the add form on the categories page. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="#{category.edit.title}">Edit category</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <a th:href="@{/admin/categories}" class="text-sm text-brand-700 hover:underline" th:text="#{category.back}">Categories</a>
+    <h1 class="mt-2 text-2xl font-bold" th:text="#{category.edit.title}">Edit category</h1>
+
+    <form th:action="@{/admin/categories/{id}(id=${categoryId})}" th:object="${form}" method="post"
+          class="mt-6 max-w-lg space-y-4 rounded-lg border border-gray-200 bg-white p-6" novalidate>
+        <th:block th:fragment="fields">
+            <th:block th:if="${#fields.hasGlobalErrors()}">
+                <div th:replace="~{fragments/forms :: alert(kind='error', message=${#fields.globalErrors()[0]})}"></div>
+            </th:block>
+            <div th:replace="~{fragments/forms :: input(field='nameAr', label=#{category.field.nameAr})}"></div>
+            <div th:replace="~{fragments/forms :: input(field='nameEn', label=#{category.field.nameEn}, ltr=true)}"></div>
+            <div th:replace="~{fragments/forms :: input(field='slug', label=#{category.field.slug}, hint=#{category.field.slug.hint})}"></div>
+            <div class="space-y-1">
+                <label for="parentId" class="block text-sm font-medium text-gray-800" th:text="#{category.field.parent}">Parent</label>
+                <select th:field="*{parentId}"
+                        class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                    <option value="" th:text="#{category.field.parent.none}">None</option>
+                    <option th:each="parent : ${parents}" th:value="${parent.id()}" th:text="${parent.name().in(#locale)}">Parent</option>
+                </select>
+                <p th:if="${#fields.hasErrors('parentId')}" th:errors="*{parentId}" class="text-sm text-red-600">Error</p>
+            </div>
+            <div th:replace="~{fragments/forms :: input(field='sortOrder', label=#{category.field.sortOrder}, type='number', ltr=true, hint=#{category.field.sortOrder.hint})}"></div>
+        </th:block>
+        <button th:replace="~{fragments/forms :: submit(label=#{category.edit.submit})}">Save</button>
+    </form>
+</main>
+</body>
+</html>

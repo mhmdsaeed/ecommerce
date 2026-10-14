@@ -8,12 +8,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.unispark.ecommerce.identity.FieldProblem;
 import com.unispark.ecommerce.identity.MerchantSignup;
 import com.unispark.ecommerce.identity.StaffPrincipal;
 import com.unispark.ecommerce.identity.StaffRole;
 import com.unispark.ecommerce.identity.internal.persistence.StaffUser;
 import com.unispark.ecommerce.identity.internal.persistence.StaffUserRepository;
+import com.unispark.ecommerce.shared.FieldProblem;
 import com.unispark.ecommerce.shared.Ids;
 import com.unispark.ecommerce.shared.LocalizedText;
 import com.unispark.ecommerce.shared.PhoneNumbers;

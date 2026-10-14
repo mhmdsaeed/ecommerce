@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<!--/* Categories. The "section" fragment (list + add form) is what HTMX requests get back. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="#{category.title}">Categories</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <h1 class="text-2xl font-bold" th:text="#{category.title}">Categories</h1>
+    <div class="mt-4 space-y-2">
+        <th:block th:if="${param.created}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{category.created})}"></div></th:block>
+        <th:block th:if="${param.updated}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{category.updated})}"></div></th:block>
+    </div>
+
+    <section id="categories" th:fragment="section" class="mt-6 grid gap-8 lg:grid-cols-3">
+        <div class="space-y-3 lg:col-span-2">
+            <th:block th:if="${notice != null}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{${notice}})}"></div></th:block>
+            <th:block th:if="${error != null}"><div th:replace="~{fragments/forms :: alert(kind='error', message=#{${error}})}"></div></th:block>
+
+            <p th:if="${categories.isEmpty()}" class="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-gray-600"
+               th:text="#{category.empty}">No categories yet.</p>
+
+            <div th:unless="${categories.isEmpty()}" class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 text-gray-600">
+                    <tr>
+                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{category.col.name}">Name</th>
+                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{category.col.products}">Products</th>
+                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{category.col.status}">Status</th>
+                        <th scope="col" class="px-4 py-3"><span class="sr-only" th:text="#{category.col.actions}">Actions</span></th>
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                    <tr th:each="category : ${categories}">
+                        <td class="px-4 py-3" th:classappend="${category.topLevel()} ? '' : 'ps-10'">
+                            <div class="font-medium" th:text="${category.name().in(#locale)}">Name</div>
+                            <div class="text-xs text-gray-500" dir="ltr" th:text="'/c/' + ${category.slug()}">/c/slug</div>
+                        </td>
+                        <td class="px-4 py-3" th:text="${category.productCount()}">0</td>
+                        <td class="px-4 py-3">
+                            <span th:if="${category.active()}" class="rounded-full bg-brand-50 px-2 py-0.5 text-xs text-brand-700" th:text="#{category.status.active}">Visible</span>
+                            <span th:unless="${category.active()}" class="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600" th:text="#{category.status.hidden}">Hidden</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex flex-wrap items-center justify-end gap-3">
+                                <a th:href="@{/admin/categories/{id}/edit(id=${category.id()})}" class="text-brand-700 hover:underline"
+                                   th:text="#{category.action.edit}">Edit</a>
+                                <form th:action="@{/admin/categories/{id}/active(id=${category.id()})}" method="post"
+                                      th:hx-post="@{/admin/categories/{id}/active(id=${category.id()})}" hx-target="#categories" hx-swap="outerHTML">
+                                    <input type="hidden" name="active" th:value="${!category.active()}">
+                                    <button type="submit" class="text-brand-700 hover:underline"
+                                            th:text="${category.active()} ? #{category.action.hide} : #{category.action.show}">Hide</button>
+                                </form>
+                                <form th:action="@{/admin/categories/{id}/delete(id=${category.id()})}" method="post"
+                                      th:hx-post="@{/admin/categories/{id}/delete(id=${category.id()})}" hx-target="#categories" hx-swap="outerHTML"
+                                      th:hx-confirm="#{category.delete.confirm}">
+                                    <button type="submit" class="text-red-700 hover:underline" th:text="#{category.action.delete}">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="rounded-lg border border-gray-200 bg-white p-6">
+            <h2 class="text-lg font-semibold" th:text="#{category.add.heading}">Add a category</h2>
+            <form th:action="@{/admin/categories}" th:object="${form}" method="post" class="mt-4 space-y-4" novalidate
+                  th:hx-post="@{/admin/categories}" hx-target="#categories" hx-swap="outerHTML">
+                <th:block th:replace="~{merchantadmin/catalog/category-edit :: fields}"></th:block>
+                <button th:replace="~{fragments/forms :: submit(label=#{category.add.submit})}">Add</button>
+            </form>
+        </div>
+    </section>
+</main>
+</body>
+</html>
