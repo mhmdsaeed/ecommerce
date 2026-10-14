@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<!--/* Storefront building blocks. Images: 320 and 640 px WebP renditions via srcset, lazy unless eager=true. */-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<ul th:fragment="product-grid(products, eagerCount)" class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+    <li th:each="card, state : ${products}">
+        <a th:href="@{/p/{slug}(slug=${card.slug()})}" class="group block">
+            <div class="aspect-square overflow-hidden rounded-lg bg-gray-100">
+                <img th:if="${card.image() != null}"
+                     th:with="key=${card.image().storageKey()}, small=${@shopImages.small(key)}, medium=${@shopImages.medium(key)}"
+                     th:src="${small}" th:srcset="|${small} 320w, ${medium} 640w|"
+                     sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+                     width="320" height="320" alt=""
+                     th:attr="loading=${state.index < eagerCount} ? 'eager' : 'lazy'"
+                     class="h-full w-full object-cover transition group-hover:opacity-90">
+            </div>
+            <h3 class="mt-2 text-sm font-medium text-gray-900" th:text="${card.name().in(#locale)}">Product</h3>
+            <p class="mt-1 text-sm">
+                <span th:if="${card.fromPrice()}" class="text-gray-500" th:text="#{shop.price.from}">from</span>
+                <bdi class="font-semibold" th:text="${@shopPrices.show(card.price())}">150,000</bdi>
+                <del th:if="${card.compareAtPrice() != null}" class="ms-1 text-gray-400">
+                    <bdi th:text="${@shopPrices.show(card.compareAtPrice())}">200,000</bdi>
+                </del>
+            </p>
+        </a>
+    </li>
+</ul>
+
+<nav th:fragment="pager(results, base)" th:if="${results.totalPages() > 1}"
+     class="mt-8 flex items-center justify-between text-sm" th:attr="aria-label=#{shop.pages}">
+    <a th:if="${results.hasPrevious()}" th:href="${base + (base.contains('?') ? '&' : '?') + 'page=' + (results.page() - 1)}"
+       class="text-brand-700 hover:underline" th:text="#{shop.page.previous}" rel="prev">Previous</a>
+    <span th:unless="${results.hasPrevious()}"></span>
+    <span class="text-gray-500" th:text="#{shop.page.of(${results.page() + 1}, ${results.totalPages()})}">1 / 2</span>
+    <a th:if="${results.hasNext()}" th:href="${base + (base.contains('?') ? '&' : '?') + 'page=' + (results.page() + 1)}"
+       class="text-brand-700 hover:underline" th:text="#{shop.page.next}" rel="next">Next</a>
+</nav>
+
+</body>
+</html>

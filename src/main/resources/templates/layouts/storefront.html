@@ -1,22 +1,46 @@
 <!DOCTYPE html>
-<!--/* Layout for the storefront area. Pages use layout:decorate="~{layouts/storefront}" and fill the "content" fragment. */-->
+<!--/* Storefront layout. Pages fill "content". On a store, StorefrontAdvice provides shop, navigation, logoUrl and
+       themeStyle; on the main site (no store) they are absent and the platform name shows instead. */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/base}">
+<head>
+    <title layout:title-pattern="$CONTENT_TITLE · $LAYOUT_TITLE"
+           th:text="${shop != null} ? ${shop.name().in(#locale)} : #{app.name}">Store</title>
+</head>
 <body>
 <div layout:fragment="body" class="flex min-h-screen flex-col" data-area="storefront">
     <header class="border-b border-gray-200">
-        <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-            <span class="text-lg font-semibold" th:text="#{app.name}">App</span>
-            <nav class="flex gap-3 text-sm">
-                <a th:href="@{''(lang='ar')}" lang="ar" th:text="#{lang.ar}">العربية</a>
-                <a th:href="@{''(lang='en')}" lang="en" th:text="#{lang.en}">English</a>
+        <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+            <a th:href="@{/}" class="flex items-center gap-2 text-lg font-semibold">
+                <img th:if="${logoUrl != null}" th:src="${logoUrl}" alt="" width="40" height="40"
+                     class="h-10 w-10 rounded object-contain">
+                <span th:text="${shop != null} ? ${shop.name().in(#locale)} : #{app.name}">Store</span>
+            </a>
+            <form th:if="${shop != null}" th:action="@{/search}" method="get" role="search" class="order-last flex w-full gap-2 sm:order-none sm:w-auto">
+                <label for="site-search" class="sr-only" th:text="#{shop.search}">Search</label>
+                <input id="site-search" name="q" type="search" th:value="${q}" th:placeholder="#{shop.search}"
+                       class="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 sm:w-64">
+                <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+                        th:text="#{shop.search.submit}">Search</button>
+            </form>
+            <nav class="flex gap-3 text-sm" th:attr="aria-label=#{shop.language}">
+                <a th:href="@{/lang/ar}" lang="ar" hreflang="ar" th:text="#{lang.ar}" rel="nofollow">العربية</a>
+                <a th:href="@{/lang/en}" lang="en" hreflang="en" th:text="#{lang.en}" rel="nofollow">English</a>
             </nav>
         </div>
+        <nav th:if="${navigation != null and !navigation.isEmpty()}" class="border-t border-gray-100" th:attr="aria-label=#{shop.categories}">
+            <ul class="mx-auto flex max-w-6xl gap-4 overflow-x-auto px-4 py-2 text-sm">
+                <li th:each="link : ${navigation}" class="shrink-0">
+                    <a th:href="@{/c/{slug}(slug=${link.slug()})}" class="hover:text-brand-700" th:text="${link.name().in(#locale)}">Category</a>
+                </li>
+            </ul>
+        </nav>
     </header>
-    <main id="content" class="mx-auto w-full max-w-5xl flex-1 px-4 py-8" layout:fragment="content"></main>
-    <footer class="border-t border-gray-200 py-4 text-center text-xs text-gray-500" th:text="#{layout.footer}">
-        All rights reserved
+    <main id="content" class="mx-auto w-full max-w-6xl flex-1 px-4 py-6" layout:fragment="content"></main>
+    <footer class="border-t border-gray-200 py-4 text-center text-xs text-gray-500">
+        <span th:text="${shop != null} ? ${shop.name().in(#locale)} : #{app.name}">Store</span> ·
+        <span th:text="#{layout.footer}">All rights reserved</span>
     </footer>
 </div>
 </body>

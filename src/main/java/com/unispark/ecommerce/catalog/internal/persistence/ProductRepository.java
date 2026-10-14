@@ -1,6 +1,7 @@
 package com.unispark.ecommerce.catalog.internal.persistence;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -15,6 +16,8 @@ import com.unispark.ecommerce.catalog.ProductStatus;
 public interface ProductRepository extends JpaRepository<Product, UUID> {
 
     boolean existsBySlug(String slug);
+
+    Optional<Product> findBySlug(String slug);
 
     boolean existsBySlugAndIdNot(String slug, UUID id);
 

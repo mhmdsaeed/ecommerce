@@ -341,6 +341,83 @@ Also run manually: `docker compose up -d postgres` + `./mvnw spring-boot:run -Ds
 - **Rate cache:** 60 s per instance. With several instances, a new rate can take up to a minute to show everywhere.
 - **Rate staleness:** there's no reminder when the rate is weeks old; consider a dashboard hint (M13).
 
-### Next: M5, storefront browse
+## M5: Storefront browse (done, 2026-10-14)
 
-Home, category, product, search, locale switch, theme settings; Lighthouse mobile performance ≥ 90.
+**Done when:** a shopper browses the demo store in Arabic and English (`StorefrontIT`, live), and Lighthouse mobile performance ≥ 90: **99–100** on home, category and product (Lighthouse 13.5, mobile emulation, Edge headless; see below).
+
+### What was built
+
+- **Catalog read side** (`StorefrontCatalog`): one visibility rule. A product is visible when it is published, has an available variant, and is uncategorized or in a visible category (active, under an active parent). Hidden categories have no page.
+  - Home: navigation and newest products.
+  - Category pages include subcategories, paginated (24 per page). Sorting is newest or by price. Price sorting compares across currencies by scaling the foreign currency's lowest price at the store's rate inside the query.
+  - Product page: only available variants, and only option values some available variant has.
+  - Search: see below.
+- **Search** (`V7__storefront_search.sql`): `pg_trgm` (a trusted extension, created by `app_owner`) with a GIN trigram index on `product.search_text`.
+  - The column is now normalized for Arabic: hamza forms of alef → ا, ى → ي, ة → ه, diacritics and tatweel dropped. `ProductSearch` normalizes queries the same way, so احمر finds أحمر and مدرسه finds مدرسة.
+  - Results are ranked by `similarity()`; `%` and `_` in queries are escaped.
+- **Storefront pages** (`storefront` module): `/`, `/c/{slug}`, `/p/{slug}`, `/search`, `/lang/{ar|en}`.
+  - `/lang/{ar|en}` sets the cookie and returns to the referring page on the same host only, or `/`.
+  - The product page's Alpine `variantPicker` reads the available variants and their displayed prices from `data-variants` (JSON escaped by Thymeleaf) and shows the chosen combination's price, compare-at price, or "not available".
+  - Prices go through `Prices.display` and `PriceFormatter` (`@shopPrices`).
+  - The main site's `/` stays the platform placeholder; storefront paths there answer 404.
+- **Language:** with no `lang` cookie, the store's default language applies (SPEC 11). This uses a new `shared.DefaultLocaleSource` hook implemented by the tenant settings service, alongside the digits adjuster from M4.
+- **Theme** (SPEC 10, settings only): `store.theme` JSON as `StoreTheme`, edited at Settings → Storefront (owners and managers):
+  - Primary colour (`#rrggbb`, validated): `ThemeStyle` derives brand-50/100/500/600/700 CSS variables and darkens the button shade until white text reaches 4.5:1 contrast.
+  - Logo: media upload; a replaced logo is discarded via `ImageDiscarded`.
+  - Hero title and text (ar/en; default: "Welcome to {store}").
+  - Font: MODERN or CLASSIC system stacks only (no web fonts, per the budget).
+  - Toggles for the categories and new-arrivals sections.
+- **Performance and caching:**
+  - Storefront pages carry no CSRF token, so anonymous visits create no session. This was confirmed live: no `JSESSIONID`.
+  - Pages send `Cache-Control: private, max-age=60`. Not shared caches: the language comes from a cookie.
+  - CSS and JS have content-hashed URLs, cached for 365 days and public. The local profile disables this caching.
+  - Images: `srcset` 320/640(/1024), intrinsic `width`/`height`, the first product image eager with `fetchpriority="high"`, the rest lazy.
+  - `app.js` now loads before Alpine: Alpine starts as soon as its script runs, so components must be registered first.
+
+### Budget (SPEC 9.5), measured on demo1 with production-like caching and compression
+
+| | Budget | Measured |
+|---|---|---|
+| HTML per page (gzip) | 50 KB | 1.7–1.9 KB (home, category, product, search) |
+| CSS (gzip) | 30 KB | 5.2 KB |
+| JS total (gzip) | 40 KB | 37.7 KB (Alpine 19.9, htmx 16.9, app 0.9) |
+| Product image | WebP srcset, lazy | 640 rendition 5 KB WebP; LCP image eager + high priority |
+
+### Lighthouse (mobile, simulated throttling; local profile with production caching and compression)
+
+| Page | Performance | Accessibility | Best practices | SEO | LCP | TBT | CLS |
+|---|---|---|---|---|---|---|---|
+| Home | 99 | 100 | 78 | 91 | 1.4 s | 0 ms | 0 |
+| Category | 100 | 100 | 78 | 91 | 1.3 s | 0 ms | 0 |
+| Product | 100 | 100 | 78 | 91 | 1.4 s | 0 ms | 0 |
+
+The first run found three things, fixed before the run above:
+- **Contrast:** the platform's default brand-600 (#008b61) gave white button text only 4.31:1. It's now #00855d (4.65:1), with 700 at #006a4a. Merchant colours were already darkened by `ThemeStyle`; the built-in default never went through that check.
+- **A 404 for `/favicon.ico`:** there's now an empty icon link.
+- **Heading order** on category and search pages (`h1` straight to the `h3` product names): a visually hidden `h2` was added.
+
+What remains:
+- Best practices 78 and SEO 91: HTTPS and the http→https redirect (production, M15), and a meta description (M13).
+- One cold-JVM `server-response-time` warning on the first hit after restart.
+
+Run with a portable Node.js 24 and `npm install lighthouse` in the session scratchpad. With `NODE_OPTIONS=--use-system-ca` (TLS interception), `CHROME_PATH` set to Edge, and `--chrome-flags="--headless=new --host-resolver-rules=\"MAP *.lvh.me 127.0.0.1\""`.
+
+### Tests (352, all green: 219 unit, 133 integration)
+
+| Test | Checks |
+|---|---|
+| `StorefrontIT` (10) | Arabic browse: RTL, welcome, visible categories only, published products only (draft, hidden-category and no-available-variant products absent), $4.50 → 535 ل.س, "from" prices, category with subcategory, product page with options and variant JSON prices. English browse via cookie. Store default language without a cookie. `/lang` returns to the same-host page; foreign referrers go to `/`. Price sort interleaves USD and SYP products correctly in both directions. Search with Arabic normalization (احمر → أحمر), case-insensitive Latin, hidden products not found, wildcards safe. Hidden or missing pages → 404, also on the main site. Cache header and no session or CSRF on every browse page. Theme colour, font and hero applied. Admin theme form saves, and an injected colour value is rejected |
+| `ProductSearchTest`, `ThemeStyleTest` | Normalization mirrors the SQL column; LIKE escaping; shade derivation; light colours darkened to ≥ 4.5:1; classic font stack |
+| `PlaceholderPageIT` | Now expects content-hashed asset URLs |
+
+### Decisions and deviations
+
+- **Browser-only caching (`private`)** because the language is a cookie. CDN caching (§9.5) would need the language in the URL, or `Vary: Cookie` (poorly supported by CDNs). Revisit with production hosting (M15).
+- **No CSRF on storefront pages until the cart (M6).** The cart needs a token without forcing a session per visitor: either a cookie-based CSRF repository for the site chain, or tokens only on cart and checkout pages.
+- **htmx is loaded on browse pages** although nothing uses it until M6. It's within budget (37.7/40 KB), but there is little room left. Loading it only on pages that use it would free 17 KB.
+- **The theme colour input can't be empty**, so the form starts from the platform green (#13896a). There's no "reset to default" yet.
+- **Hiding a category hides its products everywhere** (pages, search, home), not just its page.
+
+### Next: M6, cart and inventory reservations
+
+Cart via HTMX; stock cannot go negative under a concurrent test.

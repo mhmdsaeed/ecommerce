@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/storefront}">
+<head>
+    <title th:text="${page.category().name().in(#locale)}">Category</title>
+</head>
+<body>
+<main layout:fragment="content" th:with="category=${page.category()}, results=${page.results()}">
+    <nav class="text-sm text-gray-500" th:attr="aria-label=#{shop.breadcrumb}">
+        <a th:href="@{/}" th:text="#{shop.home.title}">Home</a>
+        <th:block th:if="${page.parent() != null}">
+            / <a th:href="@{/c/{slug}(slug=${page.parent().slug()})}" th:text="${page.parent().name().in(#locale)}">Parent</a>
+        </th:block>
+    </nav>
+    <div class="mt-2 flex flex-wrap items-end justify-between gap-3">
+        <h1 class="text-2xl font-bold" th:text="${category.name().in(#locale)}">Category</h1>
+        <form method="get" class="flex items-center gap-2 text-sm">
+            <label for="sort" th:text="#{shop.sort}">Sort</label>
+            <select id="sort" name="sort" x-data x-on:change="$el.form.submit()"
+                    class="rounded-md border border-gray-300 bg-white px-2 py-1">
+                <option th:each="option : ${sorts}" th:value="${option}" th:selected="${option == sort}"
+                        th:text="#{shop.sort.__${option}__}">Newest</option>
+            </select>
+            <noscript><button type="submit" th:text="#{shop.sort.apply}">Apply</button></noscript>
+        </form>
+    </div>
+    <ul th:if="${!category.children().isEmpty()}" class="mt-4 flex flex-wrap gap-2 text-sm">
+        <li th:each="child : ${category.children()}">
+            <a th:href="@{/c/{slug}(slug=${child.slug()})}" class="rounded-full border border-gray-300 px-3 py-1 hover:border-brand-500"
+               th:text="${child.name().in(#locale)}">Child</a>
+        </li>
+    </ul>
+    <p th:if="${results.products().isEmpty()}" class="mt-8 text-gray-600" th:text="#{shop.category.empty}">No products here yet.</p>
+    <h2 class="sr-only" th:unless="${results.products().isEmpty()}" th:text="#{shop.products}">Products</h2>
+    <th:block th:unless="${results.products().isEmpty()}"><div class="mt-6" th:replace="~{storefront/fragments/catalog :: product-grid(products=${results.products()}, eagerCount=4)}"></div></th:block>
+    <div th:replace="~{storefront/fragments/catalog :: pager(results=${results}, base=@{/c/{slug}(slug=${category.slug()}, sort=${sort})})}"></div>
+</main>
+</body>
+</html>

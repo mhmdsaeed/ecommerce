@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/storefront}">
+<head>
+    <title th:text="#{shop.home.title}">Home</title>
+</head>
+<body>
+<main layout:fragment="content" class="space-y-10" th:with="theme=${shop.theme()}">
+    <section class="rounded-xl bg-brand-50 px-6 py-10 text-center">
+        <h1 class="text-2xl font-bold text-gray-900 sm:text-3xl"
+            th:text="${theme.heroTitle() != null} ? ${theme.heroTitle().in(#locale)} : #{shop.home.welcome(${shop.name().in(#locale)})}">Welcome</h1>
+        <p th:if="${theme.heroText() != null}" class="mx-auto mt-3 max-w-2xl whitespace-pre-line text-gray-700"
+           th:text="${theme.heroText().in(#locale)}">Text</p>
+    </section>
+
+    <section th:if="${theme.categoriesShown() and !navigation.isEmpty()}">
+        <h2 class="text-lg font-semibold" th:text="#{shop.categories}">Categories</h2>
+        <ul class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <li th:each="link : ${navigation}">
+                <a th:href="@{/c/{slug}(slug=${link.slug()})}"
+                   class="block rounded-lg border border-gray-200 px-4 py-6 text-center font-medium hover:border-brand-500 hover:text-brand-700"
+                   th:text="${link.name().in(#locale)}">Category</a>
+            </li>
+        </ul>
+    </section>
+
+    <section th:if="${theme.newProductsShown()}">
+        <h2 class="text-lg font-semibold" th:text="#{shop.newest}">New arrivals</h2>
+        <p th:if="${newest.isEmpty()}" class="mt-4 text-gray-600" th:text="#{shop.empty}">No products yet.</p>
+        <th:block th:unless="${newest.isEmpty()}"><div class="mt-4" th:replace="~{storefront/fragments/catalog :: product-grid(products=${newest}, eagerCount=2)}"></div></th:block>
+    </section>
+</main>
+</body>
+</html>

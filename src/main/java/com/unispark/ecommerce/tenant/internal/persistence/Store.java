@@ -21,10 +21,11 @@ import com.unispark.ecommerce.shared.RoundingRule;
 import com.unispark.ecommerce.tenant.StoreSettings;
 import com.unispark.ecommerce.tenant.StoreStatus;
 import com.unispark.ecommerce.tenant.StoreSummary;
+import com.unispark.ecommerce.tenant.StoreTheme;
 
 /**
  * A merchant's store; its id is the tenant id. Platform entity, so it does not extend {@code TenantScopedEntity}.
- * {@code plan_code} and {@code theme} are mapped when billing (M12) and theming (M5) need them.
+ * {@code plan_code} is mapped when billing (M12) needs it.
  */
 @Entity
 @Table(name = "store")
@@ -60,6 +61,10 @@ public class Store extends BaseEntity {
     @Column(name = "number_digits", nullable = false)
     private NumberDigits numberDigits;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(nullable = false)
+    private StoreTheme theme;
+
     @Column(name = "contact_phone")
     private String contactPhone;
 
@@ -85,6 +90,7 @@ public class Store extends BaseEntity {
         this.displayCurrency = Currency.SYP;
         this.roundingRule = RoundingRule.NEAREST_5;
         this.numberDigits = NumberDigits.WESTERN;
+        this.theme = StoreTheme.DEFAULT;
     }
 
     public void updatePricing(Currency baseCurrency, Currency displayCurrency, RoundingRule roundingRule,
@@ -96,7 +102,12 @@ public class Store extends BaseEntity {
     }
 
     public StoreSettings.Settings toSettings() {
-        return new StoreSettings.Settings(getId(), baseCurrency, displayCurrency, roundingRule, numberDigits);
+        return new StoreSettings.Settings(getId(), name, Locale.forLanguageTag(defaultLocale), baseCurrency,
+                displayCurrency, roundingRule, numberDigits, theme == null ? StoreTheme.DEFAULT : theme);
+    }
+
+    public void updateTheme(StoreTheme theme) {
+        this.theme = theme == null ? StoreTheme.DEFAULT : theme;
     }
 
     public void setContactPhone(String contactPhone) {

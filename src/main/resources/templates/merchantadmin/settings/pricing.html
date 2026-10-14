@@ -9,7 +9,8 @@
 <body>
 <main layout:fragment="content" class="space-y-8">
     <div>
-        <h1 class="text-2xl font-bold" th:text="#{settings.pricing.title}">Pricing</h1>
+        <nav th:replace="~{merchantadmin/settings/theme :: tabs(active='pricing')}"></nav>
+        <h1 class="mt-6 text-2xl font-bold" th:text="#{settings.pricing.title}">Pricing</h1>
         <div class="mt-4 space-y-2">
             <th:block th:if="${param.saved}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{settings.pricing.saved})}"></div></th:block>
             <th:block th:if="${param.rate}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{settings.rate.saved})}"></div></th:block>

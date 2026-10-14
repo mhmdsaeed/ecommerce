@@ -15,6 +15,12 @@
   --color-brand-50: oklch(0.97 0.02 165);
   --color-brand-100: oklch(0.93 0.05 165);
   --color-brand-500: oklch(0.65 0.14 165);
-  --color-brand-600: oklch(0.56 0.13 165);
-  --color-brand-700: oklch(0.48 0.11 165);
+  /* 600 carries white button text: #00855d keeps it at 4.65:1 (WCAG AA needs 4.5). */
+  --color-brand-600: #00855d;
+  --color-brand-700: #006a4a;
+}
+
+/* Alpine hides x-cloak elements until it has started. */
+[x-cloak] {
+  display: none !important;
 }

@@ -34,6 +34,18 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 60MB
+  # SPEC 9.5: content-hashed URLs for CSS and JS (Thymeleaf's @{...} links get the hash), cached for a year.
+  web:
+    resources:
+      chain:
+        strategy:
+          content:
+            enabled: true
+            paths: /css/**, /js/**
+      cache:
+        cachecontrol:
+          max-age: 365d
+          cache-public: true
   modulith:
     events:
       # Event listeners that failed (e.g. storage down while discarding images) run again after a restart.

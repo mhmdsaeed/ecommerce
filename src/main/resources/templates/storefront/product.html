@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<!--/* Product page. The variant picker (app.js: variantPicker) reads the available variants from data-variants and
+       shows the price of the chosen combination. The first image is the largest contentful paint: eager, high
+       priority. Adding to the cart arrives with M6. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/storefront}">
+<head>
+    <title th:text="${product.name().in(#locale)}">Product</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <nav class="text-sm text-gray-500" th:attr="aria-label=#{shop.breadcrumb}">
+        <a th:href="@{/}" th:text="#{shop.home.title}">Home</a>
+        <th:block th:if="${product.category() != null}">
+            / <a th:href="@{/c/{slug}(slug=${product.category().slug()})}" th:text="${product.category().name().in(#locale)}">Category</a>
+        </th:block>
+    </nav>
+
+    <div class="mt-4 grid gap-8 md:grid-cols-2">
+        <div>
+            <div th:if="${product.images().isEmpty()}" class="aspect-square rounded-lg bg-gray-100"></div>
+            <ul th:unless="${product.images().isEmpty()}" class="space-y-3">
+                <li th:each="image, state : ${product.images()}"
+                    th:with="key=${image.storageKey()}, small=${@shopImages.small(key)}, medium=${@shopImages.medium(key)}, large=${@shopImages.large(key)}">
+                    <img th:src="${medium}" th:srcset="|${small} 320w, ${medium} 640w, ${large} 1024w|"
+                         sizes="(min-width: 768px) 50vw, 100vw"
+                         th:width="${image.width()}" th:height="${image.height()}" th:alt="${product.name().in(#locale)}"
+                         th:attr="loading=${state.first} ? 'eager' : 'lazy', fetchpriority=${state.first} ? 'high' : null"
+                         class="h-auto w-full rounded-lg bg-gray-100">
+                </li>
+            </ul>
+        </div>
+
+        <div x-data="variantPicker" th:data-variants="${variantsJson}" class="space-y-5">
+            <h1 class="text-2xl font-bold" th:text="${product.name().in(#locale)}">Product</h1>
+            <p class="text-xl" aria-live="polite">
+                <bdi class="font-semibold" x-text="price"
+                     th:text="${@shopPrices.show(product.variants()[0].price())}">150,000</bdi>
+                <del class="ms-2 text-base text-gray-400" x-show="compareAt" x-text="compareAt"
+                     th:text="${@shopPrices.show(product.variants()[0].compareAtPrice())}"
+                     th:style="${product.variants()[0].compareAtPrice() == null} ? 'display: none' : null"></del>
+            </p>
+
+            <fieldset th:each="option, state : ${product.options()}" class="space-y-2">
+                <legend class="text-sm font-medium text-gray-800" th:text="${option.name().in(#locale)}">Size</legend>
+                <div class="flex flex-wrap gap-2">
+                    <label th:each="choice : ${option.values()}" class="cursor-pointer">
+                        <input type="radio" class="peer sr-only" th:name="|option-${state.index}|"
+                               th:value="${choice.ar() != null ? choice.ar() : choice.en()}"
+                               th:attr="x-model=|chosen[${state.index}]|">
+                        <span class="block rounded-md border border-gray-300 px-3 py-1.5 text-sm peer-checked:border-brand-600 peer-checked:bg-brand-50 peer-checked:text-brand-700 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-600"
+                              th:text="${choice.in(#locale)}">M</span>
+                    </label>
+                </div>
+            </fieldset>
+            <p x-show="unavailable" x-cloak class="text-sm text-red-700" th:text="#{shop.product.unavailable}">Not available</p>
+
+            <button type="button" disabled
+                    class="w-full rounded-md bg-brand-600 px-4 py-3 font-medium text-white opacity-60 sm:w-auto"
+                    th:text="#{shop.product.cart-soon}">Add to cart (soon)</button>
+
+            <div th:if="${product.description() != null}" class="whitespace-pre-line text-gray-700"
+                 th:text="${product.description().in(#locale)}">Description</div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

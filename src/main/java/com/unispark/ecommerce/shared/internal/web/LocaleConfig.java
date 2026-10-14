@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,12 +20,13 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.i18n.CookieLocaleResolver;
 
+import com.unispark.ecommerce.shared.DefaultLocaleSource;
 import com.unispark.ecommerce.shared.LocaleAdjuster;
 
 /**
- * Locale comes from the {@code lang} cookie, defaulting to Arabic (SPEC 11), then {@link LocaleAdjuster}s refine it
- * (the store's digits). {@code ?lang=ar|en} switches it; the {@code /lang/{ar|en}} route arrives with the
- * storefront in M5.
+ * Locale comes from the {@code lang} cookie, else a {@link DefaultLocaleSource} (the store's language), else Arabic
+ * (SPEC 11); then {@link LocaleAdjuster}s refine it (the store's digits). {@code ?lang=ar|en} switches it, and so
+ * does the storefront's {@code /lang/{ar|en}} route.
  */
 @Configuration(proxyBeanMethods = false)
 class LocaleConfig {
@@ -48,9 +50,15 @@ class LocaleConfig {
     }
 
     @Bean
-    LocaleResolver localeResolver(ObjectProvider<LocaleAdjuster> adjusters) {
+    LocaleResolver localeResolver(ObjectProvider<LocaleAdjuster> adjusters,
+            ObjectProvider<DefaultLocaleSource> defaults) {
         var cookie = new CookieLocaleResolver("lang");
         cookie.setDefaultLocale(DEFAULT_LOCALE);
+        cookie.setDefaultLocaleFunction(request -> defaults.orderedStream()
+                .map(DefaultLocaleSource::defaultLocale)
+                .flatMap(Optional::stream)
+                .findFirst()
+                .orElse(DEFAULT_LOCALE));
         cookie.setCookieMaxAge(Duration.ofDays(365));
         cookie.setCookieSameSite("Lax");
         cookie.setCookieHttpOnly(true);

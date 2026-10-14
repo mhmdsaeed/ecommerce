@@ -2,6 +2,7 @@ package com.unispark.ecommerce;
 
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -36,8 +37,9 @@ class PlaceholderPageIT {
                         containsString("lang=\"ar\""),
                         containsString("dir=\"rtl\""),
                         containsString("متجرك على الإنترنت خلال دقائق"),
-                        containsString("/css/app.css"),
-                        containsString("/js/htmx.min.js"),
+                        // Content-hashed asset URLs (SPEC 9.5).
+                        matchesPattern("(?s).*/css/app-[0-9a-f]{32}\\.css.*"),
+                        matchesPattern("(?s).*/js/htmx\\.min-[0-9a-f]{32}\\.js.*"),
                         not(containsString("??")))));
     }
 
