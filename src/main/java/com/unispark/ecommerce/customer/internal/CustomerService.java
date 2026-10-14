@@ -84,6 +84,40 @@ class CustomerService implements Customers {
     }
 
     @Override
+    public boolean block(UUID customerId, String reason) {
+        return customers.findById(customerId).map(customer -> {
+            customer.block(Destination.clean(reason));
+            return true;
+        }).orElse(false);
+    }
+
+    @Override
+    public boolean unblock(UUID customerId) {
+        return customers.findById(customerId).map(customer -> {
+            customer.unblock();
+            return true;
+        }).orElse(false);
+    }
+
+    @Override
+    public void recordDelivered(UUID customerId) {
+        increment("order_count", customerId);
+    }
+
+    @Override
+    public void recordRefused(UUID customerId) {
+        increment("refused_count", customerId);
+    }
+
+    /** In SQL, so concurrent orders of one customer never lose a count. */
+    private void increment(String column, UUID customerId) {
+        jdbc.sql("UPDATE customer SET " + column + " = " + column + " + 1, updated_at = now(), version = version + 1"
+                        + " WHERE tenant_id = :tenant AND id = :id")
+                .param("tenant", TenantContext.requireTenantId()).param("id", customerId)
+                .update();
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<AddressView> addresses(UUID customerId) {
         return addresses.findByCustomerIdOrderByCreatedAtAscIdAsc(customerId).stream()

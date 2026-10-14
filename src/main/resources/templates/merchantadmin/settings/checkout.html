@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<!--/* Checkout settings: phone verification and the new-customer limit (SPEC 6.4). */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="#{settings.checkout.title}">Checkout</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <nav th:replace="~{merchantadmin/settings/theme :: tabs(active='checkout')}"></nav>
+    <h1 class="mt-6 text-2xl font-bold" th:text="#{settings.checkout.title}">Checkout</h1>
+    <div class="mt-4 space-y-2">
+        <th:block th:if="${param.saved}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{settings.checkout.saved})}"></div></th:block>
+    </div>
+
+    <form th:action="@{/admin/settings/checkout}" method="post" novalidate
+          class="mt-6 max-w-lg space-y-6 rounded-lg border border-gray-200 bg-white p-6">
+        <div class="space-y-1">
+            <label class="flex items-start gap-3">
+                <input type="checkbox" name="otpRequired" value="true" th:checked="${otpRequired}" class="mt-1">
+                <span>
+                    <span class="block font-medium" th:text="#{settings.checkout.otp}">Confirm phones by code</span>
+                    <span class="block text-sm text-gray-600" th:text="#{settings.checkout.otp.hint}">Shoppers get a code.</span>
+                </span>
+            </label>
+        </div>
+        <div class="space-y-1">
+            <label for="maxTotal" class="block text-sm font-medium text-gray-800" th:text="#{settings.checkout.max-total}">Limit</label>
+            <div class="flex items-center gap-2">
+                <input id="maxTotal" name="maxTotal" type="text" inputmode="decimal" dir="ltr" th:value="${maxTotal}"
+                       th:attr="aria-invalid=${maxTotalError != null}"
+                       class="w-48 rounded-md border px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"
+                       th:classappend="${maxTotalError != null} ? 'border-red-500' : 'border-gray-300'">
+                <span class="text-sm text-gray-600" th:text="#{currency.__${currency}__}">SYP</span>
+            </div>
+            <p class="text-xs text-gray-500" th:text="#{settings.checkout.max-total.hint(${maxOpenOrders})}">Hint</p>
+            <p th:if="${maxTotalError != null}" class="text-sm text-red-600" th:text="#{${maxTotalError}}">Error</p>
+        </div>
+        <button th:replace="~{fragments/forms :: submit(label=#{settings.checkout.submit})}">Save</button>
+    </form>
+</main>
+</body>
+</html>

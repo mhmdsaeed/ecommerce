@@ -43,6 +43,16 @@ public class Customer extends TenantScopedEntity {
         this.name = name;
     }
 
+    public void block(String reason) {
+        this.blocked = true;
+        this.blockReason = reason;
+    }
+
+    public void unblock() {
+        this.blocked = false;
+        this.blockReason = null;
+    }
+
     public boolean isBlocked() {
         return blocked;
     }

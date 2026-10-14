@@ -77,9 +77,10 @@
         <th:block th:if="${delivery.shown()}"><section th:replace="~{storefront/fragments/cart :: delivery}"></section></th:block>
 
         <div class="flex justify-end">
-            <button type="button" disabled
-                    class="w-full rounded-md bg-brand-600 px-4 py-3 font-medium text-white opacity-60 sm:w-auto"
-                    th:text="#{shop.cart.checkout-soon}">Checkout (coming soon)</button>
+            <a th:unless="${cart.hasProblems()}" th:href="@{/checkout}"
+               class="w-full rounded-md bg-brand-600 px-4 py-3 text-center font-medium text-white hover:bg-brand-700 sm:w-auto"
+               th:text="#{shop.cart.checkout}">Checkout</a>
+            <p th:if="${cart.hasProblems()}" class="text-sm text-red-700" th:text="#{shop.cart.fix-first}">Fix the cart first.</p>
         </div>
     </th:block>
 </section>

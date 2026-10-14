@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<!--/* Orders, newest first (model: orders, an Orders.OrderPage). */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="#{admin.orders.title}">Orders</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <h1 class="text-2xl font-bold" th:text="#{admin.orders.title}">Orders</h1>
+
+    <p th:if="${orders.rows().isEmpty()}" class="mt-6 rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-gray-600"
+       th:text="#{admin.orders.empty}">No orders yet.</p>
+
+    <div th:unless="${orders.rows().isEmpty()}" class="mt-6 overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-600">
+            <tr>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.number}">Order</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.placed}">Placed</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.customer}">Customer</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.total}">Total</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.status}">Status</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.payment}">Payment</th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+            <tr th:each="row : ${orders.rows()}">
+                <td class="px-4 py-3">
+                    <a th:href="@{/admin/orders/{number}(number=${row.number()})}" class="font-medium text-brand-700 hover:underline"
+                       th:text="|#${row.number()}|">#1001</a>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap" th:text="${@dates.format(row.placedAt())}">14 Oct</td>
+                <td class="px-4 py-3">
+                    <div th:text="${row.customerName()}">Name</div>
+                    <div class="text-xs text-gray-500" dir="ltr" th:text="${row.customerPhone()}">+963</div>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap"><bdi th:text="${@money.format(row.total())}">5,000</bdi></td>
+                <td class="px-4 py-3">
+                    <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs"
+                          th:classappend="${row.status().name() == 'PENDING_CONFIRMATION'} ? 'bg-amber-100 text-amber-900' : 'text-gray-700'"
+                          th:text="#{order.status.__${row.status()}__}">Pending</span>
+                </td>
+                <td class="px-4 py-3">
+                    <div th:text="#{payment.method.__${row.paymentMethod()}__}">COD</div>
+                    <div class="text-xs text-gray-500" th:text="#{payment.status.__${row.paymentStatus()}__}">Unpaid</div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <nav th:if="${orders.page() > 0 or orders.hasNext()}" class="mt-4 flex justify-between text-sm" th:attr="aria-label=#{admin.orders.pages}">
+        <a th:if="${orders.page() > 0}" th:href="@{/admin/orders(page=${orders.page() - 1})}" class="text-brand-700 hover:underline"
+           th:text="#{admin.orders.newer}">Newer</a>
+        <span th:unless="${orders.page() > 0}"></span>
+        <a th:if="${orders.hasNext()}" th:href="@{/admin/orders(page=${orders.page() + 1})}" class="text-brand-700 hover:underline"
+           th:text="#{admin.orders.older}">Older</a>
+    </nav>
+</main>
+</body>
+</html>

@@ -15,6 +15,12 @@
             <a th:href="@{/admin/settings/theme}" class="-mb-px border-b-2 px-1 pb-2"
                th:classappend="${active == 'theme'} ? 'border-brand-600 font-medium text-brand-700' : 'border-transparent text-gray-600'"
                th:text="#{settings.theme.title}">Storefront</a>
+            <a th:href="@{/admin/settings/checkout}" class="-mb-px border-b-2 px-1 pb-2"
+               th:classappend="${active == 'checkout'} ? 'border-brand-600 font-medium text-brand-700' : 'border-transparent text-gray-600'"
+               th:text="#{settings.checkout.title}">Checkout</a>
+            <a th:href="@{/admin/settings/payments}" class="-mb-px border-b-2 px-1 pb-2"
+               th:classappend="${active == 'payments'} ? 'border-brand-600 font-medium text-brand-700' : 'border-transparent text-gray-600'"
+               th:text="#{settings.payments.title}">Payments</a>
         </nav>
         <h1 class="mt-6 text-2xl font-bold" th:text="#{settings.theme.title}">Storefront</h1>
         <div class="mt-4 space-y-2">

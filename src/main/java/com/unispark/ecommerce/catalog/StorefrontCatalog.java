@@ -84,9 +84,12 @@ public interface StorefrontCatalog {
             List<OptionView> options, List<VariantOffer> variants, List<ImageView> images) {
     }
 
-    /** A purchasable variant as a cart line shows it. The image is the variant's own photo if it has one. */
+    /**
+     * A purchasable variant as a cart line shows it and an order snapshots it. The image is the variant's own photo
+     * if it has one; the SKU may be null.
+     */
     record Offer(UUID variantId, UUID productId, LocalizedText productName, String productSlug, List<Choice> choices,
-            Money price, ImageView image) {
+            Money price, ImageView image, String sku) {
     }
 
     /** One option value of a variant, such as Size M. */

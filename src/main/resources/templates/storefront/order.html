@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<!--/* A shopper's order (model: order, an Orders.OrderView; payment, Payments.Instructions; token, the tracking token).
+       The proof form posts with its CSRF token: the page is never cached. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/storefront}">
+<head>
+    <title th:text="#{order.title(${order.number()})}">Order 1001</title>
+    <meta name="robots" content="noindex">
+</head>
+<body>
+<main layout:fragment="content" class="mx-auto max-w-3xl space-y-6">
+    <div>
+        <h1 class="text-2xl font-bold" th:text="#{order.title(${order.number()})}">Order 1001</h1>
+        <p class="mt-1 text-sm text-gray-600" th:text="#{order.placed-at(${@dates.format(order.placedAt())})}">Placed on</p>
+    </div>
+
+    <p th:if="${order.status().name() == 'PENDING_CONFIRMATION'}" role="status"
+       class="rounded-md border border-brand-600 bg-brand-50 px-4 py-3 text-brand-700" th:text="#{order.received}">Thank you.</p>
+    <p th:if="${param['proof-sent'] != null}" role="status"
+       class="rounded-md border border-brand-600 bg-brand-50 px-4 py-3 text-brand-700" th:text="#{order.proof.sent}">Sent.</p>
+    <p th:if="${param['proof-invalid'] != null}" role="alert"
+       class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-800" th:text="#{order.proof.invalid}">Invalid.</p>
+
+    <dl class="grid gap-4 rounded-lg border border-gray-200 p-4 sm:grid-cols-2">
+        <div>
+            <dt class="text-sm text-gray-600" th:text="#{order.status}">Status</dt>
+            <dd class="font-semibold" th:text="#{order.status.__${order.status()}__}">Pending</dd>
+        </div>
+        <div>
+            <dt class="text-sm text-gray-600" th:text="#{order.payment-status}">Payment</dt>
+            <dd class="font-semibold" th:text="#{payment.status.__${order.paymentStatus()}__}">Unpaid</dd>
+        </div>
+    </dl>
+
+    <section class="rounded-lg border border-gray-200 p-4" aria-labelledby="pay-heading">
+        <h2 id="pay-heading" class="text-lg font-semibold"
+            th:text="${payment.displayName() != null} ? ${payment.displayName().in(#locale)} : #{payment.method.__${payment.method()}__}">Cash on delivery</h2>
+        <p th:unless="${payment.needsProof()}" class="mt-2" th:text="#{order.pay.cod(${@shopPrices.format(payment.amount())})}">Pay in cash.</p>
+        <th:block th:if="${payment.needsProof()}">
+            <p class="mt-2" th:text="#{order.pay.transfer(${@shopPrices.format(payment.amount())})}">Transfer the amount.</p>
+            <dl class="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                <div>
+                    <dt class="text-gray-600" th:text="#{order.pay.account-id}">Account</dt>
+                    <dd class="font-mono text-base" dir="ltr" th:text="${payment.accountId()}">0933000000</dd>
+                </div>
+                <div>
+                    <dt class="text-gray-600" th:text="#{order.pay.account-name}">Name</dt>
+                    <dd class="text-base" th:text="${payment.accountName()}">Name</dd>
+                </div>
+            </dl>
+        </th:block>
+        <p th:if="${payment.text() != null}" class="mt-3 whitespace-pre-line text-sm text-gray-700" th:text="${payment.text().in(#locale)}">Instructions</p>
+
+        <th:block th:if="${payment.needsProof() and order.status().isOpen()}">
+            <p th:if="${order.paymentStatus().name() == 'AWAITING_VERIFICATION'}" class="mt-4 text-sm text-brand-700"
+               th:text="#{order.proof.waiting}">We are checking your payment.</p>
+            <form th:if="${order.paymentStatus().awaitsProof()}" method="post"
+                  th:action="@{/orders/{number}/proof(number=${order.number()}, t=${token})}" class="mt-4 space-y-2">
+                <p th:if="${order.paymentStatus().name() == 'REJECTED'}" class="text-sm text-red-700" th:text="#{order.proof.rejected}">Rejected.</p>
+                <label for="reference" class="block text-sm font-medium text-gray-800" th:text="#{order.proof.reference}">Transaction number</label>
+                <div class="flex flex-wrap gap-2">
+                    <input id="reference" name="reference" type="text" maxlength="100" dir="ltr" required
+                           class="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                    <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700"
+                            th:text="#{order.proof.submit}">Send</button>
+                </div>
+            </form>
+        </th:block>
+    </section>
+
+    <section class="rounded-lg border border-gray-200 p-4" aria-labelledby="items-heading">
+        <h2 id="items-heading" class="text-lg font-semibold" th:text="#{order.items}">Items</h2>
+        <ul class="mt-2 divide-y divide-gray-100 text-sm">
+            <li th:each="item : ${order.items()}" class="flex justify-between gap-3 py-2">
+                <span>
+                    <span th:text="|${item.quantity()} × ${item.name().in(#locale)}|">1 × Product</span>
+                    <span th:unless="${item.options().isEmpty()}" class="block text-gray-500">
+                        <th:block th:each="option, state : ${item.options()}"><span
+                                th:text="|${option.name().in(#locale)}: ${option.value().in(#locale)}|">Size: M</span><span
+                                th:unless="${state.last}"> · </span></th:block>
+                    </span>
+                </span>
+                <bdi class="shrink-0" th:text="${@shopPrices.format(item.lineTotal())}">1,000</bdi>
+            </li>
+        </ul>
+        <dl class="mt-3 space-y-1 border-t border-gray-200 pt-3 text-sm">
+            <div class="flex justify-between"><dt th:text="#{shop.cart.subtotal}">Subtotal</dt>
+                <dd><bdi th:text="${@shopPrices.format(order.subtotal())}">3,000</bdi></dd></div>
+            <div class="flex justify-between"><dt th:text="#{shop.delivery.fee}">Delivery</dt>
+                <dd th:text="${order.deliveryFee().isPositive()} ? ${@shopPrices.format(order.deliveryFee())} : #{shop.delivery.free}">2,000</dd></div>
+            <div class="flex justify-between text-base"><dt class="font-semibold" th:text="#{checkout.total}">Total</dt>
+                <dd><bdi class="font-bold" th:text="${@shopPrices.format(order.total())}">5,000</bdi></dd></div>
+        </dl>
+    </section>
+
+    <section class="rounded-lg border border-gray-200 p-4 text-sm" aria-labelledby="address-heading">
+        <h2 id="address-heading" class="text-lg font-semibold" th:text="#{checkout.address}">Delivery address</h2>
+        <p class="mt-2" th:text="${order.customerName()}">Name</p>
+        <p dir="ltr" class="text-start" th:text="${order.customerPhone()}">+963</p>
+        <p>
+            <span th:text="#{governorate.__${order.address().governorate()}__}">Damascus</span> ›
+            <span th:text="${order.address().city()}">City</span><th:block th:if="${order.address().area() != null}"> ›
+            <span th:text="${order.address().area()}">Area</span></th:block>
+        </p>
+        <p th:if="${order.address().landmark() != null}" th:text="${order.address().landmark()}">Landmark</p>
+        <p th:if="${order.address().details() != null}" th:text="${order.address().details()}">Details</p>
+        <p th:if="${order.notes() != null}" class="mt-2 whitespace-pre-line text-gray-600" th:text="${order.notes()}">Notes</p>
+    </section>
+
+    <p class="text-sm text-gray-600" th:text="#{order.keep-link}">Keep this page's address to follow your order.</p>
+</main>
+</body>
+</html>

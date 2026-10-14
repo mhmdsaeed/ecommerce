@@ -570,3 +570,104 @@ Run with a portable Node.js 24 and `npm install lighthouse` in the session scrat
 - Start the address form from the `delivery_to` cookie, and require an address whose `DeliveryQuotes.quote` is `Deliverable`. Re-quote on submit, because zones may change.
 - Snapshot the fee in the charge currency, plus the rate. `Deliverable.zone()` carries the zone's own amounts.
 - `Customers.register` on checkout; the counters (`order_count`, `refused_count`) and `blocked` feed the SPEC 6.4 limits.
+
+## M8: Checkout and orders (done, 2026-10-14)
+
+**Done when:** Playwright, a COD order placed and visible in admin. `CheckoutE2EIT` drives Microsoft Edge (Playwright 1.63, Chromium in CI): product page, add to cart, cart, checkout (address, summary refreshed over HTMX), place the order, order page; then the merchant logs in and finds the order in the list and its detail. Inside a green `./mvnw verify` (471 tests).
+
+### What was built
+
+- **Migration `V10__checkout_and_orders.sql`:**
+  - `store`: `otp_required` and `new_customer_max_total`.
+  - Tenant tables, all with `enable_tenant_rls`: `payment_method_config`, `otp_challenge`, `order_counter`, `shop_order`, `order_item`, `order_event` and `payment_proof`.
+  - `shop_order` keeps the snapshot: the totals in the currency charged, the rate used, the address as jsonb, a hash of the tracking token and the idempotency key, both unique per store.
+  - `order_item` keeps the product as ordered (name, SKU, options). If the variant is deleted later, `variant_id` becomes null and the line stays.
+  - `order_event` is append-only: a trigger refuses UPDATE and DELETE whoever asks. A per-order `position` gives the order of events, since timestamps can tie.
+  - CHECKs: total = subtotal + delivery, line total = unit price × quantity, statuses, methods.
+- **`order` module (new):**
+  - `OrderStatus` and `OrderStateMachine`: exactly the SPEC 6.1 transitions; anything else throws `IllegalOrderTransitionException` and changes nothing.
+  - `Orders.changeStatus` locks the order. Stock follows it: cancelled or returned releases, delivered deducts. Delivered and refused orders count on the customer. Each change writes an event and publishes `OrderStatusChanged` (with the tenant id, for listeners in M11).
+  - `Checkout.place`, one transaction (SPEC 6.4):
+    1. form checks;
+    2. the idempotency key, under an advisory lock (a repeated submit returns the first order, with the same tracking link);
+    3. phone verification, when the store asks for it;
+    4. the cart, locked;
+    5. prices recalculated in the display currency;
+    6. the delivery quote;
+    7. the expected total (the total the page showed; a different one stops the order);
+    8. the payment method;
+    9. the customer's standing, under an advisory lock per phone: blocked, the new-customer cap, at most 2 open orders until one is delivered;
+    10. stock reserved all or nothing;
+    11. then the order, numbered 1001, 1002, ... per store, its PLACED event, the address saved to the customer's address book, and the cart cleared.
+  - Refusals are typed (`Reason` plus an amount where one is named). Blocked customers get a generic message.
+  - The tracking token is derived from the idempotency key (SHA-256). Only its hash is stored, and a repeated submit can rebuild it.
+  - `Orders.submitProof`: a transaction reference for a transfer moves the payment to AWAITING_VERIFICATION and writes a PROOF_SUBMITTED event. Refused for COD, for a payment already being checked or paid, and for closed orders.
+- **`payment` module (new):**
+  - `PaymentMethod` (COD and the four transfer methods), `PaymentStatus`.
+  - `PaymentMethods`: per-store settings. COD is on until turned off; transfers need an account number and holder name; the last enabled method cannot be turned off.
+  - `Payments`, behind the SPEC 6.3 SPI: a sealed `PaymentProvider` with `CodPaymentProvider` and `ManualPaymentProvider`. It gives the initial status and the instructions shown on the order page.
+- **`notification` module (new, minimal):** `Notifications.sendCode` through a sealed `NotificationChannel`, whose only implementation for now is `LoggingChannel`. Message texts come from the bundles.
+- **Phone verification** (`customer.PhoneVerification`):
+  - 6-digit codes stored as a hash salted with the row id, valid for 5 minutes;
+  - 5 guesses per code, serialized by a row lock and compared in constant time;
+  - 3 codes per phone per 15 minutes, counted in the database;
+  - Arabic digits accepted;
+  - a correct code gives a verification token (hash stored) that checkout accepts for 30 minutes, for that phone only.
+- **Customers:** `block`/`unblock`, `recordDelivered`/`recordRefused` (SQL increments), `CustomerView.isNew()`.
+- **Storefront:**
+  - `/checkout`:
+    - a plain form with its CSRF token in the page (it is never cached), so placing an order works without JavaScript;
+    - the summary refreshes over HTMX when the address changes, with city and area suggestions out of band, and saves the destination for the cart box too;
+    - the phone code step runs over HTMX; its token is kept in an HttpOnly `phone_verified` cookie;
+    - refusals and field errors show on the page, and the idempotency key is kept for the next submit.
+  - `/orders/{number}?t=`:
+    - shows status, payment, how to pay (COD amount, or account, holder and instructions for transfers), items, totals and address;
+    - has the transaction-reference form;
+    - `no-store`, `Referrer-Policy: no-referrer`, and 404 without the right token.
+  - The cart's checkout button is live; carts with problems get a hint instead.
+- **Merchant admin:**
+  - Orders, newest first, paginated, for all roles; the order detail shows items, totals, the rate used, the customer with a `tel:` link, address, notes, proofs and history. Read-only until M9.
+  - Settings → Checkout: phone code toggle, new-customer cap. Settings → Payments: one card per method. Both for owners and managers.
+  - A shared `dates` bean formats times in Asia/Damascus.
+- **Other:**
+  - `shared.SecretTokens` (random tokens, codes, hashes, derived tokens); `Digits` is now public.
+  - `StorefrontCatalog.Offer` carries the SKU; `Carts.lockContents`/`clear`.
+  - Local seed: demo1 accepts Sham Cash.
+  - CI installs Playwright's Chromium.
+
+### Verified live (local profile, curl on demo1)
+
+- 2 mugs added; `/checkout` is `no-store` with the CSRF and idempotency fields and both methods.
+- Summary for دمشق/المزة: 1,070 + 1,500 (same day) = 2,570.
+- POST with Sham Cash and expectedTotal 2570 → 302 to `/orders/1001?t=…`; the cart count dropped to 0.
+- The order page shows "حوّل 2,570 ل.س" with account 0944 123 456 and the holder; `no-store` and `no-referrer`.
+- Reference TX-778899 → "وصلنا رقم العملية", and the payment status became "بانتظار التحقق من الدفع". A wrong token gets 404.
+- Admin, as the owner: the list shows #1001, سارة, 2,570, awaiting confirmation, Sham Cash; the history has the placed event and the proof.
+
+### Tests (471, all green: 259 unit, 212 integration)
+
+| Test | Checks |
+|---|---|
+| `OrderStateMachineTest` (14) | Every SPEC 6.1 pair allowed or refused; happy path; DELIVERED → CANCELLED refused; open statuses; actor names |
+| `CheckoutIT` (19) | COD order: totals, snapshot, event, stock reserved, cart cleared, customer and address kept, numbers 1001/1002, tokens per order. Converted prices with the rate snapshot, unchanged after a new rate. 6 concurrent submits with one key → one order. Two shoppers racing for the last unit → one wins, OUT_OF_STOCK for the other. Field errors. Empty cart, not delivered, below minimum, stock or cart changed, no rate, changed total (then confirmed with the same key), disabled method, blocked customer (generic), new-customer cap and open-order limit (lifted after a delivery). Cancel releases, delivery deducts and counts, refuse and return count and release. Illegal transition changes nothing. The event log refuses UPDATE and DELETE. Transfer proofs. Another store sees and changes nothing |
+| `PhoneVerificationIT` (6) | Code logged and verified, token tied to the phone, single use; Arabic digits; 5 guesses then dead; 3 codes per phone; expiry; codes per store |
+| `CheckoutWebIT` (9) | No-JS checkout with the real CSRF cookie → order page; repeated submit → same order; 404 without the token; field errors and refusals rendered; crafted method → field error; CSRF and cart required, 404 on the main site; HTMX summary; phone code flow (wrong, right, other phone refused); transfer reference; merchant list and detail, another store gets 404; checkout and payment settings (Arabic digits, invalid cap, account required, last method kept); STAFF gets 403 on settings |
+| `CheckoutE2EIT` (1) | The done-when, in a real browser |
+| `RlsCoverageIT`, `DatabaseRolesIT` | Cover the 7 new tables |
+
+### Decisions and deviations
+
+- **The charge currency is the display currency.** Shoppers pay what they were shown. `currency` and `display_currency` are both stored (equal for now), with the rate. Carts whose prices cannot be converted (no rate) cannot be ordered.
+- **The total the page showed travels with the form.** A different server total (price, rate or fee changed) stops the order and shows the new total; resubmitting confirms it.
+- **"New customer" means no delivered order** (`order_count`, counted on DELIVERED). The cap is in the display currency; the open-order limit (2) is fixed.
+- **Proof screenshots are deferred.** The proof is the transaction reference for now. Screenshots need private storage with signed URLs (SPEC 10), which comes with M9, where the merchant reviews proofs. QR codes for wallets come with it.
+- **`/account/orders` and shopper login are deferred.** Shoppers follow orders through the private link. Saved addresses are kept, but not offered at checkout without a login, since showing them to anyone typing a phone number would leak them.
+- **The OTP code step needs JavaScript;** checkout without a code works without it. OTP rate limits are per phone; per-address limits come with production rate limiting (M15).
+- **`LoggingChannel` writes codes to the log.** Turn OTP on in production only once an SMS or WhatsApp channel exists (M11).
+- **Order numbers come from a per-store counter row.** Concurrent orders of one store queue briefly on that row.
+- **Disk space:** the run stalled when drive C: filled up (Docker Desktop hung, Maven could not download). After space was freed, Docker Desktop was restarted (with permission) and the compose services brought back.
+
+### Notes for M9
+
+- The admin order detail needs transitions (`Orders.changeStatus` with `Actor.staff`), proof approval and rejection (`payment_proof.status`, `reviewed_by`), driver assignment (`shop_order.driver_id`), and blocking customers (`Customers.block`).
+- Show actor names instead of `customer:<id>` in the history.

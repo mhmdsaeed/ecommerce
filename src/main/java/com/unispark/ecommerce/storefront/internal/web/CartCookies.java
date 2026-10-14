@@ -3,6 +3,7 @@ package com.unispark.ecommerce.storefront.internal.web;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.Optional;
 
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.WebUtils;
 
 import com.unispark.ecommerce.cart.Carts;
+import com.unispark.ecommerce.customer.PhoneVerification;
 import com.unispark.ecommerce.delivery.Destination;
 import com.unispark.ecommerce.delivery.Governorate;
 
@@ -27,6 +29,8 @@ import com.unispark.ecommerce.delivery.Governorate;
  *       everyone and cacheable, and showing the badge costs no database query.
  *   <li>{@value #DESTINATION}: where the shopper last asked delivery to go, so the cart keeps showing the fee
  *       after every change (and checkout can start from it). Base64url, HttpOnly.
+ *   <li>{@value #VERIFICATION}: proof that the shopper confirmed their phone by code, for checkout. HttpOnly,
+ *       short-lived.
  * </ul>
  */
 @Component
@@ -35,6 +39,7 @@ class CartCookies {
     static final String TOKEN = "cart";
     static final String COUNT = "cart_count";
     static final String DESTINATION = "delivery_to";
+    static final String VERIFICATION = "phone_verified";
     private static final String SEPARATOR = "\n";
     private static final int MAX_DESTINATION_LENGTH = 1024;
 
@@ -61,6 +66,16 @@ class CartCookies {
                 destination.area() == null ? "" : destination.area());
         var encoded = Base64.getUrlEncoder().withoutPadding().encodeToString(value.getBytes(StandardCharsets.UTF_8));
         add(response, DESTINATION, encoded, true);
+    }
+
+    /** The token from verifying the shopper's phone by code; checkout checks it against the phone in the form. */
+    void writeVerification(HttpServletResponse response, String token) {
+        add(response, VERIFICATION, token, true, PhoneVerification.VERIFIED_FOR);
+    }
+
+    static String verification(HttpServletRequest request) {
+        var cookie = WebUtils.getCookie(request, VERIFICATION);
+        return cookie == null ? null : cookie.getValue();
     }
 
     /**
@@ -99,9 +114,13 @@ class CartCookies {
     }
 
     private void add(HttpServletResponse response, String name, String value, boolean httpOnly) {
+        add(response, name, value, httpOnly, Carts.LIFETIME);
+    }
+
+    private void add(HttpServletResponse response, String name, String value, boolean httpOnly, Duration maxAge) {
         var cookie = ResponseCookie.from(name, value)
                 .path("/")
-                .maxAge(Carts.LIFETIME)
+                .maxAge(maxAge)
                 .httpOnly(httpOnly)
                 .secure(secure)
                 .sameSite("Lax")

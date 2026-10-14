@@ -1,5 +1,6 @@
 package com.unispark.ecommerce.tenant.internal;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.Objects;
@@ -74,6 +75,18 @@ class StoreSettingsService implements StoreSettings, LocaleAdjuster, DefaultLoca
     public Settings updateTheme(StoreTheme theme) {
         var store = currentStore();
         store.updateTheme(theme);
+        cache.invalidate(store.getId());
+        return store.toSettings();
+    }
+
+    @Override
+    @Transactional
+    public Settings updateCheckout(boolean otpRequired, BigDecimal newCustomerMaxTotal) {
+        if (newCustomerMaxTotal != null && newCustomerMaxTotal.signum() <= 0) {
+            throw new IllegalArgumentException("The new-customer limit must be positive: " + newCustomerMaxTotal);
+        }
+        var store = currentStore();
+        store.updateCheckout(otpRequired, newCustomerMaxTotal);
         cache.invalidate(store.getId());
         return store.toSettings();
     }

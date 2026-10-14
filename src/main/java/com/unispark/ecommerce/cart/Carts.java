@@ -2,6 +2,7 @@ package com.unispark.ecommerce.cart;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import com.unispark.ecommerce.catalog.Products.ImageView;
@@ -36,6 +37,15 @@ public interface Carts {
     Change update(String token, UUID itemId, int quantity);
 
     Change remove(String token, UUID itemId);
+
+    /**
+     * For checkout: the cart's variants and quantities in the order they were added, empty without a cart. Locks
+     * the cart until the caller's transaction ends, so nothing changes it while an order is being placed.
+     */
+    Map<UUID, Integer> lockContents(String token);
+
+    /** Deletes the cart after its order was placed. */
+    void clear(String token);
 
     /** Deletes the current store's carts unchanged for {@link #LIFETIME}; returns how many. */
     int deleteExpired();

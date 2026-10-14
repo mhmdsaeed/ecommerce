@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -132,6 +133,19 @@ class CartService implements Carts {
         }
         return cart.get().item(itemId).map(item -> remove(cart.get(), item))
                 .orElseGet(() -> new Change(view(cart.get()), null));
+    }
+
+    @Override
+    public Map<UUID, Integer> lockContents(String token) {
+        var contents = new LinkedHashMap<UUID, Integer>();
+        live(token, true).ifPresent(cart -> cart.getItems()
+                .forEach(item -> contents.put(item.getVariantId(), item.getQuantity())));
+        return contents;
+    }
+
+    @Override
+    public void clear(String token) {
+        live(token, true).ifPresent(carts::delete);
     }
 
     @Override

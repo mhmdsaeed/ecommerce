@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<!--/* Checkout fragments.
+       summary:        the order summary (model: preview, a Checkout.Preview). Carries the total the shopper saw as
+                       expectedTotal, so a total that changes in the meantime stops the order instead of charging it.
+       summary-update: the summary plus the address suggestions out of band; GET /checkout/summary answers with it.
+       lists(oob):     city and area suggestions from the delivery zones (model: coverage, form).
+       phone-check:    the phone code step (model: phoneState, attemptsLeft). Its buttons post the enclosing form's
+                       fields over HTMX, so they need no form of their own. */-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<section th:fragment="summary" id="checkout-summary" class="space-y-4 rounded-lg border border-gray-200 p-4"
+         aria-labelledby="summary-heading" th:with="cart=${preview.cart()}">
+    <h2 id="summary-heading" class="text-lg font-semibold" th:text="#{checkout.summary}">Your order</h2>
+    <ul class="divide-y divide-gray-100 text-sm">
+        <li th:each="line : ${cart.lines()}" class="flex justify-between gap-3 py-2">
+            <span th:if="${line.productName() == null}" class="text-red-700" th:text="#{shop.cart.line.unavailable}">Unavailable</span>
+            <span th:if="${line.productName() != null}">
+                <span th:text="|${line.quantity()} × ${line.productName().in(#locale)}|">1 × Product</span>
+                <span th:unless="${line.choices().isEmpty()}" class="block text-gray-500">
+                    <th:block th:each="choice, state : ${line.choices()}"><span
+                            th:text="${choice.value().in(#locale)}">M</span><span th:unless="${state.last}"> · </span></th:block>
+                </span>
+                <span th:if="${line.problem() != null}" class="block text-red-700"
+                      th:text="#{shop.cart.line.not-enough(${line.available()})}">Only 2 left.</span>
+            </span>
+            <bdi th:if="${line.lineTotal() != null}" class="shrink-0" th:text="${@shopPrices.format(line.lineTotal())}">1,000</bdi>
+        </li>
+    </ul>
+    <p th:if="${cart.hasProblems()}" class="text-sm text-red-700">
+        <span th:text="#{checkout.cart-problems}">Some items need your attention.</span>
+        <a th:href="@{/cart}" class="font-medium underline" th:text="#{shop.cart.view}">View cart</a>
+    </p>
+
+    <dl class="space-y-2 border-t border-gray-200 pt-3 text-sm">
+        <div class="flex justify-between gap-4">
+            <dt th:text="#{shop.cart.subtotal}">Subtotal</dt>
+            <dd th:if="${preview.subtotal() != null}"><bdi th:text="${@shopPrices.format(preview.subtotal())}">3,000</bdi></dd>
+            <dd th:if="${preview.subtotal() == null}">
+                <th:block th:each="total, state : ${cart.totals()}"><bdi th:text="${@shopPrices.format(total)}">3,000</bdi><span th:unless="${state.last}"> + </span></th:block>
+            </dd>
+        </div>
+        <div class="flex justify-between gap-4" th:with="deliverable=${preview.deliverable()}, below=${preview.belowMinimum()}">
+            <dt th:text="#{shop.delivery.fee}">Delivery</dt>
+            <dd th:if="${preview.quote() == null}" class="text-gray-500" th:text="#{checkout.delivery.choose}">Choose an address</dd>
+            <dd th:if="${deliverable != null}"
+                th:text="${deliverable.free()} ? #{shop.delivery.free} : ${@shopPrices.format(deliverable.fee())}">2,000</dd>
+            <dd th:if="${below != null}" class="text-amber-800"
+                th:text="#{checkout.delivery.minimum(${@shopPrices.format(below.minimum())})}">Minimum 10,000</dd>
+            <dd th:if="${preview.notDelivered()}" class="text-red-700" th:text="#{checkout.delivery.not-delivered}">Not delivered</dd>
+        </div>
+        <div th:if="${preview.deliverable() != null and preview.deliverable().eta() != null}"
+             class="flex justify-between gap-4 text-gray-600">
+            <dt th:text="#{shop.delivery.eta}">Delivery time</dt>
+            <dd th:text="${preview.deliverable().eta().in(#locale)}">Within a day</dd>
+        </div>
+        <div th:if="${preview.total() != null}" class="flex justify-between gap-4 border-t border-gray-200 pt-2 text-base">
+            <dt class="font-semibold" th:text="#{checkout.total}">Total</dt>
+            <dd><bdi class="font-bold" th:text="${@shopPrices.format(preview.total())}">5,000</bdi></dd>
+        </div>
+    </dl>
+    <input type="hidden" name="expectedTotal" th:value="${preview.total() != null} ? ${preview.total().amount().toPlainString()} : ''">
+</section>
+
+<th:block th:fragment="summary-update">
+    <section th:replace="~{storefront/fragments/checkout :: summary}"></section>
+    <th:block th:replace="~{storefront/fragments/checkout :: lists(oob=true)}"></th:block>
+</th:block>
+
+<th:block th:fragment="lists(oob)">
+    <datalist id="checkout-cities" th:attr="hx-swap-oob=${oob} ? 'true' : null">
+        <option th:each="city : ${coverage.cities(form.governorate)}" th:value="${city}"></option>
+    </datalist>
+    <datalist id="checkout-areas" th:attr="hx-swap-oob=${oob} ? 'true' : null">
+        <option th:each="area : ${coverage.areas(form.governorate, form.city)}" th:value="${area}"></option>
+    </datalist>
+</th:block>
+
+<div th:fragment="phone-check" id="phone-check" class="space-y-2 rounded-md border border-gray-200 p-3 text-sm" aria-live="polite">
+    <p th:if="${phoneState == 'verified'}" class="font-medium text-brand-700" th:text="#{checkout.code.verified}">Phone confirmed.</p>
+    <th:block th:if="${phoneState != 'verified'}">
+        <p th:text="#{checkout.code.why}">We send a code to confirm your number.</p>
+        <p th:if="${phoneState != null}" th:switch="${phoneState}"
+           th:class="${phoneState == 'sent'} ? 'text-gray-700' : 'text-red-700'">
+            <span th:case="'sent'" th:text="#{checkout.code.sent}">Code sent.</span>
+            <span th:case="'invalid'" th:text="#{checkout.phone.invalid}">Invalid phone.</span>
+            <span th:case="'too-many'" th:text="#{checkout.code.too-many}">Too many codes.</span>
+            <span th:case="'wrong'" th:text="#{checkout.code.wrong(${attemptsLeft})}">Wrong code.</span>
+            <span th:case="*" th:text="#{checkout.code.expired}">Code expired.</span>
+        </p>
+        <div th:if="${phoneState == 'sent' or phoneState == 'wrong'}" class="flex flex-wrap items-end gap-2">
+            <div class="space-y-1">
+                <label for="code" class="block font-medium text-gray-800" th:text="#{checkout.code.field}">Code</label>
+                <input id="code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" dir="ltr"
+                       class="w-32 rounded-md border border-gray-300 px-3 py-2 text-base tracking-widest focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+            </div>
+            <button type="button" th:hx-post="@{/checkout/verify}" hx-target="#phone-check" hx-swap="outerHTML"
+                    class="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700"
+                    th:text="#{checkout.code.verify}">Confirm</button>
+        </div>
+        <button type="button" th:hx-post="@{/checkout/code}" hx-target="#phone-check" hx-swap="outerHTML"
+                class="rounded-md border border-gray-300 px-4 py-2 font-medium hover:border-brand-600"
+                th:text="${phoneState == null} ? #{checkout.code.send} : #{checkout.code.resend}">Send code</button>
+    </th:block>
+</div>
+
+</body>
+</html>

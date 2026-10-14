@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<!--/* Checkout. A plain form with its CSRF token (the page is never cached); HTMX only refreshes the summary when the
+       address changes and runs the phone code. Fragments are in storefront/fragments/checkout. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/storefront}">
+<head>
+    <title th:text="#{checkout.title}">Checkout</title>
+    <meta name="robots" content="noindex">
+</head>
+<body>
+<main layout:fragment="content">
+    <h1 class="text-2xl font-bold" th:text="#{checkout.title}">Checkout</h1>
+
+    <p th:if="${refusal != null}" role="alert" class="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+       th:with="amount=${refusal.amount() != null} ? ${@shopPrices.format(refusal.amount())} : ''"
+       th:text="#{checkout.refusal.__${refusal.reason()}__(${amount})}">Your order could not be placed.</p>
+
+    <form th:action="@{/checkout}" th:object="${form}" method="post" novalidate class="mt-6 grid gap-8 lg:grid-cols-3">
+        <input type="hidden" th:field="*{idempotencyKey}">
+        <th:block th:if="${#fields.hasErrors('idempotencyKey')}">
+            <p class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 lg:col-span-3" role="alert"
+               th:text="#{checkout.idempotencyKey.required}">Please try again.</p>
+        </th:block>
+
+        <div class="space-y-8 lg:col-span-2">
+            <fieldset class="space-y-4">
+                <legend class="text-lg font-semibold" th:text="#{checkout.contact}">Your details</legend>
+                <div th:replace="~{fragments/forms :: input(field='name', label=#{checkout.field.name}, autocomplete='name')}"></div>
+                <div th:replace="~{fragments/forms :: input(field='phone', label=#{checkout.field.phone}, type='tel', autocomplete='tel', ltr=true, hint=#{checkout.field.phone.hint})}"></div>
+                <th:block th:if="${otpRequired}">
+                    <div th:replace="~{storefront/fragments/checkout :: phone-check}"></div>
+                </th:block>
+            </fieldset>
+
+            <fieldset class="space-y-4">
+                <legend class="text-lg font-semibold" th:text="#{checkout.address}">Delivery address</legend>
+                <!--/* Changing where to deliver refreshes the summary and its fee. */-->
+                <div class="grid gap-4 sm:grid-cols-3" th:hx-get="@{/checkout/summary}" hx-trigger="change"
+                     hx-include="[name='governorate'], [name='city'], [name='area']"
+                     hx-target="#checkout-summary" hx-swap="outerHTML">
+                    <div class="space-y-1">
+                        <label for="governorate" class="block text-sm font-medium text-gray-800" th:text="#{checkout.field.governorate}">Governorate</label>
+                        <select th:field="*{governorate}" autocomplete="address-level1" th:attr="aria-invalid=${#fields.hasErrors('governorate')}"
+                                class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                            <option value="" th:text="#{shop.delivery.governorate.choose}">Choose</option>
+                            <option th:each="covered : ${coverage.governorates()}" th:value="${covered.governorate()}"
+                                    th:text="#{governorate.__${covered.governorate()}__}">Damascus</option>
+                        </select>
+                        <p th:if="${#fields.hasErrors('governorate')}" th:errors="*{governorate}" class="text-sm text-red-600">Error</p>
+                    </div>
+                    <div class="space-y-1">
+                        <label for="city" class="block text-sm font-medium text-gray-800" th:text="#{checkout.field.city}">City</label>
+                        <input th:field="*{city}" type="text" list="checkout-cities" maxlength="80" autocomplete="address-level2"
+                               th:attr="aria-invalid=${#fields.hasErrors('city')}"
+                               class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                        <p th:if="${#fields.hasErrors('city')}" th:errors="*{city}" class="text-sm text-red-600">Error</p>
+                    </div>
+                    <div class="space-y-1">
+                        <label for="area" class="block text-sm font-medium text-gray-800" th:text="#{checkout.field.area}">Area</label>
+                        <input th:field="*{area}" type="text" list="checkout-areas" maxlength="80" autocomplete="address-level3"
+                               class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                        <p th:if="${#fields.hasErrors('area')}" th:errors="*{area}" class="text-sm text-red-600">Error</p>
+                    </div>
+                </div>
+                <th:block th:replace="~{storefront/fragments/checkout :: lists(oob=false)}"></th:block>
+                <div th:replace="~{fragments/forms :: input(field='landmark', label=#{checkout.field.landmark}, hint=#{checkout.field.landmark.hint})}"></div>
+                <div class="space-y-1">
+                    <label for="details" class="block text-sm font-medium text-gray-800" th:text="#{checkout.field.details}">Details</label>
+                    <textarea th:field="*{details}" rows="2" maxlength="500"
+                              class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"></textarea>
+                    <p th:if="${#fields.hasErrors('details')}" th:errors="*{details}" class="text-sm text-red-600">Error</p>
+                </div>
+            </fieldset>
+
+            <fieldset class="space-y-3">
+                <legend class="text-lg font-semibold" th:text="#{checkout.payment}">Payment</legend>
+                <p th:if="${methods.isEmpty()}" class="text-sm text-red-700" th:text="#{checkout.payment.none}">Not accepting orders.</p>
+                <label th:each="method : ${methods}" class="flex cursor-pointer items-start gap-3 rounded-md border border-gray-300 p-3 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
+                    <input type="radio" th:field="*{paymentMethod}" th:value="${method.method()}" class="mt-1">
+                    <span>
+                        <span class="block font-medium"
+                              th:text="${method.displayName() != null} ? ${method.displayName().in(#locale)} : #{payment.method.__${method.method()}__}">Cash on delivery</span>
+                        <span class="block text-sm text-gray-600"
+                              th:text="${method.method().isTransfer()} ? #{checkout.payment.transfer-note} : #{checkout.payment.cod-note}">Pay when it arrives.</span>
+                    </span>
+                </label>
+                <p th:if="${#fields.hasErrors('paymentMethod')}" th:errors="*{paymentMethod}" class="text-sm text-red-600">Error</p>
+            </fieldset>
+
+            <div class="space-y-1">
+                <label for="notes" class="block text-sm font-medium text-gray-800" th:text="#{checkout.field.notes}">Notes</label>
+                <textarea th:field="*{notes}" rows="2" maxlength="500"
+                          class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"></textarea>
+                <p th:if="${#fields.hasErrors('notes')}" th:errors="*{notes}" class="text-sm text-red-600">Error</p>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <section th:replace="~{storefront/fragments/checkout :: summary}"></section>
+            <button type="submit" th:disabled="${methods.isEmpty()}"
+                    class="w-full rounded-md bg-brand-600 px-4 py-3 font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+                    th:text="#{checkout.submit}">Place order</button>
+            <a th:href="@{/cart}" class="block text-center text-sm text-brand-700 hover:underline" th:text="#{checkout.back-to-cart}">Back to cart</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

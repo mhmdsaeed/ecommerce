@@ -31,6 +31,16 @@ jobs:
           path: .tools
           key: tailwind-${{ runner.os }}-${{ hashFiles('scripts/tailwind.sh') }}
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pom.xml') }}
+
+      # Chromium and its system libraries for the browser smoke test (CheckoutE2EIT), with the pom's Playwright.
+      - name: Install Playwright Chromium
+        run: ./mvnw -B -ntp exec:java -Dexec.classpathScope=test -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install --with-deps chromium"
+
       # Tailwind build, unit tests, Testcontainers integration tests (Docker is available on ubuntu-latest).
       - name: Build and test
         run: ./mvnw -B -ntp verify

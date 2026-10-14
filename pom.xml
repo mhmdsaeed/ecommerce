@@ -24,6 +24,7 @@
         <awssdk.version>2.55.16</awssdk.version>
         <webp-imageio.version>0.11.0</webp-imageio.version>
         <metadata-extractor.version>2.21.0</metadata-extractor.version>
+        <playwright.version>1.63.0</playwright.version>
         <tailwind.skip>false</tailwind.skip>
     </properties>
 
@@ -187,6 +188,13 @@
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Browser smoke test (SPEC 16): a shopper places a COD order, the merchant sees it. -->
+        <dependency>
+            <groupId>com.microsoft.playwright</groupId>
+            <artifactId>playwright</artifactId>
+            <version>${playwright.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

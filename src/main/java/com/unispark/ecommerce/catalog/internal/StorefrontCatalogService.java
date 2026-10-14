@@ -182,7 +182,7 @@ class StorefrontCatalogService implements StorefrontCatalog {
         var image = images.stream().filter(candidate -> variant.getId().equals(candidate.getVariantId())).findFirst()
                 .or(() -> images.stream().findFirst()).map(CatalogViews::image).orElse(null);
         return new Offer(variant.getId(), product.getId(), product.getName(), product.getSlug(), List.copyOf(choices),
-                variant.price(), image);
+                variant.price(), image, variant.getSku());
     }
 
     private static ResultPage page(List<Product> found, int page, long count) {

@@ -32,6 +32,20 @@ public interface Customers {
      */
     RegisterResult register(String phone, String name);
 
+    /**
+     * Stops the customer from placing orders (SPEC 6.4). Checkout refuses them with a generic message; the reason is
+     * for staff only. False for an unknown customer.
+     */
+    boolean block(UUID customerId, String reason);
+
+    boolean unblock(UUID customerId);
+
+    /** Counts a delivered order: customers with one are no longer new (SPEC 6.4). */
+    void recordDelivered(UUID customerId);
+
+    /** Counts an order refused at the door (SPEC 6.1). */
+    void recordRefused(UUID customerId);
+
     /** Oldest first. Empty for an unknown customer. */
     List<AddressView> addresses(UUID customerId);
 
@@ -41,7 +55,13 @@ public interface Customers {
 
     AddressResult removeAddress(UUID customerId, UUID addressId);
 
+    /** @param orderCount delivered orders */
     record CustomerView(UUID id, String phone, String name, boolean blocked, int orderCount, int refusedCount) {
+
+        /** No delivered order yet: the store's new-customer limits apply. */
+        public boolean isNew() {
+            return orderCount == 0;
+        }
     }
 
     /**

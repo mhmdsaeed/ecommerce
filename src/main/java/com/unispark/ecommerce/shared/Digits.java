@@ -1,12 +1,12 @@
 package com.unispark.ecommerce.shared;
 
 /** Arabic-Indic (٠-٩) and Persian (۰-۹) digits, as typed on many Syrian keyboards, to ASCII digits. */
-final class Digits {
+public final class Digits {
 
     private Digits() {
     }
 
-    static String toAscii(String value) {
+    public static String toAscii(String value) {
         var result = new StringBuilder(value.length());
         for (var ch : value.toCharArray()) {
             if (ch >= '٠' && ch <= '٩') {

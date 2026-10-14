@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<!--/* Payment methods (model: cards, one PaymentSettingsController.Card per method; failed, the method whose save was
+       refused). Each card is its own form. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="#{settings.payments.title}">Payments</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <nav th:replace="~{merchantadmin/settings/theme :: tabs(active='payments')}"></nav>
+    <h1 class="mt-6 text-2xl font-bold" th:text="#{settings.payments.title}">Payment methods</h1>
+    <p class="mt-2 max-w-3xl text-sm text-gray-600" th:text="#{settings.payments.intro}">Intro</p>
+    <div class="mt-4 space-y-2">
+        <th:block th:if="${param.saved}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{settings.payments.saved})}"></div></th:block>
+        <th:block th:if="${failed != null}"><div th:replace="~{fragments/forms :: alert(kind='error', message=#{settings.payments.failed})}"></div></th:block>
+    </div>
+
+    <div class="mt-6 grid gap-6 lg:grid-cols-2">
+        <form th:each="card : ${cards}" th:id="|method-${card.method()}|" method="post"
+              th:action="@{/admin/settings/payments/{method}(method=${card.method()})}" novalidate
+              class="space-y-4 rounded-lg border bg-white p-6"
+              th:classappend="${failed == card.method()} ? 'border-red-300' : 'border-gray-200'">
+            <div class="flex items-center justify-between gap-3">
+                <h2 class="text-lg font-semibold" th:text="#{payment.method.__${card.method()}__}">Cash on delivery</h2>
+                <label class="flex items-center gap-2 text-sm">
+                    <input type="checkbox" name="enabled" value="true" th:checked="${card.enabled()}">
+                    <span th:text="#{settings.payments.enabled}">Enabled</span>
+                </label>
+            </div>
+            <p th:if="${card.errors().containsKey('enabled')}" class="text-sm text-red-600" th:text="#{${card.errors().get('enabled')}}">Error</p>
+
+            <th:block th:if="${card.method().isTransfer()}" th:with="m=${card.method()}, errors=${card.errors()}">
+                <div class="space-y-1">
+                    <label th:for="|${m}-accountId|" class="block text-sm font-medium text-gray-800" th:text="#{settings.payments.accountId}">Account</label>
+                    <input th:id="|${m}-accountId|" name="accountId" type="text" maxlength="100" dir="ltr" th:value="${card.accountId()}"
+                           th:attr="aria-invalid=${errors.containsKey('accountId')}"
+                           class="w-full rounded-md border px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"
+                           th:classappend="${errors.containsKey('accountId')} ? 'border-red-500' : 'border-gray-300'">
+                    <p th:if="${errors.containsKey('accountId')}" class="text-sm text-red-600" th:text="#{${errors.get('accountId')}}">Error</p>
+                </div>
+                <div class="space-y-1">
+                    <label th:for="|${m}-accountName|" class="block text-sm font-medium text-gray-800" th:text="#{settings.payments.accountName}">Name</label>
+                    <input th:id="|${m}-accountName|" name="accountName" type="text" maxlength="100" th:value="${card.accountName()}"
+                           th:attr="aria-invalid=${errors.containsKey('accountName')}"
+                           class="w-full rounded-md border px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"
+                           th:classappend="${errors.containsKey('accountName')} ? 'border-red-500' : 'border-gray-300'">
+                    <p th:if="${errors.containsKey('accountName')}" class="text-sm text-red-600" th:text="#{${errors.get('accountName')}}">Error</p>
+                </div>
+            </th:block>
+
+            <details class="text-sm" th:open="${failed == card.method()}" th:with="m=${card.method()}, errors=${card.errors()}">
+                <summary class="cursor-pointer text-brand-700" th:text="#{settings.payments.more}">Name and instructions</summary>
+                <div class="mt-3 space-y-3">
+                    <div class="space-y-1">
+                        <label th:for="|${m}-displayNameAr|" class="block font-medium text-gray-800" th:text="#{settings.payments.displayNameAr}">Name</label>
+                        <input th:id="|${m}-displayNameAr|" name="displayNameAr" type="text" maxlength="60" th:value="${card.displayNameAr()}"
+                               class="w-full rounded-md border border-gray-300 px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                        <p th:if="${errors.containsKey('displayNameAr')}" class="text-red-600" th:text="#{${errors.get('displayNameAr')}}">Error</p>
+                    </div>
+                    <div class="space-y-1">
+                        <label th:for="|${m}-displayNameEn|" class="block font-medium text-gray-800" th:text="#{settings.payments.displayNameEn}">Name (English)</label>
+                        <input th:id="|${m}-displayNameEn|" name="displayNameEn" type="text" maxlength="60" dir="ltr" th:value="${card.displayNameEn()}"
+                               class="w-full rounded-md border border-gray-300 px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                        <p th:if="${errors.containsKey('displayNameEn')}" class="text-red-600" th:text="#{${errors.get('displayNameEn')}}">Error</p>
+                    </div>
+                    <div class="space-y-1">
+                        <label th:for="|${m}-instructionsAr|" class="block font-medium text-gray-800" th:text="#{settings.payments.instructionsAr}">Instructions</label>
+                        <textarea th:id="|${m}-instructionsAr|" name="instructionsAr" rows="3" maxlength="500" th:text="${card.instructionsAr()}"
+                                  class="w-full rounded-md border border-gray-300 px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"></textarea>
+                        <p th:if="${errors.containsKey('instructionsAr')}" class="text-red-600" th:text="#{${errors.get('instructionsAr')}}">Error</p>
+                    </div>
+                    <div class="space-y-1">
+                        <label th:for="|${m}-instructionsEn|" class="block font-medium text-gray-800" th:text="#{settings.payments.instructionsEn}">Instructions (English)</label>
+                        <textarea th:id="|${m}-instructionsEn|" name="instructionsEn" rows="3" maxlength="500" dir="ltr" th:text="${card.instructionsEn()}"
+                                  class="w-full rounded-md border border-gray-300 px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"></textarea>
+                        <p th:if="${errors.containsKey('instructionsEn')}" class="text-red-600" th:text="#{${errors.get('instructionsEn')}}">Error</p>
+                    </div>
+                </div>
+            </details>
+            <button th:replace="~{fragments/forms :: submit(label=#{settings.payments.submit})}">Save</button>
+        </form>
+    </div>
+</main>
+</body>
+</html>

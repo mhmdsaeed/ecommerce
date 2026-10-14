@@ -1,5 +1,6 @@
 package com.unispark.ecommerce.tenant.internal.persistence;
 
+import java.math.BigDecimal;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -65,6 +66,12 @@ public class Store extends BaseEntity {
     @Column(nullable = false)
     private StoreTheme theme;
 
+    @Column(name = "otp_required", nullable = false)
+    private boolean otpRequired;
+
+    @Column(name = "new_customer_max_total", precision = 19, scale = 2)
+    private BigDecimal newCustomerMaxTotal;
+
     @Column(name = "contact_phone")
     private String contactPhone;
 
@@ -103,7 +110,13 @@ public class Store extends BaseEntity {
 
     public StoreSettings.Settings toSettings() {
         return new StoreSettings.Settings(getId(), name, Locale.forLanguageTag(defaultLocale), baseCurrency,
-                displayCurrency, roundingRule, numberDigits, theme == null ? StoreTheme.DEFAULT : theme);
+                displayCurrency, roundingRule, numberDigits, theme == null ? StoreTheme.DEFAULT : theme, otpRequired,
+                newCustomerMaxTotal);
+    }
+
+    public void updateCheckout(boolean otpRequired, BigDecimal newCustomerMaxTotal) {
+        this.otpRequired = otpRequired;
+        this.newCustomerMaxTotal = newCustomerMaxTotal;
     }
 
     public void updateTheme(StoreTheme theme) {
