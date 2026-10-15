@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<!--/* Invoices (model: invoices, Invoices.InvoicePage; stores by id; status; statuses). */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/platform}">
+<head>
+    <title th:text="#{platform.nav.invoices}">Invoices</title>
+</head>
+<body>
+<main layout:fragment="content" class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold" th:text="#{platform.nav.invoices}">Invoices</h1>
+        <a th:href="@{/platform/invoices/new}" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+           th:text="#{platform.invoice.new}">New invoice</a>
+    </div>
+
+    <nav class="flex flex-wrap gap-2 text-sm" th:aria-label="#{platform.filter}">
+        <a th:href="@{/platform/invoices}" class="rounded-full border px-3 py-1"
+           th:classappend="${status == null} ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 bg-white'"
+           th:text="#{platform.filter.all}">All</a>
+        <a th:each="option : ${statuses}" th:href="@{/platform/invoices(status=${option})}" class="rounded-full border px-3 py-1"
+           th:classappend="${status == option} ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 bg-white'"
+           th:text="#{billing.invoice.status.__${option}__}">Open</a>
+    </nav>
+
+    <p th:if="${invoices.rows().isEmpty()}" class="text-gray-600" th:text="#{platform.empty}">Nothing here.</p>
+    <div th:unless="${invoices.rows().isEmpty()}" class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-600">
+            <tr>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{billing.col.number}">Invoice</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.name}">Store</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{billing.col.amount}">Amount</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{billing.col.due}">Due</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{billing.col.status}">Status</th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+            <tr th:each="invoice : ${invoices.rows()}" th:with="store=${stores.get(invoice.storeId())}">
+                <td class="px-4 py-3" dir="ltr">
+                    <a th:href="@{/platform/invoices/{id}(id=${invoice.id()})}" class="font-medium text-brand-700 hover:underline"
+                       th:text="${invoice.label()}">INV-1001</a>
+                </td>
+                <td class="px-4 py-3" th:text="${store != null} ? ${store.name().in(#locale)} : ''">Store</td>
+                <td class="px-4 py-3"><bdi th:text="${@money.format(invoice.amount())}">$10</bdi></td>
+                <td class="px-4 py-3" th:text="${@dates.day(invoice.dueDate())}">date</td>
+                <td class="px-4 py-3" th:text="#{billing.invoice.status.__${invoice.status()}__}">Open</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <nav class="flex gap-4 text-sm">
+        <a th:if="${invoices.page() > 0}" th:href="@{/platform/invoices(status=${status}, page=${invoices.page() - 1})}"
+           class="text-brand-700 hover:underline" th:text="#{platform.page.previous}">Previous</a>
+        <a th:if="${invoices.hasNext()}" th:href="@{/platform/invoices(status=${status}, page=${invoices.page() + 1})}"
+           class="text-brand-700 hover:underline" th:text="#{platform.page.next}">Next</a>
+    </nav>
+</main>
+</body>
+</html>

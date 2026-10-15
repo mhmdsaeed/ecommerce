@@ -4,11 +4,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.unispark.ecommerce.tenant.StoreLookup;
+import com.unispark.ecommerce.tenant.StoreRegistered;
 import com.unispark.ecommerce.tenant.StoreRegistration;
 import com.unispark.ecommerce.tenant.StoreSlugs;
 import com.unispark.ecommerce.tenant.StoreStatus;
@@ -21,9 +23,11 @@ import com.unispark.ecommerce.tenant.internal.persistence.StoreRepository;
 class StoreDirectory implements StoreLookup, StoreRegistration {
 
     private final StoreRepository stores;
+    private final ApplicationEventPublisher events;
 
-    StoreDirectory(StoreRepository stores) {
+    StoreDirectory(StoreRepository stores, ApplicationEventPublisher events) {
         this.stores = stores;
+        this.events = events;
     }
 
     @Override
@@ -63,7 +67,9 @@ class StoreDirectory implements StoreLookup, StoreRegistration {
         store.setContactPhone(request.contactPhone());
         try {
             // Flush now so a concurrent signup that took the slug fails here, as a slug error.
-            return stores.saveAndFlush(store).toSummary();
+            var saved = stores.saveAndFlush(store).toSummary();
+            events.publishEvent(new StoreRegistered(saved.id()));
+            return saved;
         } catch (DataIntegrityViolationException e) {
             throw new SlugUnavailableException(request.slug(), SlugCheck.TAKEN);
         }

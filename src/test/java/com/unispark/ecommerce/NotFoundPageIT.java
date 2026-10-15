@@ -7,9 +7,11 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
@@ -23,6 +25,9 @@ class NotFoundPageIT {
 
     @LocalServerPort
     int port;
+
+    @Autowired
+    JdbcTemplate jdbc;
 
     @Test
     void rendersAnArabicPageForAnUnknownStore() throws IOException {
@@ -50,6 +55,19 @@ class NotFoundPageIT {
         assertThat(response).startsWith("HTTP/1.1 404")
                 .contains("text/html")
                 .contains("لم نجد ما تبحث عنه");
+    }
+
+    @Test
+    void rendersTemporarilyUnavailableForASuspendedStore() throws IOException {
+        var slug = TestStores.randomSlug();
+        TestStores.create(jdbc, slug, "SUSPENDED");
+
+        var response = get(slug + ".lvh.me", "/", "");
+
+        assertThat(response).startsWith("HTTP/1.1 503")
+                .contains("dir=\"rtl\"")
+                .contains("هذا المتجر غير متاح مؤقتاً")
+                .doesNotContain("??");
     }
 
     private String get(String host, String path, String extraHeaders) throws IOException {

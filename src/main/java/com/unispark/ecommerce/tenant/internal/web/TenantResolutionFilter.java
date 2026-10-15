@@ -11,12 +11,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.unispark.ecommerce.shared.TenantContext;
 import com.unispark.ecommerce.tenant.StoreLookup;
-import com.unispark.ecommerce.tenant.StoreSummary;
+import com.unispark.ecommerce.tenant.StoreStatus;
 
 /**
  * Resolves the storefront tenant from the host (SPEC 4.1) and makes it current for the rest of the request.
- * Unknown, closed or malformed store hosts get a 404 page. The main and platform admin hosts pass through without
- * a tenant; the merchant admin and driver areas take their tenant from the logged-in staff member.
+ * Unknown, closed or malformed store hosts get a 404 page, suspended stores a 503 "temporarily unavailable" page.
+ * The main and platform admin hosts pass through without a tenant; the merchant admin and driver areas take their
+ * tenant from the logged-in staff member.
  */
 class TenantResolutionFilter extends OncePerRequestFilter {
 
@@ -50,14 +51,17 @@ class TenantResolutionFilter extends OncePerRequestFilter {
             case StoreHosts.PlatformAdminHost platformAdmin -> chain.doFilter(request, response);
             case StoreHosts.InvalidStoreHost invalid -> response.sendError(HttpServletResponse.SC_NOT_FOUND);
             case StoreHosts.StoreHost(var slug) -> {
-                var store = stores.findBySlug(slug)
-                        .filter(found -> found.status().hasStorefront())
-                        .map(StoreSummary::id);
+                var store = stores.findBySlug(slug).filter(found -> found.status().hasStorefront());
                 if (store.isEmpty()) {
                     response.sendError(HttpServletResponse.SC_NOT_FOUND);
                     return;
                 }
-                try (var scope = TenantContext.enter(store.get())) {
+                if (store.get().status() == StoreStatus.SUSPENDED) {
+                    // error/503.html: "temporarily unavailable", without the store's catalog or cart.
+                    response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+                    return;
+                }
+                try (var scope = TenantContext.enter(store.get().id())) {
                     chain.doFilter(request, response);
                 }
             }

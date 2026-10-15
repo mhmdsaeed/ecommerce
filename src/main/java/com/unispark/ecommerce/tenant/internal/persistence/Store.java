@@ -1,6 +1,7 @@
 package com.unispark.ecommerce.tenant.internal.persistence;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -23,10 +24,11 @@ import com.unispark.ecommerce.tenant.StoreSettings;
 import com.unispark.ecommerce.tenant.StoreStatus;
 import com.unispark.ecommerce.tenant.StoreSummary;
 import com.unispark.ecommerce.tenant.StoreTheme;
+import com.unispark.ecommerce.tenant.SuspensionKind;
 
 /**
  * A merchant's store; its id is the tenant id. Platform entity, so it does not extend {@code TenantScopedEntity}.
- * {@code plan_code} is mapped when billing (M12) needs it.
+ * The plan lives in billing's subscription.
  */
 @Entity
 @Table(name = "store")
@@ -80,6 +82,22 @@ public class Store extends BaseEntity {
     @Column(name = "created_by")
     private UUID createdBy;
 
+    @Column(name = "screened_at")
+    private Instant screenedAt;
+
+    @Column(name = "screened_by")
+    private String screenedBy;
+
+    @Column(name = "screening_notes")
+    private String screeningNotes;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "suspension_kind")
+    private SuspensionKind suspensionKind;
+
+    @Column(name = "suspension_reason")
+    private String suspensionReason;
+
     protected Store() {
     }
 
@@ -129,6 +147,57 @@ public class Store extends BaseEntity {
 
     public void recordCreator(UUID createdBy) {
         this.createdBy = createdBy;
+    }
+
+    public void suspend(SuspensionKind kind, String reason) {
+        status = StoreStatus.SUSPENDED;
+        suspensionKind = kind;
+        suspensionReason = reason;
+    }
+
+    /** Open again: ACTIVE once screened, otherwise back to TRIAL. */
+    public void reopen() {
+        status = screenedAt != null ? StoreStatus.ACTIVE : StoreStatus.TRIAL;
+        suspensionKind = null;
+        suspensionReason = null;
+    }
+
+    public void screened(Instant at, String by, String notes) {
+        screenedAt = at;
+        screenedBy = by;
+        screeningNotes = notes;
+    }
+
+    /** A suspended store with no recorded kind predates billing and counts as suspended by hand. */
+    public SuspensionKind getSuspensionKind() {
+        if (status != StoreStatus.SUSPENDED) {
+            return null;
+        }
+        return suspensionKind != null ? suspensionKind : SuspensionKind.MANUAL;
+    }
+
+    public String getSuspensionReason() {
+        return suspensionReason;
+    }
+
+    public Instant getScreenedAt() {
+        return screenedAt;
+    }
+
+    public String getScreenedBy() {
+        return screenedBy;
+    }
+
+    public String getScreeningNotes() {
+        return screeningNotes;
+    }
+
+    public LocalizedText getName() {
+        return name;
+    }
+
+    public String getContactPhone() {
+        return contactPhone;
     }
 
     public StoreSummary toSummary() {

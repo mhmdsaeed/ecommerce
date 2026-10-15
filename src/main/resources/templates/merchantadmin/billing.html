@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<!--/* The store's billing (model: subscription, Subscriptions.SubscriptionView or null; plan, Plans.PlanView or null;
+       invoices, Invoices.InvoiceView list; payTo, text or null). */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="#{admin.billing.title}">Billing</title>
+</head>
+<body>
+<main layout:fragment="content" class="space-y-6">
+    <h1 class="text-2xl font-bold" th:text="#{admin.billing.title}">Billing</h1>
+
+    <p th:if="${subscription == null}" class="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-gray-600"
+       th:text="#{admin.billing.none}">No subscription yet.</p>
+
+    <section th:if="${subscription != null}" class="rounded-lg border border-gray-200 bg-white p-4" aria-labelledby="plan-heading">
+        <h2 id="plan-heading" class="text-lg font-semibold" th:text="#{admin.billing.plan}">Your plan</h2>
+        <dl class="mt-3 grid gap-4 text-sm sm:grid-cols-3">
+            <div>
+                <dt class="text-gray-600" th:text="#{admin.billing.plan.name}">Plan</dt>
+                <dd class="font-semibold">
+                    <span th:text="${plan != null} ? ${plan.name().in(#locale)} : ${subscription.planCode()}">Basic</span>
+                    <bdi th:if="${plan != null}" class="text-gray-600"
+                         th:text="#{admin.billing.per-month(${@money.format(plan.monthlyPrice())})}">$10 a month</bdi>
+                </dd>
+            </div>
+            <div>
+                <dt class="text-gray-600" th:text="#{admin.billing.status}">Status</dt>
+                <dd class="font-semibold" th:text="#{billing.subscription.status.__${subscription.status()}__}">Trial</dd>
+            </div>
+            <div>
+                <dt class="text-gray-600"
+                    th:text="${subscription.status().name() == 'TRIAL'} ? #{admin.billing.trial-ends} : #{admin.billing.next-invoice}">Next invoice</dt>
+                <dd class="font-semibold" th:text="${@dates.day(subscription.periodEnd())}">15 Nov 2026</dd>
+            </div>
+        </dl>
+        <ul th:if="${plan != null}" class="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-600">
+            <li th:text="${plan.limits().products() != null} ? #{billing.limit.products(${plan.limits().products()})} : #{billing.limit.products.none}">100 products</li>
+            <li th:text="${plan.limits().staff() != null} ? #{billing.limit.staff(${plan.limits().staff()})} : #{billing.limit.staff.none}">3 staff</li>
+            <li th:text="${plan.limits().ordersPerMonth() != null} ? #{billing.limit.orders(${plan.limits().ordersPerMonth()})} : #{billing.limit.orders.none}">300 orders a month</li>
+        </ul>
+    </section>
+
+    <section class="rounded-lg border border-gray-200 bg-white p-4 text-sm" aria-labelledby="pay-heading">
+        <h2 id="pay-heading" class="text-lg font-semibold" th:text="#{admin.billing.how-to-pay}">How to pay</h2>
+        <p class="mt-2" th:if="${payTo != null}" th:text="#{admin.billing.pay-to(${payTo})}">Send the amount to ...</p>
+        <p class="mt-2" th:if="${payTo == null}" th:text="#{admin.billing.pay-to.none}">Contact us to pay.</p>
+        <p class="mt-1 text-gray-600" th:text="#{admin.billing.pay-note}">Mention the invoice number.</p>
+    </section>
+
+    <section class="rounded-lg border border-gray-200 bg-white" aria-labelledby="invoices-heading">
+        <h2 id="invoices-heading" class="px-4 pt-4 text-lg font-semibold" th:text="#{admin.billing.invoices}">Invoices</h2>
+        <p th:if="${invoices.isEmpty()}" class="p-4 text-sm text-gray-600" th:text="#{admin.billing.invoices.none}">No invoices yet.</p>
+        <div th:unless="${invoices.isEmpty()}" class="mt-2 overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 text-gray-600">
+                <tr>
+                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{billing.col.number}">Invoice</th>
+                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{billing.col.for}">For</th>
+                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{billing.col.amount}">Amount</th>
+                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{billing.col.due}">Due</th>
+                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{billing.col.status}">Status</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                <tr th:each="invoice : ${invoices}">
+                    <td class="px-4 py-3 font-medium" dir="ltr" th:text="${invoice.label()}">INV-1001</td>
+                    <td class="px-4 py-3"
+                        th:text="${invoice.periodStart() != null} ? #{billing.invoice.period(${@dates.day(invoice.periodStart())}, ${@dates.day(invoice.periodEnd())})} : ${invoice.description()}">Subscription</td>
+                    <td class="px-4 py-3">
+                        <bdi th:text="${@money.format(invoice.amount())}">$10</bdi>
+                        <span th:if="${invoice.status().name() == 'OPEN' and invoice.paid().isPositive()}" class="block text-gray-600"
+                              th:text="#{billing.invoice.left(${@money.format(invoice.due())})}">$5 left</span>
+                    </td>
+                    <td class="px-4 py-3" th:text="${@dates.day(invoice.dueDate())}">15 Nov 2026</td>
+                    <td class="px-4 py-3" th:classappend="${invoice.status().name() == 'OPEN'} ? 'font-semibold text-amber-800' : 'text-gray-600'"
+                        th:text="#{billing.invoice.status.__${invoice.status()}__}">Open</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+</body>
+</html>

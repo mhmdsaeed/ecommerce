@@ -1,6 +1,7 @@
 package com.unispark.ecommerce.shared.internal.web;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
@@ -24,5 +25,14 @@ class DateText {
         }
         return DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
                 .withLocale(LocaleContextHolder.getLocale()).withZone(DISPLAY_ZONE).format(instant);
+    }
+
+    /** A calendar day, such as 14 Oct 2026. */
+    public String day(LocalDate date) {
+        if (date == null) {
+            return "";
+        }
+        return DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(LocaleContextHolder.getLocale())
+                .format(date);
     }
 }

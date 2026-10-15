@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<!--/* Create or edit a plan (model: form, PlanForm; creating; errors, field to message key). */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/platform}">
+<head>
+    <title th:text="${creating} ? #{platform.plan.new} : ${form.code}">Plan</title>
+</head>
+<body>
+<main layout:fragment="content" class="max-w-2xl space-y-6">
+    <div>
+        <a th:href="@{/platform/plans}" class="text-sm text-brand-700 hover:underline" th:text="#{platform.nav.plans}">Plans</a>
+        <h1 class="mt-2 text-2xl font-bold" th:text="${creating} ? #{platform.plan.new} : ${form.code}">Plan</h1>
+    </div>
+    <form method="post" th:action="@{/platform/plans}" th:object="${form}"
+          class="space-y-4 rounded-lg border border-gray-200 bg-white p-4 text-sm">
+        <div class="space-y-1">
+            <label for="code" class="block font-medium" th:text="#{platform.plan.code}">Code</label>
+            <input th:if="${creating}" id="code" type="text" th:field="*{code}" dir="ltr" required maxlength="31"
+                   class="w-full rounded-md border border-gray-300 px-3 py-2">
+            <th:block th:unless="${creating}">
+                <input type="hidden" th:field="*{code}">
+                <p dir="ltr" class="font-semibold" th:text="*{code}">basic</p>
+            </th:block>
+            <p class="text-xs text-gray-500" th:text="#{platform.plan.code.hint}">Lowercase letters, digits and dashes.</p>
+            <p th:if="${errors.containsKey('code')}" class="text-red-600" th:text="#{${errors.get('code')}}">Error</p>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div class="space-y-1">
+                <label for="nameAr" class="block font-medium" th:text="#{platform.plan.name-ar}">Arabic name</label>
+                <input id="nameAr" type="text" th:field="*{nameAr}" dir="rtl" maxlength="60"
+                       class="w-full rounded-md border border-gray-300 px-3 py-2">
+            </div>
+            <div class="space-y-1">
+                <label for="nameEn" class="block font-medium" th:text="#{platform.plan.name-en}">English name</label>
+                <input id="nameEn" type="text" th:field="*{nameEn}" dir="ltr" maxlength="60"
+                       class="w-full rounded-md border border-gray-300 px-3 py-2">
+            </div>
+        </div>
+        <p th:if="${errors.containsKey('name')}" class="text-red-600" th:text="#{${errors.get('name')}}">Error</p>
+        <div class="space-y-1">
+            <label for="monthlyPrice" class="block font-medium" th:text="#{platform.plan.monthlyPrice}">Monthly price (USD)</label>
+            <input id="monthlyPrice" type="text" inputmode="decimal" th:field="*{monthlyPrice}" dir="ltr" required
+                   class="w-40 rounded-md border border-gray-300 px-3 py-2">
+            <p th:if="${errors.containsKey('monthlyPrice')}" class="text-red-600" th:text="#{${errors.get('monthlyPrice')}}">Error</p>
+        </div>
+        <fieldset class="space-y-2">
+            <legend class="font-medium" th:text="#{platform.plan.limits}">Limits</legend>
+            <p class="text-xs text-gray-500" th:text="#{platform.plan.limits.hint}">Empty means no limit.</p>
+            <div class="grid gap-4 sm:grid-cols-3">
+                <div class="space-y-1" th:each="limit : ${ {'products', 'staff', 'ordersPerMonth'} }">
+                    <label th:for="${limit}" class="block" th:text="#{platform.plan.limit.__${limit}__}">Products</label>
+                    <input th:id="${limit}" type="text" inputmode="numeric" th:field="*{__${limit}__}" dir="ltr"
+                           class="w-full rounded-md border border-gray-300 px-3 py-2">
+                    <p th:if="${errors.containsKey(limit)}" class="text-red-600" th:text="#{${errors.get(limit)}}">Error</p>
+                </div>
+            </div>
+        </fieldset>
+        <label class="flex items-center gap-2">
+            <input type="checkbox" th:field="*{active}">
+            <span th:text="#{platform.plan.active.label}">Offered to stores</span>
+        </label>
+        <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700"
+                th:text="#{platform.save}">Save</button>
+    </form>
+</main>
+</body>
+</html>

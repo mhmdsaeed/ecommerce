@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<!--/* All stores (model: stores, StoreNames.StoreRow list; subscriptions by store id; status filter; statuses). */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/platform}">
+<head>
+    <title th:text="#{platform.nav.stores}">Stores</title>
+</head>
+<body>
+<main layout:fragment="content" class="space-y-6">
+    <h1 class="text-2xl font-bold" th:text="#{platform.nav.stores}">Stores</h1>
+
+    <nav class="flex flex-wrap gap-2 text-sm" th:aria-label="#{platform.filter}">
+        <a th:href="@{/platform/stores}" class="rounded-full border px-3 py-1"
+           th:classappend="${status == null} ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 bg-white'"
+           th:text="#{platform.filter.all}">All</a>
+        <a th:each="option : ${statuses}" th:href="@{/platform/stores(status=${option})}" class="rounded-full border px-3 py-1"
+           th:classappend="${status == option} ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 bg-white'"
+           th:text="#{store.status.__${option}__}">Active</a>
+    </nav>
+
+    <p th:if="${stores.isEmpty()}" class="text-gray-600" th:text="#{platform.dashboard.empty}">No stores.</p>
+    <div th:unless="${stores.isEmpty()}" class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-600">
+            <tr>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.name}">Name</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.slug}">Address</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.status}">Status</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.subscription}">Subscription</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.created}">Created</th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+            <tr th:each="store : ${stores}" th:with="subscription=${subscriptions.get(store.id())}">
+                <td class="px-4 py-3">
+                    <a th:href="@{/platform/stores/{id}(id=${store.id()})}" class="font-medium text-brand-700 hover:underline"
+                       th:text="${store.name().in(#locale)}">Name</a>
+                </td>
+                <td class="px-4 py-3" dir="ltr" th:text="${store.slug()}">slug</td>
+                <td class="px-4 py-3" th:text="#{store.status.__${store.status()}__}">Active</td>
+                <td class="px-4 py-3">
+                    <th:block th:if="${subscription != null}">
+                        <span th:text="#{billing.subscription.status.__${subscription.status()}__}">Trial</span>
+                        <span class="text-gray-500" dir="ltr" th:text="${subscription.planCode()}">basic</span>
+                    </th:block>
+                </td>
+                <td class="px-4 py-3" th:text="${@dates.format(store.createdAt())}">date</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

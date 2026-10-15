@@ -53,6 +53,8 @@ app:
     secret-key: ${S3_SECRET_KEY:minioadmin}
     public-base-url: ${S3_PUBLIC_BASE_URL:http://localhost:9100/media}
     manage-bucket: ${S3_MANAGE_BUCKET:true}
+  billing:
+    pay-to: ${BILLING_PAY_TO:Sham Cash 0944 000 000 (Unispark)}
   notification:
     mail-from: ${MAIL_FROM:orders@lvh.me}
     link-scheme: ${APP_LINK_SCHEME:http}

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<!--/* Plans (model: plans, Plans.PlanView list). */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/platform}">
+<head>
+    <title th:text="#{platform.nav.plans}">Plans</title>
+</head>
+<body>
+<main layout:fragment="content" class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold" th:text="#{platform.nav.plans}">Plans</h1>
+        <a th:href="@{/platform/plans/new}" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+           th:text="#{platform.plan.new}">New plan</a>
+    </div>
+    <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-600">
+            <tr>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.plan.code}">Code</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.name}">Name</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.plan.monthlyPrice}">Price</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.plan.limits}">Limits</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.status}">Status</th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+            <tr th:each="plan : ${plans}">
+                <td class="px-4 py-3" dir="ltr">
+                    <a th:href="@{/platform/plans/{code}(code=${plan.code()})}" class="font-medium text-brand-700 hover:underline"
+                       th:text="${plan.code()}">basic</a>
+                </td>
+                <td class="px-4 py-3" th:text="${plan.name().in(#locale)}">Basic</td>
+                <td class="px-4 py-3"><bdi th:text="${@money.format(plan.monthlyPrice())}">$10</bdi></td>
+                <td class="px-4 py-3 text-gray-600">
+                    <span class="block" th:text="${plan.limits().products() != null} ? #{billing.limit.products(${plan.limits().products()})} : #{billing.limit.products.none}">100 products</span>
+                    <span class="block" th:text="${plan.limits().staff() != null} ? #{billing.limit.staff(${plan.limits().staff()})} : #{billing.limit.staff.none}">3 staff</span>
+                    <span class="block" th:text="${plan.limits().ordersPerMonth() != null} ? #{billing.limit.orders(${plan.limits().ordersPerMonth()})} : #{billing.limit.orders.none}">300 orders</span>
+                </td>
+                <td class="px-4 py-3" th:text="${plan.active()} ? #{platform.plan.active} : #{platform.plan.inactive}">Offered</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

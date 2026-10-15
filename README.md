@@ -32,6 +32,12 @@ The `local` profile seeds demo data. These credentials exist only in local datab
 | MinIO console | http://localhost:9101 | `minioadmin` / `minioadmin` |
 | Mailpit (sent emails) | http://localhost:8025 | none |
 
+Billing: every store starts a 14-day trial on the `basic` plan. A daily JobRunr job (03:00 Syrian time) invoices
+each month in advance and suspends stores whose invoice is still open 7 days later; their storefront then shows
+"temporarily unavailable". The platform admin records payments under **Invoices**, which reopens the store, and
+activates stores after the sanctions/KYC check under **Stores**. Merchants see their plan and invoices at
+http://lvh.me:8080/admin/billing.
+
 Notifications go out through JobRunr a few seconds after each order event. Emails (the owners' and managers'
 new-order alert) land in Mailpit. Shopper texts and verification codes are written to the application log
 (`Message to +963…`), since no SMS or WhatsApp provider is integrated yet. Each order's admin page lists what was sent.

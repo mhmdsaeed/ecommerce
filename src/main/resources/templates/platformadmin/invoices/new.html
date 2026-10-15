@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<!--/* An invoice written by hand (model: store, chosen store id or null; description; amount; currency; dueDate;
+       currencies; stores, StoreNames.StoreRow list; errors, field to message key). */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/platform}">
+<head>
+    <title th:text="#{platform.invoice.new}">New invoice</title>
+</head>
+<body>
+<main layout:fragment="content" class="max-w-2xl space-y-6">
+    <div>
+        <a th:href="@{/platform/invoices}" class="text-sm text-brand-700 hover:underline" th:text="#{platform.nav.invoices}">Invoices</a>
+        <h1 class="mt-2 text-2xl font-bold" th:text="#{platform.invoice.new}">New invoice</h1>
+    </div>
+    <form method="post" th:action="@{/platform/invoices}" class="space-y-4 rounded-lg border border-gray-200 bg-white p-4 text-sm">
+        <div class="space-y-1">
+            <label for="store" class="block font-medium" th:text="#{platform.col.name}">Store</label>
+            <select id="store" name="store" required class="w-full rounded-md border border-gray-300 bg-white px-3 py-2">
+                <option value="" th:text="#{platform.invoice.choose-store}">Choose</option>
+                <option th:each="row : ${stores}" th:value="${row.id()}" th:selected="${row.id() == store}"
+                        th:text="|${row.name().in(#locale)} (${row.slug()})|">Store</option>
+            </select>
+            <p th:if="${errors.containsKey('store')}" class="text-red-600" th:text="#{${errors.get('store')}}">Error</p>
+        </div>
+        <div class="space-y-1">
+            <label for="description" class="block font-medium" th:text="#{platform.invoice.description}">Description</label>
+            <input id="description" name="description" type="text" maxlength="200" required th:value="${description}"
+                   class="w-full rounded-md border border-gray-300 px-3 py-2">
+            <p th:if="${errors.containsKey('description')}" class="text-red-600" th:text="#{${errors.get('description')}}">Error</p>
+        </div>
+        <div class="flex flex-wrap gap-4">
+            <div class="space-y-1">
+                <label for="amount" class="block font-medium" th:text="#{billing.col.amount}">Amount</label>
+                <input id="amount" name="amount" type="text" inputmode="decimal" dir="ltr" required th:value="${amount}"
+                       class="w-40 rounded-md border border-gray-300 px-3 py-2">
+                <p th:if="${errors.containsKey('amount')}" class="text-red-600" th:text="#{${errors.get('amount')}}">Error</p>
+            </div>
+            <div class="space-y-1">
+                <label for="currency" class="block font-medium" th:text="#{zone.field.currency}">Currency</label>
+                <select id="currency" name="currency" class="rounded-md border border-gray-300 bg-white px-3 py-2">
+                    <option th:each="option : ${currencies}" th:value="${option}" th:selected="${option.name() == currency}"
+                            th:text="#{currency.name.__${option}__}">USD</option>
+                </select>
+            </div>
+            <div class="space-y-1">
+                <label for="dueDate" class="block font-medium" th:text="#{billing.col.due}">Due</label>
+                <input id="dueDate" name="dueDate" type="date" required th:value="${dueDate}" dir="ltr"
+                       class="rounded-md border border-gray-300 px-3 py-2">
+                <p th:if="${errors.containsKey('dueDate')}" class="text-red-600" th:text="#{${errors.get('dueDate')}}">Error</p>
+            </div>
+        </div>
+        <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700"
+                th:text="#{platform.invoice.create}">Create</button>
+    </form>
+</main>
+</body>
+</html>

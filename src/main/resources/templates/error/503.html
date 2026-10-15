@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<!--/* Rendered by Spring Boot's error controller for any 503; the storefront of a suspended store answers with it. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/storefront}">
+<head>
+    <title th:text="#{error.unavailable.title}">Temporarily unavailable</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <section class="mx-auto max-w-2xl py-16 text-center">
+        <h1 class="text-3xl font-bold tracking-tight" th:text="#{error.unavailable.heading}">This store is temporarily unavailable</h1>
+        <p class="mt-4 text-gray-600" th:text="#{error.unavailable.body}">Body</p>
+    </section>
+</main>
+</body>
+</html>

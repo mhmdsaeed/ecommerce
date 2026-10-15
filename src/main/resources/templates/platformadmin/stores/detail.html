@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<!--/* One store (model: store, StoreAdministration.StoreRecord; subscription or null; plans, active Plans.PlanView
+       list; invoices; done and error, checked message keys). */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/platform}">
+<head>
+    <title th:text="${store.name().in(#locale)}">Store</title>
+</head>
+<body>
+<main layout:fragment="content" class="space-y-6">
+    <div>
+        <a th:href="@{/platform/stores}" class="text-sm text-brand-700 hover:underline" th:text="#{platform.nav.stores}">Stores</a>
+        <h1 class="mt-2 text-2xl font-bold" th:text="${store.name().in(#locale)}">Store</h1>
+        <p class="text-sm text-gray-600" dir="ltr" th:text="${store.slug()}">slug</p>
+    </div>
+    <th:block th:if="${done != null}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{${done}})}"></div></th:block>
+    <th:block th:if="${error != null}"><div th:replace="~{fragments/forms :: alert(kind='error', message=#{${error}})}"></div></th:block>
+
+    <section class="rounded-lg border border-gray-200 bg-white p-4 text-sm" aria-labelledby="status-heading">
+        <h2 id="status-heading" class="text-lg font-semibold" th:text="#{platform.store.status}">Status</h2>
+        <dl class="mt-3 grid gap-3 sm:grid-cols-3">
+            <div>
+                <dt class="text-gray-600" th:text="#{platform.col.status}">Status</dt>
+                <dd class="font-semibold" th:text="#{store.status.__${store.status()}__}">Active</dd>
+            </div>
+            <div>
+                <dt class="text-gray-600" th:text="#{platform.store.phone}">Phone</dt>
+                <dd><bdi dir="ltr" th:text="${store.contactPhone() ?: '-'}">+963</bdi></dd>
+            </div>
+            <div>
+                <dt class="text-gray-600" th:text="#{platform.col.created}">Created</dt>
+                <dd th:text="${@dates.format(store.createdAt())}">date</dd>
+            </div>
+        </dl>
+        <p th:if="${store.suspensionKind() != null}" class="mt-3 rounded-md bg-red-50 p-3 text-red-800">
+            <span th:text="#{platform.store.suspended.__${store.suspensionKind()}__}">Suspended by billing</span>
+            <span th:if="${store.suspensionReason() != null}" th:text="|: ${store.suspensionReason()}|">: reason</span>
+        </p>
+        <p th:if="${store.screenedAt() != null}" class="mt-3 text-gray-700">
+            <span th:text="#{platform.store.screened(${@dates.format(store.screenedAt())}, ${store.screenedBy()})}">Screened</span>
+            <span th:if="${store.screeningNotes() != null}" class="block text-gray-600" th:text="${store.screeningNotes()}">Notes</span>
+        </p>
+
+        <div class="mt-4 grid gap-4 lg:grid-cols-2">
+            <form th:unless="${store.status().name() == 'ACTIVE' or store.status().name() == 'CLOSED'}" method="post"
+                  th:action="@{/platform/stores/{id}/activate(id=${store.id()})}" class="space-y-2 rounded-md border border-gray-200 p-3">
+                <h3 class="font-semibold" th:text="#{platform.store.activate}">Activate</h3>
+                <th:block th:if="${store.screenedAt() == null}">
+                    <label class="flex items-start gap-2">
+                        <input type="checkbox" name="screened" value="true" class="mt-1">
+                        <span th:text="#{platform.store.screening}">I screened the owner against sanctions lists.</span>
+                    </label>
+                    <label for="notes" class="block font-medium" th:text="#{platform.store.screening.notes}">Notes</label>
+                    <textarea id="notes" name="notes" rows="2" maxlength="1000"
+                              class="w-full rounded-md border border-gray-300 px-3 py-2"></textarea>
+                </th:block>
+                <button type="submit" class="rounded-md bg-green-700 px-4 py-2 font-medium text-white hover:bg-green-800"
+                        th:text="#{platform.store.activate}">Activate</button>
+            </form>
+            <form th:unless="${store.suspensionKind() != null and store.suspensionKind().name() == 'MANUAL' or store.status().name() == 'CLOSED'}"
+                  method="post" th:action="@{/platform/stores/{id}/suspend(id=${store.id()})}"
+                  class="space-y-2 rounded-md border border-gray-200 p-3">
+                <h3 class="font-semibold" th:text="#{platform.store.suspend}">Suspend</h3>
+                <label for="reason" class="block font-medium" th:text="#{platform.store.suspend.reason}">Reason</label>
+                <input id="reason" name="reason" type="text" maxlength="1000" required
+                       class="w-full rounded-md border border-gray-300 px-3 py-2">
+                <button type="submit" class="rounded-md bg-red-700 px-4 py-2 font-medium text-white hover:bg-red-800"
+                        th:text="#{platform.store.suspend}">Suspend</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="rounded-lg border border-gray-200 bg-white p-4 text-sm" aria-labelledby="subscription-heading">
+        <h2 id="subscription-heading" class="text-lg font-semibold" th:text="#{platform.nav.subscriptions}">Subscription</h2>
+        <p th:if="${subscription == null}" class="mt-2 text-gray-600" th:text="#{admin.billing.none}">None.</p>
+        <th:block th:if="${subscription != null}">
+            <dl class="mt-3 grid gap-3 sm:grid-cols-4">
+                <div>
+                    <dt class="text-gray-600" th:text="#{admin.billing.plan.name}">Plan</dt>
+                    <dd class="font-semibold" dir="ltr" th:text="${subscription.planCode()}">basic</dd>
+                </div>
+                <div>
+                    <dt class="text-gray-600" th:text="#{admin.billing.status}">Status</dt>
+                    <dd class="font-semibold" th:text="#{billing.subscription.status.__${subscription.status()}__}">Trial</dd>
+                </div>
+                <div>
+                    <dt class="text-gray-600" th:text="#{platform.subscription.period}">Period</dt>
+                    <dd th:text="|${@dates.day(subscription.periodStart())} – ${@dates.day(subscription.periodEnd())}|">dates</dd>
+                </div>
+                <div th:if="${subscription.graceUntil() != null}">
+                    <dt class="text-gray-600" th:text="#{platform.subscription.grace}">Grace until</dt>
+                    <dd th:text="${@dates.day(subscription.graceUntil())}">date</dd>
+                </div>
+            </dl>
+            <form method="post" th:action="@{/platform/stores/{id}/plan(id=${store.id()})}" class="mt-3 flex flex-wrap items-end gap-2">
+                <div class="space-y-1">
+                    <label for="plan" class="block font-medium" th:text="#{platform.store.change-plan}">Change plan</label>
+                    <select id="plan" name="plan" class="rounded-md border border-gray-300 bg-white px-3 py-2">
+                        <option th:each="plan : ${plans}" th:value="${plan.code()}" th:selected="${plan.code() == subscription.planCode()}"
+                                th:text="|${plan.name().in(#locale)} (${@money.format(plan.monthlyPrice())})|">Basic</option>
+                    </select>
+                </div>
+                <button type="submit" class="rounded-md border border-gray-300 bg-white px-4 py-2 font-medium hover:bg-gray-50"
+                        th:text="#{platform.save}">Save</button>
+            </form>
+        </th:block>
+    </section>
+
+    <section class="rounded-lg border border-gray-200 bg-white text-sm" aria-labelledby="invoices-heading">
+        <div class="flex items-center justify-between px-4 pt-4">
+            <h2 id="invoices-heading" class="text-lg font-semibold" th:text="#{platform.nav.invoices}">Invoices</h2>
+            <a th:href="@{/platform/invoices/new(store=${store.id()})}" class="text-brand-700 hover:underline"
+               th:text="#{platform.invoice.new}">New invoice</a>
+        </div>
+        <p th:if="${invoices.isEmpty()}" class="p-4 text-gray-600" th:text="#{admin.billing.invoices.none}">None.</p>
+        <ul class="mt-2 divide-y divide-gray-100">
+            <li th:each="invoice : ${invoices}" class="flex flex-wrap justify-between gap-3 px-4 py-2">
+                <a th:href="@{/platform/invoices/{id}(id=${invoice.id()})}" class="font-medium text-brand-700 hover:underline"
+                   dir="ltr" th:text="${invoice.label()}">INV-1001</a>
+                <bdi th:text="${@money.format(invoice.amount())}">$10</bdi>
+                <span th:text="${@dates.day(invoice.dueDate())}">date</span>
+                <span th:text="#{billing.invoice.status.__${invoice.status()}__}">Open</span>
+            </li>
+        </ul>
+    </section>
+</main>
+</body>
+</html>

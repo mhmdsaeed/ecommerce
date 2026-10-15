@@ -26,6 +26,8 @@
                        th:text="#{admin.nav.settings}">Settings</a>
                     <a th:if="${currentStaff.role().managesStaff()}" th:href="@{/admin/staff}"
                        th:text="#{admin.nav.staff}">Staff</a>
+                    <a th:if="${currentStaff.role().managesStaff()}" th:href="@{/admin/billing}"
+                       th:text="#{admin.nav.billing}">Billing</a>
                     <span class="text-gray-500" th:text="${currentStaff.name()}">Name</span>
                     <form th:action="@{/admin/logout}" method="post">
                         <button type="submit" class="text-brand-700 hover:underline"
@@ -37,6 +39,13 @@
             </nav>
         </div>
     </header>
+    <div th:if="${billingNotice != null}" role="status"
+         class="mx-auto mt-4 w-full max-w-5xl rounded-md border px-4 py-3 text-sm"
+         th:classappend="${billingNotice.kind() == 'trial'} ? 'border-blue-200 bg-blue-50 text-blue-900' : (${billingNotice.kind() == 'due'} ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-red-200 bg-red-50 text-red-800')">
+        <span th:text="#{admin.billing.notice.__${billingNotice.kind()}__(${@dates.day(billingNotice.date())})}">Notice</span>
+        <a th:if="${currentStaff.role().managesStaff()}" th:href="@{/admin/billing}" class="ms-2 font-medium underline"
+           th:text="#{admin.billing.notice.open}">Billing</a>
+    </div>
     <!--/* Shown by app.js when an HTMX request fails: htmx does not swap error responses, so say something. */-->
     <div id="htmx-error" role="alert" hidden
          class="mx-auto mt-4 w-full max-w-5xl rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"

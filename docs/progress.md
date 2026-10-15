@@ -888,3 +888,92 @@ Run with a portable Node.js 24 and `npm install lighthouse` in the session scrat
 - **No merchant WhatsApp alert yet:** the store's `whatsapp` number has no settings screen, and there is no provider. It comes with the setup wizard (M13) and a provider.
 - **Messages use the store's default language,** since an order does not record the shopper's language.
 - **Only `cart-expiry` is a recurring job so far.** The other SPEC 14 jobs (stale reservations, auto-cancel, billing) arrive with the features that need them.
+
+## M12: Billing (done, 2026-10-15)
+
+**Done when:** a suspended store shows a "temporarily unavailable" storefront.
+- `BillingIT.unpaidStoreIsSuspendedAndReopensOncePaid`, with the daily run called for explicit days:
+  - a store gets a 14-day trial on `basic`;
+  - when the trial ends, a $10 invoice for the next month is issued, due that day, and the subscription becomes PAST_DUE with 7 days' grace;
+  - the owner sees a "payment due" banner;
+  - on the last grace day nothing happens. The next day the store is SUSPENDED (by billing) and its storefront answers 503;
+  - the owner still reaches the admin and the billing page;
+  - the platform admin records 4 (typed in Arabic digits), then 6 (7 is refused as more than is left), so the invoice is PAID;
+  - the store reopens (TRIAL, since it was never screened), and the subscription is ACTIVE with a fresh month from today.
+- `NotFoundPageIT.rendersTemporarilyUnavailableForASuspendedStore`: through a real server, the Arabic page "هذا المتجر غير متاح مؤقتاً" with status 503.
+- Live run against docker-compose (local profile):
+  - V15 applied, and every existing store got a trial at startup; `billing-daily` was registered next to `cart-expiry`.
+  - demo1's owner sees the plan, its limits, the trial and the configured pay-to on `/admin/billing`.
+  - The platform admin suspended demo2: its storefront answered 503 with the Arabic page.
+  - Activating it without the screening checkbox was refused. With it, demo2 was ACTIVE again and its storefront answered 200.
+  - The subscriptions, invoices, plans, plan edit and new-invoice pages all render.
+- `./mvnw verify` is green with 512 tests.
+
+### What was built
+
+- **Schema (`V15__billing.sql`):**
+  - Platform tables (no `tenant_id`, no RLS, as SPEC 5 lists them; registered in `RlsCoverageIT`):
+    - `plan` (code, name, monthly price in USD, limits as JSON, active), seeded with `basic` ($10) and `pro` ($25);
+    - `subscription`: one per store, with the plan, status, current period and grace date as Syrian calendar days;
+    - `invoice`: a platform-wide number from a sequence (shown as INV-1001), amount and currency, OPEN/PAID/VOID, due date, and the billed period. It is unique per store and period, so a month is billed once;
+    - `invoice_payment`: WALLET, BANK or CASH, a reference, the amount, and who recorded it.
+  - `store.plan_code` is dropped; the subscription holds the plan.
+  - `store` gains screening fields (`screened_at`, `screened_by`, `screening_notes`) and `suspension_kind` (BILLING or MANUAL) with a reason.
+- **Tenant module:**
+  - `StoreAdministration`:
+    - `suspend` (by hand, reason required);
+    - `activate` (the first activation needs the sanctions/KYC checkbox, recorded with notes and who checked);
+    - `suspendForNonPayment` and `resumeAfterPayment` for billing. Billing only lifts its own suspensions: one made by the platform admin stays, even after paying.
+    - Store rows are locked during changes.
+  - `StoreRegistered` is published when a store is created, and `StoreActivated` when the platform admin activates one.
+  - `TenantResolutionFilter`: a SUSPENDED store's storefront answers 503 with `error/503.html` ("temporarily unavailable"); the admin and driver areas keep working.
+- **Billing module (new):**
+  - `Plans`, `Subscriptions` and `Invoices`:
+    - hand-written invoices;
+    - partial payments; more than what is left is refused;
+    - voiding with a reason;
+    - once nothing is owed, a PAST_DUE or SUSPENDED subscription is ACTIVE again and a billing suspension is lifted.
+    - Locks are taken in the order invoice, subscription, store.
+  - `BillingCycle.run(today)`:
+    - starts trials for stores without a subscription;
+    - bills every month that has started, one by one, each in its own transaction under the subscription lock. A free plan starts its month without an invoice;
+    - suspends PAST_DUE subscriptions whose grace ended with an invoice still open.
+    - It is safe to run twice on the same day.
+  - `BillingJobs`:
+    - the JobRunr recurring job `billing-daily` (03:00 Asia/Damascus);
+    - a trial on `StoreRegistered`;
+    - on `StoreActivated`, a subscription billing had suspended resumes: PAST_DUE with a fresh month and a new grace period if an invoice is still open, otherwise settled;
+    - missing trials at startup (the local demo stores, and stores from before billing).
+  - Settings: `BILLING_PAY_TO` (where merchants send money), `BILLING_TRIAL_DAYS` (14) and `BILLING_GRACE_DAYS` (7).
+- **Merchant admin:**
+  - `/admin/billing` (owners and managers): plan, price and limits, status, trial end or next invoice, how to pay (with the invoice number), and the store's invoices only.
+  - A banner on every admin page:
+    - "suspended" for everyone;
+    - "invoice due by …" and "trial ends on …" (within 7 days) for owners and managers.
+  - A Billing nav link.
+- **Platform admin** (nav: Stores, Subscriptions, Invoices, Plans):
+  - **Stores:** a list with a status filter and subscription. Each store's page shows its status, the suspension reason and kind, and the screening record, with actions to activate (with the screening checkbox and notes), suspend (with a reason) and change the plan (offered plans only, from the next invoice), plus the store's invoices.
+  - **Subscriptions:** a list with a status filter.
+  - **Invoices:** a list with a status filter and paging. New invoices are written by hand for a store (description, amount in SYP or USD, due date). Each invoice's page lists its payments, with forms to record a payment and to void.
+  - **Plans:** a list, and a create or edit form (the code is fixed once created; limits are blank for no limit; offered or not).
+- **Shared:** `@dates.day(LocalDate)` for calendar days.
+
+### Tests (512, all green: 261 unit, 251 integration)
+
+| Test | Checks |
+|---|---|
+| `BillingIT` (11) | The done-when above; activating a billing-suspended store without payment resumes billing with a new grace period, after which it is suspended again; moving to a free plan does not forgive an unpaid invoice; a manual suspension is not lifted by paying, and billing does not take it over; voiding the last open invoice reopens the store, and a void needs a reason; missed months are billed one by one and only once, and a suspended subscription is not billed further; a plan change applies from the next invoice, and a free plan creates no invoice; activation needs the screening once, after which billing reopens the store as ACTIVE; a registered store gets its trial through the event; the platform admin screens list everything, a hand-written invoice is validated and created in SYP, and plan validation and inactive plans work; merchants see only their own invoices, plain staff get 403 on billing and no banner, and staff get 403 on `/platform` |
+| `NotFoundPageIT` (+1) | The 503 page through a real server |
+| `TenantResolutionIT` | Suspended stores now answer 503 (instead of being served) |
+| `RlsCoverageIT` | The billing tables are listed as platform tables |
+
+### Decisions and deviations
+
+- **Billing tables follow SPEC 5 as platform tables without RLS.** Merchants reach them only through the billing module, filtered by the store in their session (`TenantContext`). The JPA repositories run on `app_user`, since these tables have no RLS; `PlatformDatabase` is used only for the platform admin's cross-store store list.
+- **Prepaid months:** each month is invoiced on its first day with a 7-day grace. The trial is 14 days, and the default plan is `basic`. SPEC does not fix these, so they are settings.
+- **Reopening after payment:** a suspended subscription restarts its month on the payment day, since the store was closed for part of the month it paid for. A store never screened goes back to TRIAL; only the platform admin's activation (with screening) makes it ACTIVE.
+- **Hand-written invoices never suspend a store on their own.** Only an unpaid subscription month past its grace does. But while any invoice is open, the subscription does not count as settled.
+- **A platform admin's activation does not forgive the debt:** activating a store billing suspended reopens it, and its subscription goes back to PAST_DUE with a new 7-day grace from that day (rather than being suspended again on the next daily run). If the invoice is still unpaid then, billing suspends it again.
+- **Review fixes before commit:** a payment locks the subscription before checking for open invoices, so it never settles over an invoice the daily job is issuing at the same moment; a free month after a paid one stays PAST_DUE while an earlier invoice is unpaid.
+- **Plan limits are stored and shown but not enforced yet.** Enforcing them (products, staff, orders per month) needs checks in catalog, identity and checkout, and is left for later.
+- **No billing emails yet** (invoice issued, store suspended); merchants see the banner in the admin. They can be added as notification templates.

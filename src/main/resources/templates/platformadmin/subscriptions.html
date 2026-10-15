@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<!--/* Subscriptions (model: subscriptions, Subscriptions.SubscriptionView list; stores by id; status; statuses). */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/platform}">
+<head>
+    <title th:text="#{platform.nav.subscriptions}">Subscriptions</title>
+</head>
+<body>
+<main layout:fragment="content" class="space-y-6">
+    <h1 class="text-2xl font-bold" th:text="#{platform.nav.subscriptions}">Subscriptions</h1>
+
+    <nav class="flex flex-wrap gap-2 text-sm" th:aria-label="#{platform.filter}">
+        <a th:href="@{/platform/subscriptions}" class="rounded-full border px-3 py-1"
+           th:classappend="${status == null} ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 bg-white'"
+           th:text="#{platform.filter.all}">All</a>
+        <a th:each="option : ${statuses}" th:href="@{/platform/subscriptions(status=${option})}" class="rounded-full border px-3 py-1"
+           th:classappend="${status == option} ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 bg-white'"
+           th:text="#{billing.subscription.status.__${option}__}">Trial</a>
+    </nav>
+
+    <p th:if="${subscriptions.isEmpty()}" class="text-gray-600" th:text="#{platform.empty}">Nothing here.</p>
+    <div th:unless="${subscriptions.isEmpty()}" class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-600">
+            <tr>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.name}">Store</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.billing.plan.name}">Plan</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.status}">Status</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.subscription.period}">Period</th>
+                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.subscription.grace}">Grace until</th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+            <tr th:each="subscription : ${subscriptions}" th:with="store=${stores.get(subscription.storeId())}">
+                <td class="px-4 py-3">
+                    <a th:href="@{/platform/stores/{id}(id=${subscription.storeId()})}" class="font-medium text-brand-700 hover:underline"
+                       th:text="${store != null} ? ${store.name().in(#locale)} : ${subscription.storeId()}">Store</a>
+                </td>
+                <td class="px-4 py-3" dir="ltr" th:text="${subscription.planCode()}">basic</td>
+                <td class="px-4 py-3" th:text="#{billing.subscription.status.__${subscription.status()}__}">Trial</td>
+                <td class="px-4 py-3" th:text="|${@dates.day(subscription.periodStart())} – ${@dates.day(subscription.periodEnd())}|">dates</td>
+                <td class="px-4 py-3" th:text="${@dates.day(subscription.graceUntil())}">date</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

@@ -130,6 +130,11 @@ app:
     # Host in signed links to private images (payment screenshots), as browsers reach storage. Empty: S3_ENDPOINT.
     presign-endpoint: ${S3_PRESIGN_ENDPOINT:}
     manage-bucket: ${S3_MANAGE_BUCKET:false}
+  # SaaS billing (SPEC 8). BILLING_PAY_TO tells merchants where to send payments, e.g. a wallet number.
+  billing:
+    pay-to: ${BILLING_PAY_TO:}
+    trial-days: ${BILLING_TRIAL_DAYS:14}
+    grace-days: ${BILLING_GRACE_DAYS:7}
   # Messages to shoppers and merchants (SPEC 12). SMS and WhatsApp are adapter stubs until a provider is chosen.
   notification:
     mail-from: ${MAIL_FROM:}

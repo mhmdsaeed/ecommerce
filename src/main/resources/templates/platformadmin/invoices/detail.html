@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<!--/* One invoice (model: invoice, Invoices.InvoiceView; store, StoreNames.StoreRow or null; methods; amount, the
+       payment form's value; done, a checked message key; errors, field to message key). */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/platform}">
+<head>
+    <title th:text="${invoice.label()}">INV-1001</title>
+</head>
+<body>
+<main layout:fragment="content" class="max-w-3xl space-y-6">
+    <div>
+        <a th:href="@{/platform/invoices}" class="text-sm text-brand-700 hover:underline" th:text="#{platform.nav.invoices}">Invoices</a>
+        <h1 class="mt-2 text-2xl font-bold" dir="ltr" th:text="${invoice.label()}">INV-1001</h1>
+        <a th:if="${store != null}" th:href="@{/platform/stores/{id}(id=${store.id()})}" class="text-brand-700 hover:underline"
+           th:text="${store.name().in(#locale)}">Store</a>
+    </div>
+    <th:block th:if="${done != null}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{${done}})}"></div></th:block>
+    <th:block th:if="${errors.containsKey('invoice')}"><div th:replace="~{fragments/forms :: alert(kind='error', message=#{${errors.get('invoice')}})}"></div></th:block>
+
+    <section class="rounded-lg border border-gray-200 bg-white p-4 text-sm">
+        <dl class="grid gap-3 sm:grid-cols-3">
+            <div class="sm:col-span-3">
+                <dt class="text-gray-600" th:text="#{billing.col.for}">For</dt>
+                <dd th:text="${invoice.periodStart() != null} ? #{billing.invoice.period(${@dates.day(invoice.periodStart())}, ${@dates.day(invoice.periodEnd())})} : ${invoice.description()}">Subscription</dd>
+            </div>
+            <div>
+                <dt class="text-gray-600" th:text="#{billing.col.amount}">Amount</dt>
+                <dd class="font-semibold"><bdi th:text="${@money.format(invoice.amount())}">$10</bdi></dd>
+            </div>
+            <div>
+                <dt class="text-gray-600" th:text="#{platform.invoice.paid}">Paid</dt>
+                <dd><bdi th:text="${@money.format(invoice.paid())}">$0</bdi></dd>
+            </div>
+            <div>
+                <dt class="text-gray-600" th:text="#{billing.col.status}">Status</dt>
+                <dd class="font-semibold" th:text="#{billing.invoice.status.__${invoice.status()}__}">Open</dd>
+            </div>
+            <div>
+                <dt class="text-gray-600" th:text="#{platform.invoice.issued}">Issued</dt>
+                <dd th:text="${@dates.day(invoice.issuedOn())}">date</dd>
+            </div>
+            <div>
+                <dt class="text-gray-600" th:text="#{billing.col.due}">Due</dt>
+                <dd th:text="${@dates.day(invoice.dueDate())}">date</dd>
+            </div>
+        </dl>
+        <p th:if="${invoice.voidReason() != null}" class="mt-3 text-gray-700"
+           th:text="#{platform.invoice.voided(${@dates.format(invoice.voidedAt())}, ${invoice.voidReason()})}">Voided</p>
+    </section>
+
+    <section class="rounded-lg border border-gray-200 bg-white p-4 text-sm" aria-labelledby="payments-heading">
+        <h2 id="payments-heading" class="text-lg font-semibold" th:text="#{platform.invoice.payments}">Payments</h2>
+        <p th:if="${invoice.payments().isEmpty()}" class="mt-2 text-gray-600" th:text="#{platform.invoice.payments.none}">None yet.</p>
+        <ul class="mt-2 divide-y divide-gray-100">
+            <li th:each="payment : ${invoice.payments()}" class="flex flex-wrap gap-x-4 py-2">
+                <span class="text-gray-500" th:text="${@dates.format(payment.recordedAt())}">date</span>
+                <bdi class="font-medium" th:text="${@money.format(payment.amount())}">$10</bdi>
+                <span th:text="#{billing.payment.method.__${payment.method()}__}">Wallet</span>
+                <span th:if="${payment.reference() != null}" dir="ltr" th:text="${payment.reference()}">TX-1</span>
+                <span class="text-gray-500" th:text="${payment.recordedBy()}">admin</span>
+            </li>
+        </ul>
+
+        <form th:if="${invoice.status().name() == 'OPEN'}" method="post"
+              th:action="@{/platform/invoices/{id}/payments(id=${invoice.id()})}" class="mt-4 flex flex-wrap items-end gap-3">
+            <div class="space-y-1">
+                <label for="method" class="block font-medium" th:text="#{platform.payment.method}">Method</label>
+                <select id="method" name="method" class="rounded-md border border-gray-300 bg-white px-3 py-2">
+                    <option th:each="option : ${methods}" th:value="${option}"
+                            th:text="#{billing.payment.method.__${option}__}">Wallet</option>
+                </select>
+            </div>
+            <div class="space-y-1">
+                <label for="amount" class="block font-medium" th:text="#{billing.col.amount}">Amount</label>
+                <input id="amount" name="amount" type="text" inputmode="decimal" dir="ltr" required th:value="${amount}"
+                       class="w-32 rounded-md border border-gray-300 px-3 py-2">
+            </div>
+            <div class="min-w-0 flex-1 space-y-1">
+                <label for="reference" class="block font-medium" th:text="#{platform.payment.reference}">Reference</label>
+                <input id="reference" name="reference" type="text" maxlength="200" dir="ltr"
+                       class="w-full rounded-md border border-gray-300 px-3 py-2">
+            </div>
+            <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700"
+                    th:text="#{platform.payment.record}">Record payment</button>
+            <p th:each="field : ${ {'method', 'amount', 'reference'} }" th:if="${errors.containsKey(field)}"
+               class="w-full text-red-600" th:text="#{${errors.get(field)}}">Error</p>
+        </form>
+
+        <form th:if="${invoice.status().name() == 'OPEN'}" method="post"
+              th:action="@{/platform/invoices/{id}/void(id=${invoice.id()})}" class="mt-6 flex flex-wrap items-end gap-3 border-t border-gray-100 pt-4">
+            <div class="min-w-0 flex-1 space-y-1">
+                <label for="reason" class="block font-medium" th:text="#{platform.invoice.void.reason}">Why void it</label>
+                <input id="reason" name="reason" type="text" maxlength="200" required
+                       class="w-full rounded-md border border-gray-300 px-3 py-2">
+            </div>
+            <button type="submit" class="rounded-md border border-red-300 bg-white px-4 py-2 font-medium text-red-700 hover:bg-red-50"
+                    th:text="#{platform.invoice.void}">Void</button>
+            <p th:if="${errors.containsKey('reason')}" class="w-full text-red-600" th:text="#{${errors.get('reason')}}">Error</p>
+        </form>
+    </section>
+</main>
+</body>
+</html>

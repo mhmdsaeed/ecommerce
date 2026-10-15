@@ -1,6 +1,6 @@
 package com.unispark.ecommerce.tenant;
 
-/** Store lifecycle (SPEC 5). Suspension and closing arrive with billing (M12). */
+/** Store lifecycle (SPEC 5). Suspended stores keep their admin but show shoppers a "temporarily unavailable" page. */
 public enum StoreStatus {
     TRIAL,
     ACTIVE,

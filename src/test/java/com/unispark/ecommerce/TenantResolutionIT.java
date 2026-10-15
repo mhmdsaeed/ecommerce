@@ -54,11 +54,11 @@ class TenantResolutionIT {
     }
 
     @Test
-    void servesSuspendedStoresForNow() throws Exception {
+    void showsSuspendedStoresAsTemporarilyUnavailable() throws Exception {
         var slug = TestStores.randomSlug();
         TestStores.create(jdbc, slug, "SUSPENDED");
 
-        mvc.perform(get("http://" + slug + ".lvh.me:8080/")).andExpect(status().isOk());
+        mvc.perform(get("http://" + slug + ".lvh.me:8080/")).andExpect(status().isServiceUnavailable());
     }
 
     @Test
