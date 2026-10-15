@@ -37,6 +37,9 @@
                 · <bdi class="font-medium" th:text="${@money.format(order.total())}">5,000</bdi>
             </p>
         </div>
+        <p th:if="${order.codCollected() != null}" class="text-sm"
+           th:classappend="${order.codCollected().equals(order.total())} ? 'text-gray-600' : 'font-medium text-amber-800'"
+           th:text="${order.driverId() != null} ? #{admin.orders.cod.collected-by(${@money.format(order.codCollected())}, ${staffNames.get(order.driverId())})} : #{admin.orders.cod.collected(${@money.format(order.codCollected())})}">Collected</p>
 
         <div th:unless="${order.nextStatuses().isEmpty()}" class="flex flex-wrap items-start gap-3">
             <form th:each="target : ${order.nextStatuses()}" th:unless="${target.name() == 'CANCELLED'}" method="post"

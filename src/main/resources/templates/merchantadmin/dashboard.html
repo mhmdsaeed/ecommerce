@@ -37,6 +37,14 @@
             <span class="mt-1 block text-3xl font-bold" th:text="${#numbers.formatInteger(counts.toVerify(), 1)}">0</span>
         </a>
     </section>
+
+    <a th:if="${outstanding != null}" th:href="@{/admin/settlement}"
+       class="mt-4 block rounded-lg border bg-white p-5 hover:border-brand-600"
+       th:classappend="${outstanding.isEmpty()} ? 'border-gray-200' : 'border-amber-300'">
+        <span class="block text-sm text-gray-600" th:text="#{dashboard.cod.outstanding}">Cash held by drivers</span>
+        <span th:if="${outstanding.isEmpty()}" class="mt-1 block text-xl font-semibold text-gray-500" th:text="#{dashboard.cod.none}">None</span>
+        <bdi th:each="amount : ${outstanding}" class="mt-1 block text-2xl font-bold" th:text="${@money.format(amount)}">5,000</bdi>
+    </a>
 </main>
 </body>
 </html>

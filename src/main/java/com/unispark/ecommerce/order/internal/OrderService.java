@@ -51,10 +51,12 @@ class OrderService implements Orders {
     private final Inventory inventory;
     private final Customers customers;
     private final StaffDirectory staff;
+    private final CodLedger ledger;
     private final Clock clock;
 
     OrderService(ShopOrderRepository orders, OrderEventRepository events, PaymentProofRepository proofs, OrderLog log,
-            Inventory inventory, Customers customers, StaffDirectory staff, Clock clock) {
+            Inventory inventory, Customers customers, StaffDirectory staff, CodLedger ledger,
+            Clock clock) {
         this.orders = orders;
         this.events = events;
         this.proofs = proofs;
@@ -62,6 +64,7 @@ class OrderService implements Orders {
         this.inventory = inventory;
         this.customers = customers;
         this.staff = staff;
+        this.ledger = ledger;
         this.clock = clock;
     }
 
@@ -122,6 +125,7 @@ class OrderService implements Orders {
             case CANCELLED, RETURNED -> inventory.release(quantities(order));
             case DELIVERED -> {
                 inventory.deduct(quantities(order));
+                ledger.collect(order, money(order, order.getTotal()));
                 customers.recordDelivered(order.getCustomerId());
             }
             case REFUSED -> customers.recordRefused(order.getCustomerId());
@@ -259,7 +263,8 @@ class OrderService implements Orders {
                 order.getPaymentStatus(), order.getPaymentMethod(), money(order, order.getSubtotal()),
                 money(order, order.getDeliveryFee()), money(order, order.getTotal()), order.getRateSnapshot(),
                 order.getCustomerId(), order.getCustomerName(), order.getCustomerPhone(), order.getAddress(),
-                order.getNotes(), order.getDriverId(), items, history, submitted);
+                order.getNotes(), order.getDriverId(), ledger.collected(order).orElse(null), items, history,
+                submitted);
     }
 
     private static Item item(ShopOrder order, OrderItem item) {

@@ -757,3 +757,65 @@ Run with a portable Node.js 24 and `npm install lighthouse` in the session scrat
 
 - Driver list: `shop_order.driver_id` plus the new `shop_order_driver_idx`. Driver actions call `Orders.changeStatus` with `Actor.staff(driverId)`.
 - On DELIVERED with COD, record `cod_collection` and set the payment to PAID. The dashboard's third figure (outstanding COD) is still to come.
+
+## M10: Driver view and COD settlement (done, 2026-10-15)
+
+**Done when:** the driver delivers and collects, and the settlement page shows the outstanding balance.
+- `DriverDeliveryIT.driverDeliversCollectsAndTheMerchantSettles` through the pages:
+  - the driver starts and delivers, collecting 22,000 typed in Arabic digits;
+  - the settlement list and the dashboard show 22,000 outstanding with the driver;
+  - the owner records 15,000, then the remaining 7,000, and the balance goes to zero; more than the balance, zero, or another currency is refused.
+- In Edge at phone size (390×844), `CheckoutE2EIT.driverDeliversAndTheOwnerSettlesTheCash`: the driver logs in at `/driver/login`, starts and delivers; the owner opens the settlement page, sees 22,000 and records it.
+- `./mvnw verify` is green with 494 tests.
+
+### What was built
+
+- **Schema (`V12__cod_settlement.sql`):**
+  - `cod_collection`: one per order (unique per tenant), with the driver (nullable when the merchant marks the order delivered without a driver), amount > 0 and currency.
+  - `cod_remittance`: driver, amount > 0, currency, when, received by (staff) and a note.
+  - Both have `tenant_id`, RLS and indexes by driver.
+- **Order module:**
+  - `DriverDeliveries` (`openFor`, `find`, `startDelivery`, `deliver`, `refuse`):
+    - each step locks the order and checks that it belongs to this driver and is at the right step, so a double tap or a merchant acting at the same time cannot move it twice;
+    - results are `Done`, `NotYours`, `WrongStep` and `InvalidAmount`;
+    - status changes still go through `Orders.changeStatus` with `Actor.staff(driverId)`, so the state machine and `order_event` apply.
+  - `CodLedger`:
+    - records the collection and sets the payment to PAID;
+    - skips transfers and orders already collected.
+    - The driver's `deliver` records the amount the driver typed. It is prefilled with the total, and Arabic digits are accepted.
+    - A merchant marking a COD order DELIVERED records the order total.
+  - `CodSettlement`:
+    - `balances()` gives collected, remitted and outstanding per driver and currency;
+    - `outstanding()` is used for the dashboard;
+    - `statement(driverId)` lists the driver's collections and remittances, newest first;
+    - `remit(...)` refuses non-positive amounts, more than the outstanding balance, and staff who are not drivers. It takes an advisory lock per driver, so two remittances cannot both pass the check.
+  - `OrderView.codCollected`.
+- **Driver pages** (`/driver`, mobile first, for the DRIVER role):
+  - **Home:**
+    - a cash card ("cash with you") per currency;
+    - the driver's open orders, oldest first, with area and total.
+  - **Order page:**
+    - call, WhatsApp (`wa.me`) and map (Google Maps search on the address) buttons;
+    - the address with the landmark, the items, and the amount to collect;
+    - start the delivery; delivered with the collected amount (COD) or without it (transfers); refused with a reason.
+  - Every action is post/redirect/get, and outcomes are checked against a fixed list.
+- **Merchant admin:**
+  - **Settlement** (`/admin/settlement`, owners and managers, nav "التحصيل"):
+    - drivers with collected, remitted and outstanding amounts;
+    - a statement per driver, with a form to record a remittance (amount and note).
+  - **Dashboard:** a fourth card, "cash with drivers", for owners and managers.
+  - **Order detail:** "cash collected: X (by driver)".
+
+### Tests (494, all green: 261 unit, 233 integration)
+
+| Test | Checks |
+|---|---|
+| `DriverDeliveryIT` (7) | The done-when above; refusal with the reason in the history and no cash recorded; transfers are delivered without a cash record; steps happen once and in order (a second start or deliver, or a deliver before start, changes nothing), and a different amount is kept and shown to the merchant; drivers see only their own orders (404 for other drivers and unassigned orders; drivers and plain staff get 403 on the settlement); a merchant marking delivered records the cash; another store sees no cash and gets 404 on the statement and on remitting |
+| `CheckoutE2EIT` (3) | Adds the driver and settlement flow in Edge at phone size |
+
+### Decisions and deviations
+
+- **Supersedes the M9 note:** a merchant marking a COD order delivered now records a collection for the full total and sets it PAID. The cash then counts against the assigned driver, or against no driver if none was assigned. Otherwise the cash would disappear from the books.
+- **The driver may type a different amount** (a customer short of change, or a discount at the door). The ledger keeps what was collected, and the order total is unchanged.
+- **Remittances are per currency** and cannot exceed the outstanding balance. Corrections (a negative remittance, editing an entry) are not supported; the ledger is append-only.
+- **No live curl check this time.** The Edge test drives both phones through real pages on a real server.

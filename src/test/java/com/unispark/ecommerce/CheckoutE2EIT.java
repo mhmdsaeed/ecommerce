@@ -28,6 +28,7 @@ import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.options.AriaRole;
+import com.unispark.ecommerce.cart.Carts;
 import com.unispark.ecommerce.catalog.ProductStatus;
 import com.unispark.ecommerce.catalog.Products;
 import com.unispark.ecommerce.catalog.Products.ProductDraft;
@@ -37,6 +38,12 @@ import com.unispark.ecommerce.delivery.DeliveryZones.ZoneDraft;
 import com.unispark.ecommerce.delivery.Governorate;
 import com.unispark.ecommerce.identity.StaffRole;
 import com.unispark.ecommerce.identity.internal.persistence.StaffUserRepository;
+import com.unispark.ecommerce.order.Actor;
+import com.unispark.ecommerce.order.Checkout;
+import com.unispark.ecommerce.order.Checkout.Placed;
+import com.unispark.ecommerce.order.Checkout.Request;
+import com.unispark.ecommerce.order.OrderStatus;
+import com.unispark.ecommerce.order.Orders;
 import com.unispark.ecommerce.payment.PaymentMethod;
 import com.unispark.ecommerce.payment.PaymentMethods;
 import com.unispark.ecommerce.payment.PaymentMethods.MethodDraft;
@@ -87,10 +94,20 @@ class CheckoutE2EIT {
     @Autowired
     PaymentMethods methods;
 
+    @Autowired
+    Carts carts;
+
+    @Autowired
+    Checkout checkout;
+
+    @Autowired
+    Orders orders;
+
     Playwright playwright;
     Browser browser;
     String slug;
     UUID storeId;
+    UUID scarf;
 
     @BeforeAll
     void startBrowser() {
@@ -124,6 +141,7 @@ class CheckoutE2EIT {
             var id = ((Saved) products.create(new ProductDraft("وشاح صوف", "Wool scarf", null, null, "scarf", null,
                     Currency.SYP), "10000")).id();
             products.changeStatus(id, ProductStatus.ACTIVE);
+            scarf = products.find(id).orElseThrow().variants().getFirst().id();
             zones.create(new ZoneDraft(Governorate.DAMASCUS, "دمشق", null, "2000", Currency.SYP, null, null, null,
                     null));
         });
@@ -232,6 +250,55 @@ class CheckoutE2EIT {
             assertThat(shopper.locator("body")).containsText("مدفوع");
         } finally {
             Files.deleteIfExists(receipt);
+        }
+    }
+
+    /**
+     * M10 done-when in a browser: on a phone-sized screen, the driver takes the order out, delivers it and collects
+     * the cash; the owner's settlement page shows what the driver holds and records the hand-over.
+     */
+    @Test
+    void driverDeliversAndTheOwnerSettlesTheCash() {
+        var driverId = TestAccounts.staff(staffUsers, passwords, storeId, "أبو سمير", null, "+963933900001",
+                StaffRole.DRIVER);
+        var placed = TenantContext.callAs(storeId, () -> {
+            var cart = carts.add(null, scarf, 2).token();
+            var order = (Placed) checkout.place(new Request(cart, UUID.randomUUID(), "سارة", "0933 111 001", null,
+                    Governorate.DAMASCUS, "دمشق", null, "قرب الجامع", null, PaymentMethod.COD, null, null));
+            orders.changeStatus(order.orderId(), OrderStatus.CONFIRMED, Actor.system());
+            orders.changeStatus(order.orderId(), OrderStatus.PREPARING, Actor.system());
+            orders.assignDriver(order.orderId(), driverId, Actor.system());
+            return order;
+        });
+        var phone = new Browser.NewContextOptions().setViewportSize(390, 844).setIsMobile(true).setHasTouch(true);
+        try (var driverContext = browser.newContext(phone); var ownerContext = browser.newContext()) {
+            var driver = driverContext.newPage();
+            driver.navigate(main("/driver/login"));
+            driver.locator("input[name=store]").fill(slug);
+            driver.locator("input[name=username]").fill("0933 900 001");
+            driver.locator("input[name=password]").fill(TestAccounts.PASSWORD);
+            driver.locator("form button[type=submit]").click();
+            assertThat(driver).hasURL(Pattern.compile(".*/driver$"));
+            driver.getByText("#" + placed.number() + " · سارة").click();
+            assertThat(driver.getByText("حصّل 22,000 ل.س نقداً")).isVisible();
+            driver.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("استلمت الطلب، أنا في الطريق")).click();
+            assertThat(driver.getByText("أنت في الطريق")).isVisible();
+            assertThat(driver.locator("input[name=collected]")).hasValue("22000");
+            driver.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("تم التسليم وتحصيل المبلغ")).click();
+            assertThat(driver.getByText("تم تسجيل التسليم.")).isVisible();
+            assertThat(driver.locator("#cash-heading + p")).hasText("22,000 ل.س");
+            // No sideways scrolling on a phone.
+            org.assertj.core.api.Assertions.assertThat(
+                    driver.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).isEqualTo(true);
+
+            var owner = ownerContext.newPage();
+            logIn(owner);
+            owner.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("التحصيل")).click();
+            owner.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("أبو سمير")).click();
+            assertThat(owner.locator("input[name=amount]")).hasValue("22000");
+            owner.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("تسجيل").setExact(true)).click();
+            assertThat(owner.getByText("تم تسجيل المبلغ.")).isVisible();
+            assertThat(owner.locator("main")).containsText("0 ل.س");
         }
     }
 

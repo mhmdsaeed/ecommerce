@@ -12,6 +12,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import com.unispark.ecommerce.identity.StaffPrincipal;
+import com.unispark.ecommerce.order.CodSettlement;
 import com.unispark.ecommerce.order.Orders;
 import com.unispark.ecommerce.pricing.ExchangeRates;
 import com.unispark.ecommerce.tenant.Sites;
@@ -25,12 +26,14 @@ class DashboardController {
     private final Sites sites;
     private final ExchangeRates rates;
     private final Orders orders;
+    private final CodSettlement settlement;
     private final Clock clock;
 
-    DashboardController(Sites sites, ExchangeRates rates, Orders orders, Clock clock) {
+    DashboardController(Sites sites, ExchangeRates rates, Orders orders, CodSettlement settlement, Clock clock) {
         this.sites = sites;
         this.rates = rates;
         this.orders = orders;
+        this.settlement = settlement;
         this.clock = clock;
     }
 
@@ -44,6 +47,8 @@ class DashboardController {
         // "Today" as the store sees it: since midnight in Damascus (SPEC 11).
         var midnight = LocalDate.now(clock.withZone(STORE_ZONE)).atStartOfDay(STORE_ZONE).toInstant();
         model.addAttribute("counts", orders.counts(midnight));
+        // The store's cash in drivers' hands: for owners and managers, who settle it.
+        model.addAttribute("outstanding", staff.role().managesStaff() ? settlement.outstanding() : null);
         return "merchantadmin/dashboard";
     }
 }

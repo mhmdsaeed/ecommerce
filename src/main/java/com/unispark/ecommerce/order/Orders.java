@@ -87,11 +87,12 @@ public interface Orders {
     /**
      * @param rateSnapshot the pounds-per-dollar rate prices were converted at, or null when nothing was converted
      * @param driverId     the driver delivering it, or null
+     * @param codCollected the cash taken at delivery, for cash on delivery; null before
      */
     record OrderView(UUID id, int number, Instant placedAt, OrderStatus status, PaymentStatus paymentStatus,
             PaymentMethod paymentMethod, Money subtotal, Money deliveryFee, Money total, BigDecimal rateSnapshot,
             UUID customerId, String customerName, String customerPhone, Address address, String notes,
-            UUID driverId, List<Item> items, List<Event> events, List<Proof> proofs) {
+            UUID driverId, Money codCollected, List<Item> items, List<Event> events, List<Proof> proofs) {
 
         /** The statuses staff can move it to now. */
         public Set<OrderStatus> nextStatuses() {

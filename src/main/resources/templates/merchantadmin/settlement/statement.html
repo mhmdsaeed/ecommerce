@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<!--/* One driver's cash (model: driver, a StaffCard; statement, CodSettlement.Statement; names; currencies; done and
+       error, checked message keys). */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="${driver.name()}">Driver</title>
+</head>
+<body>
+<main layout:fragment="content" class="space-y-6">
+    <div>
+        <a th:href="@{/admin/settlement}" class="text-sm text-brand-700 hover:underline" th:text="#{settlement.title}">Settlement</a>
+        <h1 class="mt-2 text-2xl font-bold" th:text="${driver.name()}">Driver</h1>
+    </div>
+    <th:block th:if="${done != null}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{${done}})}"></div></th:block>
+    <th:block th:if="${error != null}"><div th:replace="~{fragments/forms :: alert(kind='error', message=#{${error}})}"></div></th:block>
+
+    <dl th:unless="${statement.balances().isEmpty()}" class="grid gap-4 sm:grid-cols-3">
+        <th:block th:each="balance : ${statement.balances()}">
+            <div class="rounded-lg border border-gray-200 bg-white p-4">
+                <dt class="text-sm text-gray-600" th:text="#{settlement.collected}">Collected</dt>
+                <dd class="text-xl font-semibold"><bdi th:text="${@money.format(balance.collected())}">0</bdi></dd>
+            </div>
+            <div class="rounded-lg border border-gray-200 bg-white p-4">
+                <dt class="text-sm text-gray-600" th:text="#{settlement.remitted}">Handed over</dt>
+                <dd class="text-xl font-semibold"><bdi th:text="${@money.format(balance.remitted())}">0</bdi></dd>
+            </div>
+            <div class="rounded-lg border bg-white p-4"
+                 th:classappend="${balance.outstanding().isPositive()} ? 'border-amber-300' : 'border-gray-200'">
+                <dt class="text-sm text-gray-600" th:text="#{settlement.outstanding}">Outstanding</dt>
+                <dd class="text-xl font-bold"><bdi th:text="${@money.format(balance.outstanding())}">0</bdi></dd>
+            </div>
+        </th:block>
+    </dl>
+
+    <form method="post" th:action="@{/admin/settlement/{id}/remit(id=${driver.id()})}"
+          class="flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-4">
+        <h2 class="w-full font-semibold" th:text="#{settlement.remit.heading}">Record cash handed over</h2>
+        <div class="space-y-1">
+            <label for="amount" class="block text-sm font-medium text-gray-800" th:text="#{settlement.remit.amount}">Amount</label>
+            <input id="amount" name="amount" type="text" inputmode="decimal" dir="ltr" required
+                   th:value="${statement.balances().isEmpty()} ? '' : ${statement.balances().get(0).outstanding().amount().stripTrailingZeros().toPlainString()}"
+                   class="w-40 rounded-md border border-gray-300 px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+        </div>
+        <div class="space-y-1">
+            <label for="currency" class="block text-sm font-medium text-gray-800" th:text="#{zone.field.currency}">Currency</label>
+            <select id="currency" name="currency"
+                    class="rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                <option th:each="currency : ${currencies}" th:value="${currency}"
+                        th:selected="${!statement.balances().isEmpty() and statement.balances().get(0).currency() == currency}"
+                        th:text="#{currency.name.__${currency}__}">SYP</option>
+            </select>
+        </div>
+        <div class="min-w-0 flex-1 space-y-1">
+            <label for="note" class="block text-sm font-medium text-gray-800" th:text="#{settlement.remit.note}">Note</label>
+            <input id="note" name="note" type="text" maxlength="200"
+                   class="w-full rounded-md border border-gray-300 px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+        </div>
+        <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700"
+                th:text="#{settlement.remit.submit}">Record</button>
+    </form>
+
+    <div class="grid gap-6 lg:grid-cols-2">
+        <section class="rounded-lg border border-gray-200 bg-white p-4 text-sm" aria-labelledby="collections-heading">
+            <h2 id="collections-heading" class="font-semibold" th:text="#{settlement.collections}">Collections</h2>
+            <p th:if="${statement.collections().isEmpty()}" class="mt-2 text-gray-600" th:text="#{settlement.none}">None.</p>
+            <ul class="mt-2 divide-y divide-gray-100">
+                <li th:each="row : ${statement.collections()}" class="flex justify-between gap-3 py-2">
+                    <span>
+                        <a th:href="@{/admin/orders/{number}(number=${row.orderNumber()})}" class="text-brand-700 hover:underline"
+                           th:text="|#${row.orderNumber()}|">#1001</a>
+                        <span class="text-gray-500" th:text="${@dates.format(row.collectedAt())}">date</span>
+                    </span>
+                    <bdi th:text="${@money.format(row.amount())}">5,000</bdi>
+                </li>
+            </ul>
+        </section>
+        <section class="rounded-lg border border-gray-200 bg-white p-4 text-sm" aria-labelledby="remittances-heading">
+            <h2 id="remittances-heading" class="font-semibold" th:text="#{settlement.remittances}">Handed over</h2>
+            <p th:if="${statement.remittances().isEmpty()}" class="mt-2 text-gray-600" th:text="#{settlement.none}">None.</p>
+            <ul class="mt-2 divide-y divide-gray-100">
+                <li th:each="row : ${statement.remittances()}" class="py-2">
+                    <div class="flex justify-between gap-3">
+                        <span class="text-gray-500" th:text="|${@dates.format(row.remittedAt())} · ${names.get(row.receivedBy())}|">date · name</span>
+                        <bdi th:text="${@money.format(row.amount())}">5,000</bdi>
+                    </div>
+                    <p th:if="${row.note() != null}" class="text-gray-600" th:text="${row.note()}">Note</p>
+                </li>
+            </ul>
+        </section>
+    </div>
+</main>
+</body>
+</html>

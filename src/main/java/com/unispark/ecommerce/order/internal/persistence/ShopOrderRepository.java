@@ -2,6 +2,7 @@ package com.unispark.ecommerce.order.internal.persistence;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -36,6 +37,9 @@ public interface ShopOrderRepository extends JpaRepository<ShopOrder, UUID>, Jpa
     long countByCustomerIdAndStatusIn(UUID customerId, Collection<OrderStatus> statuses);
 
     long countByPlacedAtGreaterThanEqual(Instant since);
+
+    List<ShopOrder> findByDriverIdAndStatusInOrderByPlacedAtAscNumberAsc(UUID driverId,
+            Collection<OrderStatus> statuses);
 
     long countByStatus(OrderStatus status);
 
