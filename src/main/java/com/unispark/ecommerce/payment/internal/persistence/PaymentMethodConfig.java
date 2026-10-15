@@ -13,7 +13,7 @@ import com.unispark.ecommerce.payment.PaymentMethod;
 import com.unispark.ecommerce.shared.LocalizedText;
 import com.unispark.ecommerce.shared.TenantScopedEntity;
 
-/** A store's settings for one payment method. {@code qr_image_key} is mapped once QR codes can be uploaded. */
+/** A store's settings for one payment method. */
 @Entity
 @Table(name = "payment_method_config")
 public class PaymentMethodConfig extends TenantScopedEntity {
@@ -37,6 +37,9 @@ public class PaymentMethodConfig extends TenantScopedEntity {
 
     @JdbcTypeCode(SqlTypes.JSON)
     private LocalizedText instructions;
+
+    @Column(name = "qr_image_key")
+    private String qrImageKey;
 
     protected PaymentMethodConfig() {
     }
@@ -76,5 +79,13 @@ public class PaymentMethodConfig extends TenantScopedEntity {
 
     public LocalizedText getInstructions() {
         return instructions;
+    }
+
+    public String getQrImageKey() {
+        return qrImageKey;
+    }
+
+    public void setQrImageKey(String qrImageKey) {
+        this.qrImageKey = qrImageKey;
     }
 }

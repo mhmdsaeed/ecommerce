@@ -16,10 +16,19 @@ record MediaProperties(
         String accessKey,
         String secretKey,
         String publicBaseUrl,
+        String presignEndpoint,
         @DefaultValue("false") boolean manageBucket,
         @DefaultValue("5242880") long maxUploadBytes,
         @DefaultValue("100000000") long maxPixels,
         @DefaultValue("2") int concurrentDecodes) {
+
+    /** Where browsers reach storage for signed links; the endpoint itself unless set; null for AWS S3. */
+    String presignBase() {
+        if (presignEndpoint != null && !presignEndpoint.isBlank()) {
+            return presignEndpoint;
+        }
+        return endpoint == null || endpoint.isBlank() ? null : endpoint;
+    }
 
     String publicBase() {
         return publicBaseUrl.endsWith("/") ? publicBaseUrl.substring(0, publicBaseUrl.length() - 1) : publicBaseUrl;

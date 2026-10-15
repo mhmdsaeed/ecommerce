@@ -28,12 +28,19 @@ public interface PaymentMethods {
     MethodResult save(PaymentMethod method, MethodDraft draft);
 
     /**
+     * Sets the QR code shoppers scan to pay (a public image key from the media module), or removes it with null.
+     * The previous image is discarded once the change commits.
+     */
+    void setQr(PaymentMethod method, String imageKey);
+
+    /**
      * @param displayName  the merchant's own name for the method, or null for the standard one
      * @param accountId    wallet number or IBAN, for transfers
      * @param instructions shown with the account after an order is placed, or null
+     * @param qrImageKey   a QR code to scan for paying, or null
      */
     record MethodConfig(PaymentMethod method, boolean enabled, LocalizedText displayName, String accountId,
-            String accountName, LocalizedText instructions) {
+            String accountName, LocalizedText instructions, String qrImageKey) {
     }
 
     record MethodDraft(boolean enabled, String displayNameAr, String displayNameEn, String accountId,

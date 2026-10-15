@@ -21,9 +21,21 @@
         <a th:href="@{/admin/settings/pricing}" class="font-medium underline" th:text="#{dashboard.rate-missing.link}">Set rate</a>
     </div>
 
-    <section class="mt-8 rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center">
-        <h2 class="text-lg font-semibold" th:text="#{dashboard.empty.heading}">Nothing here yet</h2>
-        <p class="mx-auto mt-2 max-w-md text-gray-600" th:text="#{dashboard.empty.body}">Body</p>
+    <section class="mt-8 grid gap-4 sm:grid-cols-3" th:attr="aria-label=#{dashboard.orders}">
+        <a th:href="@{/admin/orders(view='all')}" class="rounded-lg border border-gray-200 bg-white p-5 hover:border-brand-600">
+            <span class="block text-sm text-gray-600" th:text="#{dashboard.orders.today}">Orders today</span>
+            <span class="mt-1 block text-3xl font-bold" th:text="${#numbers.formatInteger(counts.placedSince(), 1)}">0</span>
+        </a>
+        <a th:href="@{/admin/orders(view='PENDING_CONFIRMATION')}" class="rounded-lg border bg-white p-5 hover:border-brand-600"
+           th:classappend="${counts.toConfirm() > 0} ? 'border-amber-300' : 'border-gray-200'">
+            <span class="block text-sm text-gray-600" th:text="#{dashboard.orders.to-confirm}">To confirm</span>
+            <span class="mt-1 block text-3xl font-bold" th:text="${#numbers.formatInteger(counts.toConfirm(), 1)}">0</span>
+        </a>
+        <a th:href="@{/admin/orders(view='all', payment='AWAITING_VERIFICATION')}" class="rounded-lg border bg-white p-5 hover:border-brand-600"
+           th:classappend="${counts.toVerify() > 0} ? 'border-amber-300' : 'border-gray-200'">
+            <span class="block text-sm text-gray-600" th:text="#{dashboard.orders.to-verify}">Payments to check</span>
+            <span class="mt-1 block text-3xl font-bold" th:text="${#numbers.formatInteger(counts.toVerify(), 1)}">0</span>
+        </a>
     </section>
 </main>
 </body>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<!--/* Customers (model: customers, a Customers.CustomerPage; q). Searching and blocking swap the "results" fragment. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="#{admin.customers.title}">Customers</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <h1 class="text-2xl font-bold" th:text="#{admin.customers.title}">Customers</h1>
+
+    <form method="get" th:action="@{/admin/customers}" class="mt-6 flex gap-3" role="search"
+          th:hx-get="@{/admin/customers}" hx-target="#customer-results" hx-push-url="true"
+          hx-trigger="input delay:300ms from:#q, submit">
+        <label for="q" class="sr-only" th:text="#{admin.customers.search}">Search</label>
+        <input id="q" name="q" type="search" th:value="${q}" th:placeholder="#{admin.customers.search}"
+               class="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+    </form>
+
+    <div id="customer-results" th:fragment="results" class="mt-4">
+        <p th:if="${customers.rows().isEmpty()}" class="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-gray-600"
+           th:text="${q == null or q.isBlank()} ? #{admin.customers.empty} : #{admin.customers.no-match}">No customers yet.</p>
+
+        <div th:unless="${customers.rows().isEmpty()}" class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 text-gray-600">
+                <tr>
+                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.customer}">Customer</th>
+                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.customers.col.history}">Orders</th>
+                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.status}">Status</th>
+                    <th scope="col" class="px-4 py-3"><span class="sr-only" th:text="#{category.col.actions}">Actions</span></th>
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                <tr th:each="customer : ${customers.rows()}">
+                    <td class="px-4 py-3">
+                        <div class="font-medium" th:text="${customer.name() != null} ? ${customer.name()} : '—'">Name</div>
+                        <div class="text-xs text-gray-500" dir="ltr" th:text="${customer.phone()}">+963</div>
+                    </td>
+                    <td class="px-4 py-3 text-gray-600"
+                        th:text="#{admin.customers.counts(${customer.orderCount()}, ${customer.refusedCount()})}">Delivered 0, refused 0</td>
+                    <td class="px-4 py-3">
+                        <span th:if="${customer.blocked()}" class="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-800"
+                              th:text="#{admin.customers.blocked}" th:title="${customer.blockReason()}">Blocked</span>
+                        <span th:unless="${customer.blocked()}" class="text-xs text-gray-500"
+                              th:text="${customer.isNew()} ? #{admin.customers.new} : #{admin.customers.returning}">New</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex flex-wrap items-center justify-end gap-3">
+                            <a th:href="@{/admin/customers/{id}/orders(id=${customer.id()})}" class="text-brand-700 hover:underline"
+                               th:text="#{admin.customers.orders}">Orders</a>
+                            <form th:if="${currentStaff.role().managesStaff()}" method="post"
+                                  th:action="@{/admin/customers/{id}/block(id=${customer.id()})}"
+                                  th:hx-post="@{/admin/customers/{id}/block(id=${customer.id()})}" hx-target="#customer-results" hx-swap="outerHTML"
+                                  th:hx-confirm="${customer.blocked()} ? null : #{admin.customers.block.confirm}">
+                                <input type="hidden" name="blocked" th:value="${!customer.blocked()}">
+                                <input type="hidden" name="q" th:value="${q}">
+                                <button type="submit" th:class="${customer.blocked()} ? 'text-brand-700 hover:underline' : 'text-red-700 hover:underline'"
+                                        th:text="${customer.blocked()} ? #{admin.customers.unblock} : #{admin.customers.block}">Block</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <nav th:if="${customers.page() > 0 or customers.hasNext()}" class="mt-4 flex justify-between text-sm" th:attr="aria-label=#{admin.orders.pages}">
+            <a th:if="${customers.page() > 0}" th:href="@{/admin/customers(q=${q}, page=${customers.page() - 1})}"
+               class="text-brand-700 hover:underline" th:text="#{admin.orders.newer}">Newer</a>
+            <span th:unless="${customers.page() > 0}"></span>
+            <a th:if="${customers.hasNext()}" th:href="@{/admin/customers(q=${q}, page=${customers.page() + 1})}"
+               class="text-brand-700 hover:underline" th:text="#{admin.orders.older}">Older</a>
+        </nav>
+    </div>
+</main>
+</body>
+</html>

@@ -25,6 +25,6 @@ final class CodPaymentProvider implements PaymentProvider {
     @Override
     public Instructions instructionsFor(MethodConfig config, Money amount) {
         return new Instructions(PaymentMethod.COD, config.displayName(), amount, false, null, null,
-                config.instructions());
+                config.instructions(), null);
     }
 }

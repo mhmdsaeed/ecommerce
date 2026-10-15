@@ -19,8 +19,9 @@ public interface Payments {
      * @param displayName the merchant's name for the method, or null for the standard one
      * @param needsProof  the shopper sends a transaction reference after paying
      * @param accountId   null for cash on delivery
+     * @param qrImageKey  a public image of a QR code to scan for paying, or null
      */
     record Instructions(PaymentMethod method, LocalizedText displayName, Money amount, boolean needsProof,
-            String accountId, String accountName, LocalizedText text) {
+            String accountId, String accountName, LocalizedText text, String qrImageKey) {
     }
 }

@@ -2,6 +2,7 @@ package com.unispark.ecommerce.media.internal;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -24,15 +25,21 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.Delete;
 import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 /**
- * Stores renditions at {@code public/<tenant>/<random id>/<width>.webp}. Keys never contain anything the user sent.
- * Renditions are immutable, so they are served with a one-year cache lifetime (SPEC 9.5).
+ * Stores renditions at {@code public/<tenant>/<random id>/<width>.webp}, readable by anyone, and private images at
+ * {@code private/<tenant>/<random id>/1024.webp}, readable only through presigned links. Keys never contain
+ * anything the user sent. Public renditions are immutable, so they are served with a one-year cache lifetime
+ * (SPEC 9.5).
  */
 @Component
 class S3ImageStore implements ImageStore {
 
     static final String PUBLIC_PREFIX = "public/";
+    static final String PRIVATE_PREFIX = "private/";
+    /** Private images are only reached through signed links; browsers keep them for the link's lifetime at most. */
+    static final String CACHE_PRIVATE = "private, max-age=300";
     static final String CACHE_FOREVER = "public, max-age=31536000, immutable";
 
     private static final Logger log = LoggerFactory.getLogger(S3ImageStore.class);
@@ -40,11 +47,13 @@ class S3ImageStore implements ImageStore {
     private final S3Client s3;
     private final MediaProperties properties;
     private final ImageProcessor processor;
+    private final S3Presigner presigner;
 
-    S3ImageStore(S3Client s3, MediaProperties properties, ImageProcessor processor) {
+    S3ImageStore(S3Client s3, MediaProperties properties, ImageProcessor processor, S3Presigner presigner) {
         this.s3 = s3;
         this.properties = properties;
         this.processor = processor;
+        this.presigner = presigner;
     }
 
     @Override
@@ -61,7 +70,38 @@ class S3ImageStore implements ImageStore {
         };
     }
 
+    @Override
+    public StoreResult storePrivate(UUID tenantId, InputStream upload) {
+        ImageProcessor.Outcome outcome;
+        try {
+            outcome = processor.process(upload);
+        } catch (IOException e) {
+            return new Rejected(Reason.UNREADABLE);
+        }
+        return switch (outcome) {
+            case Failed(var reason) -> new Rejected(reason);
+            case Processed processed -> upload(PRIVATE_PREFIX + tenantId + "/" + Ids.newId(),
+                    new Processed(processed.width(), processed.height(), processed.renditions().stream()
+                            .filter(rendition -> rendition.size() == ImageSize.LARGE).toList()),
+                    CACHE_PRIVATE);
+        };
+    }
+
+    @Override
+    public String signedUrl(String key, Duration validFor) {
+        if (!key.startsWith(PRIVATE_PREFIX)) {
+            throw new IllegalArgumentException("Not a private image key: " + key);
+        }
+        return presigner.presignGetObject(request -> request.signatureDuration(validFor)
+                        .getObjectRequest(get -> get.bucket(properties.bucket()).key(objectKey(key, ImageSize.LARGE))))
+                .url().toString();
+    }
+
     private StoreResult upload(String key, Processed image) {
+        return upload(key, image, CACHE_FOREVER);
+    }
+
+    private StoreResult upload(String key, Processed image, String cacheControl) {
         var written = new ArrayList<String>();
         try {
             for (var rendition : image.renditions()) {
@@ -69,7 +109,7 @@ class S3ImageStore implements ImageStore {
                 s3.putObject(put -> put.bucket(properties.bucket())
                                 .key(objectKey)
                                 .contentType("image/webp")
-                                .cacheControl(CACHE_FOREVER),
+                                .cacheControl(cacheControl),
                         RequestBody.fromBytes(rendition.webp()));
                 written.add(objectKey);
             }

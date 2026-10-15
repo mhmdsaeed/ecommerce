@@ -72,7 +72,7 @@ class MerchantSignupIT {
                         containsString("متجر الياسمين"),
                         containsString(slug + ".lvh.me:8080"),
                         containsString("تجريبي"),
-                        containsString("متجرك جاهز للإعداد"))));
+                        containsString("طلبات اليوم"))));
     }
 
     @Test

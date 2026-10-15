@@ -50,6 +50,12 @@
                 </div>
             </th:block>
 
+            <div th:if="${card.method().isTransfer() and card.qrImageKey() != null}" class="flex items-center gap-3 text-sm">
+                <img th:with="url=${@imageUrls.small(card.qrImageKey())}" th:src="${url}" th:alt="#{settings.payments.qr}"
+                     width="80" height="80" class="h-20 w-20 rounded border border-gray-200 object-contain">
+                <span th:text="#{settings.payments.qr.set}">QR code set</span>
+            </div>
+
             <details class="text-sm" th:open="${failed == card.method()}" th:with="m=${card.method()}, errors=${card.errors()}">
                 <summary class="cursor-pointer text-brand-700" th:text="#{settings.payments.more}">Name and instructions</summary>
                 <div class="mt-3 space-y-3">
@@ -82,6 +88,32 @@
             <button th:replace="~{fragments/forms :: submit(label=#{settings.payments.submit})}">Save</button>
         </form>
     </div>
+
+    <!--/* QR codes are separate forms (a form cannot sit inside another), one per transfer method. */-->
+    <section class="mt-8 rounded-lg border border-gray-200 bg-white p-6" aria-labelledby="qr-heading">
+        <h2 id="qr-heading" class="text-lg font-semibold" th:text="#{settings.payments.qr}">QR codes</h2>
+        <p class="mt-1 text-sm text-gray-600" th:text="#{settings.payments.qr.hint}">Hint</p>
+        <th:block th:if="${param['qr-error'] != null}">
+            <div class="mt-3" th:replace="~{fragments/forms :: alert(kind='error', message=#{settings.payments.qr.invalid})}"></div>
+        </th:block>
+        <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <div th:each="card : ${cards}" th:if="${card.method().isTransfer()}" class="space-y-2 rounded-md border border-gray-100 p-3 text-sm">
+                <p class="font-medium" th:text="#{payment.method.__${card.method()}__}">Sham Cash</p>
+                <form method="post" enctype="multipart/form-data" class="flex flex-wrap items-center gap-2"
+                      th:action="@{/admin/settings/payments/{method}/qr(method=${card.method()})}">
+                    <label th:for="|qr-${card.method()}|" class="sr-only" th:text="#{settings.payments.qr}">QR</label>
+                    <input th:id="|qr-${card.method()}|" name="qr" type="file" accept="image/jpeg,image/png,image/webp"
+                           class="min-w-0 flex-1 text-sm file:me-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-brand-700">
+                    <button type="submit" class="rounded-md border border-gray-300 px-3 py-1.5 font-medium hover:border-brand-600"
+                            th:text="#{settings.payments.qr.upload}">Upload</button>
+                </form>
+                <form th:if="${card.qrImageKey() != null}" method="post"
+                      th:action="@{/admin/settings/payments/{method}/qr/delete(method=${card.method()})}">
+                    <button type="submit" class="text-red-700 hover:underline" th:text="#{settings.payments.qr.remove}">Remove</button>
+                </form>
+            </div>
+        </div>
+    </section>
 </main>
 </body>
 </html>

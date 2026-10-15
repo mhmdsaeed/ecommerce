@@ -368,11 +368,13 @@ class CheckoutIT {
                 null, base.governorate(), base.city(), base.area(), base.landmark(), base.details(),
                 PaymentMethod.SHAM_CASH, null, null));
 
-        assertThat(as(() -> orders.submitProof(placed.number(), placed.trackingToken(), " "))).isInstanceOf(InvalidReference.class);
-        assertThat(as(() -> orders.submitProof(placed.number(), "x".repeat(43), "TX-1"))).isInstanceOf(OrderNotFound.class);
-        assertThat(as(() -> orders.submitProof(placed.number(), placed.trackingToken(), " TX-778899 ")))
+        assertThat(as(() -> orders.submitProof(placed.number(), placed.trackingToken(), " ", null)))
+                .isInstanceOf(InvalidReference.class);
+        assertThat(as(() -> orders.submitProof(placed.number(), "x".repeat(43), "TX-1", null)))
+                .isInstanceOf(OrderNotFound.class);
+        assertThat(as(() -> orders.submitProof(placed.number(), placed.trackingToken(), " TX-778899 ", null)))
                 .isInstanceOf(ProofAccepted.class);
-        assertThat(as(() -> orders.submitProof(placed.number(), placed.trackingToken(), "TX-2")))
+        assertThat(as(() -> orders.submitProof(placed.number(), placed.trackingToken(), "TX-2", null)))
                 .isInstanceOf(ProofNotExpected.class);
 
         var order = as(() -> orders.findByNumber(placed.number())).orElseThrow();
@@ -386,7 +388,7 @@ class CheckoutIT {
     void cashOrdersTakeNoProof() {
         var placed = (Placed) place(request(cartWith(scarf, 1), "0933 111 240"));
 
-        assertThat(as(() -> orders.submitProof(placed.number(), placed.trackingToken(), "TX-1")))
+        assertThat(as(() -> orders.submitProof(placed.number(), placed.trackingToken(), "TX-1", null)))
                 .isInstanceOf(ProofNotExpected.class);
     }
 
@@ -398,7 +400,7 @@ class CheckoutIT {
         TenantContext.runAs(other, () -> {
             assertThat(orders.findByNumber(placed.number())).isEmpty();
             assertThat(orders.track(placed.number(), placed.trackingToken())).isEmpty();
-            assertThat(orders.list(0).rows()).isEmpty();
+            assertThat(orders.list(Orders.OrderFilter.ALL, 0).rows()).isEmpty();
             assertThat(orders.changeStatus(placed.orderId(), OrderStatus.CANCELLED, Actor.system())).isEmpty();
         });
         assertThat(as(() -> orders.findByNumber(placed.number())).orElseThrow().status())

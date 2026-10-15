@@ -1,22 +1,23 @@
 package com.unispark.ecommerce.order.internal.persistence;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 
 import jakarta.persistence.LockModeType;
 
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
 import com.unispark.ecommerce.order.OrderStatus;
+import com.unispark.ecommerce.payment.PaymentStatus;
 
 /** Tenant-scoped: only the current store's orders. */
-public interface ShopOrderRepository extends JpaRepository<ShopOrder, UUID> {
+public interface ShopOrderRepository extends JpaRepository<ShopOrder, UUID>, JpaSpecificationExecutor<ShopOrder> {
 
     Optional<ShopOrder> findByIdempotencyKey(UUID idempotencyKey);
 
@@ -34,5 +35,9 @@ public interface ShopOrderRepository extends JpaRepository<ShopOrder, UUID> {
 
     long countByCustomerIdAndStatusIn(UUID customerId, Collection<OrderStatus> statuses);
 
-    Slice<ShopOrder> findAllByOrderByPlacedAtDescNumberDesc(Pageable pageable);
+    long countByPlacedAtGreaterThanEqual(Instant since);
+
+    long countByStatus(OrderStatus status);
+
+    long countByPaymentStatus(PaymentStatus paymentStatus);
 }

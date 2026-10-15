@@ -8,9 +8,11 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.unispark.ecommerce.media.ImageDiscarded;
 import com.unispark.ecommerce.payment.PaymentMethod;
 import com.unispark.ecommerce.payment.PaymentMethods;
 import com.unispark.ecommerce.payment.internal.persistence.PaymentMethodConfig;
@@ -23,9 +25,11 @@ import com.unispark.ecommerce.shared.LocalizedText;
 class PaymentMethodService implements PaymentMethods {
 
     private final PaymentMethodConfigRepository configs;
+    private final ApplicationEventPublisher events;
 
-    PaymentMethodService(PaymentMethodConfigRepository configs) {
+    PaymentMethodService(PaymentMethodConfigRepository configs, ApplicationEventPublisher events) {
         this.configs = configs;
+        this.events = events;
     }
 
     @Override
@@ -78,14 +82,29 @@ class PaymentMethodService implements PaymentMethods {
         return new Saved();
     }
 
+    @Override
+    public void setQr(PaymentMethod method, String imageKey) {
+        var config = configs.findByMethod(method).orElseGet(() -> {
+            var created = new PaymentMethodConfig(method);
+            created.update(!method.isTransfer(), null, null, null, null);
+            return created;
+        });
+        var previous = config.getQrImageKey();
+        config.setQrImageKey(imageKey);
+        configs.save(config);
+        if (previous != null && !previous.equals(imageKey)) {
+            events.publishEvent(new ImageDiscarded(previous));
+        }
+    }
+
     /** Without a saved row, cash on delivery is on and transfers are off. */
     private static MethodConfig view(PaymentMethod method, Map<PaymentMethod, PaymentMethodConfig> saved) {
         var config = saved.get(method);
         if (config == null) {
-            return new MethodConfig(method, !method.isTransfer(), null, null, null, null);
+            return new MethodConfig(method, !method.isTransfer(), null, null, null, null, null);
         }
         return new MethodConfig(method, config.isEnabled(), config.getDisplayName(), config.getAccountId(),
-                config.getAccountName(), config.getInstructions());
+                config.getAccountName(), config.getInstructions(), config.getQrImageKey());
     }
 
     /** Free text kept as typed (instructions keep their line breaks), but trimmed; null when blank. */

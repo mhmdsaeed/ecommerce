@@ -4,8 +4,10 @@ import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertTha
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.AfterAll;
@@ -35,6 +37,9 @@ import com.unispark.ecommerce.delivery.DeliveryZones.ZoneDraft;
 import com.unispark.ecommerce.delivery.Governorate;
 import com.unispark.ecommerce.identity.StaffRole;
 import com.unispark.ecommerce.identity.internal.persistence.StaffUserRepository;
+import com.unispark.ecommerce.payment.PaymentMethod;
+import com.unispark.ecommerce.payment.PaymentMethods;
+import com.unispark.ecommerce.payment.PaymentMethods.MethodDraft;
 import com.unispark.ecommerce.shared.Currency;
 import com.unispark.ecommerce.shared.TenantContext;
 
@@ -79,9 +84,13 @@ class CheckoutE2EIT {
     @Autowired
     PasswordEncoder passwords;
 
+    @Autowired
+    PaymentMethods methods;
+
     Playwright playwright;
     Browser browser;
     String slug;
+    UUID storeId;
 
     @BeforeAll
     void startBrowser() {
@@ -108,7 +117,8 @@ class CheckoutE2EIT {
     @BeforeEach
     void createStore() {
         slug = TestStores.randomSlug();
-        var store = TestStores.create(jdbc, slug, "ACTIVE");
+        storeId = TestStores.create(jdbc, slug, "ACTIVE");
+        var store = storeId;
         TestAccounts.staff(staffUsers, passwords, store, "Owner", "owner@" + slug + ".test", null, StaffRole.OWNER);
         TenantContext.runAs(store, () -> {
             var id = ((Saved) products.create(new ProductDraft("وشاح صوف", "Wool scarf", null, null, "scarf", null,
@@ -163,6 +173,75 @@ class CheckoutE2EIT {
             row.getByRole(AriaRole.LINK).click();
             assertThat(merchant.locator("body")).containsText("قرب صيدلية النور");
         }
+    }
+
+    /**
+     * M9 done-when in a browser: a wallet order paid with a screenshot (a real multipart form with the storefront's
+     * CSRF cookie), which the merchant checks through its signed link, approves, and takes to completed.
+     */
+    @Test
+    void merchantApprovesAWalletPaymentAndCompletesTheOrder() throws Exception {
+        TenantContext.runAs(storeId, () -> methods.save(PaymentMethod.SHAM_CASH,
+                new MethodDraft(true, null, null, "0944 123 456", "Jasmine", null, null)));
+        var receipt = Files.createTempFile("receipt", ".png");
+        Files.write(receipt, TestImages.png(600, 900));
+        try (var shopperContext = browser.newContext(); var merchantContext = browser.newContext()) {
+            var shopper = shopperContext.newPage();
+            shopper.navigate(store("/p/scarf"));
+            shopper.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("أضف إلى السلة")).click();
+            assertThat(shopper.getByText("تمت الإضافة إلى سلتك.")).isVisible();
+            shopper.navigate(store("/checkout"));
+            shopper.getByLabel("الاسم").fill("عمر");
+            shopper.getByLabel("رقم الموبايل").fill("0944 555 666");
+            shopper.locator("select[name=governorate]").selectOption("DAMASCUS");
+            shopper.locator("input[name=city]").fill("دمشق");
+            shopper.getByLabel("أقرب معلم").fill("قرب الحديقة");
+            shopper.getByLabel("شام كاش").check();
+            shopper.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("تأكيد الطلب")).click();
+            assertThat(shopper).hasURL(Pattern.compile(".*/orders/1001\\?t=.+"));
+            assertThat(shopper.getByText("0944 123 456")).isVisible();
+            shopper.locator("input[name=screenshot]").setInputFiles(receipt);
+            shopper.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("إرسال")).click();
+            assertThat(shopper.getByText("وصلنا إثبات الدفع")).isVisible();
+            assertThat(shopper.getByText("نتحقق من دفعتك.")).isVisible();
+
+            var merchant = merchantContext.newPage();
+            logIn(merchant);
+            merchant.navigate(main("/admin/orders/1001"));
+            var screenshot = merchant.locator("img[src*='X-Amz-Signature']");
+            assertThat(screenshot).isVisible();
+            // The signed link really serves the image to the browser.
+            merchant.waitForFunction("img => img.complete && img.naturalWidth > 0", screenshot.elementHandle());
+            merchant.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("وصلني المبلغ (12,000 ل.س)")).click();
+            assertThat(merchant.getByText("تم قبول الدفع")).isVisible();
+            var steps = new LinkedHashMap<String, String>();
+            steps.put("تأكيد الطلب", "تم تأكيد الطلب.");
+            steps.put("بدء التجهيز", "الطلب قيد التجهيز.");
+            steps.put("خرج للتوصيل", "خرج الطلب للتوصيل.");
+            steps.put("تم التسليم", "تم تسليم الطلب");
+            steps.put("إغلاق الطلب كمكتمل", "اكتمل الطلب.");
+            for (var step : steps.entrySet()) {
+                merchant.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName(step.getKey()).setExact(true))
+                        .click();
+                assertThat(merchant.getByText(step.getValue())).isVisible();
+            }
+            assertThat(merchant.locator("#status-heading")).containsText("مكتمل");
+
+            shopper.reload();
+            assertThat(shopper.locator("body")).containsText("مكتمل");
+            assertThat(shopper.locator("body")).containsText("مدفوع");
+        } finally {
+            Files.deleteIfExists(receipt);
+        }
+    }
+
+    private void logIn(Page merchant) {
+        merchant.navigate(main("/admin/login"));
+        merchant.locator("input[name=store]").fill(slug);
+        merchant.locator("input[name=username]").fill("owner@" + slug + ".test");
+        merchant.locator("input[name=password]").fill(TestAccounts.PASSWORD);
+        merchant.locator("form button[type=submit]").click();
+        assertThat(merchant).hasURL(Pattern.compile(".*/admin$"));
     }
 
     private String store(String path) {

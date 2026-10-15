@@ -209,7 +209,9 @@ class CheckoutWebIT {
 
         shopper.perform(post(shop + "/checkout/code").param("phone", "0933 600 001"), true)
                 .andExpect(content().string(allOf(containsString("أرسلنا الرمز"), containsString("name=\"code\""))));
-        var matcher = Pattern.compile("Message to \\+963933600001: .*?(\\d{6})").matcher(output.getOut());
+        // The code ends the message; the store name before it may contain digits too.
+        var matcher = Pattern.compile("Message to \\+963933600001: .*: (\\d{6})\\s*$", Pattern.MULTILINE)
+                .matcher(output.getOut());
         assertThat(matcher.find()).isTrue();
         shopper.perform(post(shop + "/checkout/verify").param("phone", "0933600001").param("code", "000000"), true)
                 .andExpect(content().string(matcher.group(1).equals("000000") ? containsString("تم تأكيد")
@@ -274,7 +276,7 @@ class CheckoutWebIT {
         var otherOwner = TestAccounts.logIn(mvc, otherSlug, "owner@" + otherSlug + ".test");
         mvc.perform(get(MAIN + "/admin/orders/1001").session(otherOwner)).andExpect(status().isNotFound());
         mvc.perform(get(MAIN + "/admin/orders").session(otherOwner))
-                .andExpect(content().string(containsString("لا توجد طلبات بعد.")));
+                .andExpect(content().string(containsString("لا توجد طلبات قيد التنفيذ.")));
     }
 
     @Test

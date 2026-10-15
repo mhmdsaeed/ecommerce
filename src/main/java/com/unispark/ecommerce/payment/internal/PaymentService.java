@@ -31,7 +31,7 @@ class PaymentService implements Payments {
     public Instructions instructions(PaymentMethod method, Money amount) {
         // The account as configured now: an order placed earlier still shows where to pay today.
         var config = methods.all().stream().filter(candidate -> candidate.method() == method).findFirst()
-                .orElseGet(() -> new MethodConfig(method, false, null, null, null, null));
+                .orElseGet(() -> new MethodConfig(method, false, null, null, null, null, null));
         return provider(method).instructionsFor(config, amount);
     }
 

@@ -4,9 +4,15 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
+import jakarta.persistence.criteria.Predicate;
+
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +23,7 @@ import com.unispark.ecommerce.customer.internal.persistence.CustomerAddress;
 import com.unispark.ecommerce.customer.internal.persistence.CustomerAddressRepository;
 import com.unispark.ecommerce.customer.internal.persistence.CustomerRepository;
 import com.unispark.ecommerce.delivery.Destination;
+import com.unispark.ecommerce.shared.Digits;
 import com.unispark.ecommerce.shared.FieldProblem;
 import com.unispark.ecommerce.shared.Ids;
 import com.unispark.ecommerce.shared.PhoneNumbers;
@@ -46,6 +53,15 @@ class CustomerService implements Customers {
     @Transactional(readOnly = true)
     public Optional<CustomerView> find(UUID id) {
         return customers.findById(id).map(CustomerService::view);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CustomerPage search(String query, int page) {
+        var found = customers.findAll(matching(query), PageRequest.of(Math.max(page, 0), PAGE_SIZE,
+                Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"))));
+        return new CustomerPage(found.getContent().stream().map(CustomerService::view).toList(), found.getNumber(),
+                found.hasNext());
     }
 
     @Override
@@ -203,7 +219,28 @@ class CustomerService implements Customers {
 
     private static CustomerView view(Customer customer) {
         return new CustomerView(customer.getId(), customer.getPhone(), customer.getName(), customer.isBlocked(),
-                customer.getOrderCount(), customer.getRefusedCount());
+                customer.getBlockReason(), customer.getOrderCount(), customer.getRefusedCount());
+    }
+
+    /** Phone (any spelling, or 4+ of its digits) or name. */
+    private static Specification<Customer> matching(String query) {
+        return (root, criteria, builder) -> {
+            var text = Destination.clean(query);
+            if (text == null) {
+                return builder.conjunction();
+            }
+            var matches = new ArrayList<Predicate>();
+            var typed = Digits.toAscii(text);
+            PhoneNumbers.normalize(typed).ifPresent(phone -> matches.add(builder.equal(root.get("phone"), phone)));
+            var digits = typed.replaceAll("\\D", "");
+            if (digits.length() >= 4) {
+                matches.add(builder.like(root.get("phone"), "%" + digits + "%"));
+            }
+            var pattern = "%" + text.toLowerCase(Locale.ROOT).replace("\\", "\\\\").replace("%", "\\%")
+                    .replace("_", "\\_") + "%";
+            matches.add(builder.like(builder.lower(root.get("name")), pattern, '\\'));
+            return builder.or(matches.toArray(Predicate[]::new));
+        };
     }
 
     private static AddressView view(CustomerAddress address) {

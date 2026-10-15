@@ -24,6 +24,9 @@ class OrderLog {
     static final String PLACED = "PLACED";
     static final String STATUS_CHANGED = "STATUS_CHANGED";
     static final String PROOF_SUBMITTED = "PROOF_SUBMITTED";
+    static final String DRIVER_ASSIGNED = "DRIVER_ASSIGNED";
+    static final String PAYMENT_APPROVED = "PAYMENT_APPROVED";
+    static final String PAYMENT_REJECTED = "PAYMENT_REJECTED";
 
     private final OrderEventRepository events;
     private final ApplicationEventPublisher publisher;

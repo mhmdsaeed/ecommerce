@@ -22,7 +22,15 @@ public interface Customers {
     int MAX_LANDMARK_LENGTH = 200;
     int MAX_DETAILS_LENGTH = 500;
 
+    int PAGE_SIZE = 25;
+
     Optional<CustomerView> find(UUID id);
+
+    /** Newest first; {@code query} matches the phone (any spelling, or some of its digits) or the name. */
+    CustomerPage search(String query, int page);
+
+    record CustomerPage(List<CustomerView> rows, int page, boolean hasNext) {
+    }
 
     Optional<CustomerView> findByPhone(String phone);
 
@@ -56,7 +64,8 @@ public interface Customers {
     AddressResult removeAddress(UUID customerId, UUID addressId);
 
     /** @param orderCount delivered orders */
-    record CustomerView(UUID id, String phone, String name, boolean blocked, int orderCount, int refusedCount) {
+    record CustomerView(UUID id, String phone, String name, boolean blocked, String blockReason, int orderCount,
+            int refusedCount) {
 
         /** No delivered order yet: the store's new-customer limits apply. */
         public boolean isNew() {

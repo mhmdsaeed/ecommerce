@@ -28,6 +28,6 @@ final class ManualPaymentProvider implements PaymentProvider {
     @Override
     public Instructions instructionsFor(MethodConfig config, Money amount) {
         return new Instructions(config.method(), config.displayName(), amount, true, config.accountId(),
-                config.accountName(), config.instructions());
+                config.accountName(), config.instructions(), config.qrImageKey());
     }
 }

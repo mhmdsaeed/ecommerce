@@ -27,7 +27,7 @@ import com.unispark.ecommerce.shared.TenantScopedEntity;
 
 /**
  * An order and its snapshot. Status changes go through the order service, which checks the state machine and writes
- * the event; the setters here do no checking of their own. {@code driver_id} is mapped with delivery (M9, M10).
+ * the event; the setters here do no checking of their own.
  */
 @Entity
 @Table(name = "shop_order")
@@ -95,6 +95,9 @@ public class ShopOrder extends TenantScopedEntity {
     @Column(name = "zone_id")
     private UUID zoneId;
 
+    @Column(name = "driver_id")
+    private UUID driverId;
+
     @Column(name = "placed_at", nullable = false, updatable = false)
     private Instant placedAt;
 
@@ -155,6 +158,14 @@ public class ShopOrder extends TenantScopedEntity {
 
     public void setPaymentStatus(PaymentStatus paymentStatus) {
         this.paymentStatus = paymentStatus;
+    }
+
+    public UUID getDriverId() {
+        return driverId;
+    }
+
+    public void setDriverId(UUID driverId) {
+        this.driverId = driverId;
     }
 
     public int getNumber() {

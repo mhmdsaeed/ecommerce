@@ -123,7 +123,9 @@ class PhoneVerificationIT {
     }
 
     private static String lastCode(CapturedOutput output, String phone) {
-        var matcher = Pattern.compile("Message to " + Pattern.quote(phone) + ": .*?(\\d{6})").matcher(output.getOut());
+        // The code ends the message; the store name before it may contain digits too.
+        var matcher = Pattern.compile("Message to " + Pattern.quote(phone) + ": .*: (\\d{6})\\s*$", Pattern.MULTILINE)
+                .matcher(output.getOut());
         String code = null;
         while (matcher.find()) {
             code = matcher.group(1);

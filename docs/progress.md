@@ -671,3 +671,83 @@ Run with a portable Node.js 24 and `npm install lighthouse` in the session scrat
 
 - The admin order detail needs transitions (`Orders.changeStatus` with `Actor.staff`), proof approval and rejection (`payment_proof.status`, `reviewed_by`), driver assignment (`shop_order.driver_id`), and blocking customers (`Customers.block`).
 - Show actor names instead of `customer:<id>` in the history.
+
+## M9: Merchant order management (done, 2026-10-15)
+
+**Done when:** a merchant processes an order end to end.
+- `OrderManagementIT.merchantProcessesAnOrderEndToEnd` through the admin pages: confirm, prepare, assign a driver, out for delivery, delivered (stock deducted), completed.
+- In Edge, `CheckoutE2EIT.merchantApprovesAWalletPaymentAndCompletesTheOrder`: a Sham Cash order paid with a screenshot, which the merchant opens through its signed link, approves, and takes to completed.
+- Live on demo1, see below. `./mvnw verify` is green with 482 tests.
+
+### What was built
+
+- **Migration `V11__order_management.sql`:** `payment_proof.reviewed_at`, with a CHECK that only reviewed proofs have one. Indexes on order status, payment status and driver, for the list filters and the driver's list (M10).
+- **`Orders` API:**
+  - `list(OrderFilter, page)`: statuses, payment status, and a search by number (with or without `#`), phone (any spelling, Arabic digits, or 4+ of its digits) or name. LIKE wildcards are escaped. Uses a JPA Specification.
+  - `counts(since)`: for the dashboard.
+  - `changeStatus(…, note)`: the note (a cancellation reason) is kept in the event.
+  - `assignDriver`: only active drivers of the store, only open orders; writes a DRIVER_ASSIGNED event.
+  - `reviewProof`: approve makes the order PAID, reject makes it REJECTED with a note for the shopper, who may send another proof. Records the reviewer and time; writes PAYMENT_APPROVED or PAYMENT_REJECTED.
+  - `submitProof` now takes a transaction reference and/or a screenshot.
+  - `OrderView` has `driverId`, `nextStatuses()`, `cancellable()` and `pendingProof()`; events carry their note; proofs carry the screenshot key, status and review note.
+- **`identity.StaffDirectory` (new):** names and roles of the store's staff, without contact details, for every staff role (unlike `StaffManagement`, which is for owners and managers). Used to check drivers and to show names.
+- **Private images** (SPEC 10), in the `media` module:
+  - `ImageStore.storePrivate` re-encodes like public images but keeps one 1024 px rendition under `private/<tenant>/…`. The bucket policy only makes `public/*` readable.
+  - `signedUrl` presigns a GET (10 minutes on the order page).
+  - `S3_PRESIGN_ENDPOINT` sets the host in signed links when browsers reach storage elsewhere; it defaults to `S3_ENDPOINT`.
+- **Wallet QR codes:** `payment_method_config.qr_image_key` is now used.
+  - Owners and managers upload one per transfer method (a public image; the previous one is discarded after commit).
+  - The order page shows it (640 px) while the payment awaits proof.
+- **Customers:** `Customers.search` (phone or name, newest first); `CustomerView` has the block reason.
+- **Merchant admin:**
+  - **Dashboard:** orders today (since midnight in Damascus), awaiting confirmation, payments to check. Each links to the matching filtered list.
+  - **Orders list:**
+    - live search with status (in progress by default, all, or one status) and payment filters over HTMX;
+    - filters pushed into the URL, so links and back/forward work;
+    - a driver column.
+  - **Order detail** (each action is a post/redirect/get form; a stale form gets "the order just changed"):
+    - a button per allowed next status;
+    - cancelling asks for an optional reason;
+    - driver select;
+    - payment proofs with reference, screenshot (signed link) and decision buttons;
+    - block/unblock with a private reason (owners and managers);
+    - the history with staff names, "the customer" or "the system", and notes.
+    - The `?done=`/`?error=` outcomes are checked against a fixed list before they become message keys, so nothing from the URL is evaluated.
+  - **Customers** (`/admin/customers`): search, delivered and refused counts, new or returning, blocked badge with its reason, a link to their orders, block/unblock over HTMX (owners and managers).
+  - **Settings → Payments:** QR upload and removal per transfer method.
+- **Storefront order page:**
+  - the proof form is multipart (reference and/or screenshot, CSRF token in the body);
+  - the token is checked before anything is stored, so strangers cannot fill storage;
+  - shows the QR code and the store's rejection note.
+
+### Verified live (local profile, demo1)
+
+- Sham Cash order #1002 placed by curl. The screenshot was sent as multipart with `_csrf` in the body → `proof-sent`; without the token → 403. This confirms real Tomcat parses the token from multipart bodies.
+- Dashboard: orders today 1, awaiting confirmation 2, payments to check 2.
+- The signed screenshot link → 200 `image/webp`; the same object without the signature → 403.
+- Owner: approve → confirm → prepare → driver "أبو خالد" → out for delivery → delivered → completed, each `302 ?done=…`. Completing again → `?error=changed`.
+- The history reads: placed (the customer), proof sent (the customer), payment approved, confirmed, preparing, driver changed, on its way, delivered, completed, each by "سامر الحلبي".
+- **Fixed from this check:** the history said "the customer sent a transaction number" for a screenshot-only proof; it now says "payment proof", like the shopper's message.
+
+### Tests (482, all green: 259 unit, 223 integration)
+
+| Test | Checks |
+|---|---|
+| `OrderManagementIT` (10) | End-to-end processing with stock and event types; a stale button changes nothing; cancel with reason releases stock and shows to the shopper; screenshot by multipart, filtered list, signed link 200 and unsigned 403, approve, then a second decision refused; reject with a note that the shopper sees, then a new proof; blocking (staff 403, owner OK, checkout refused, unblock over HTMX on the customers page, checkout works again); filters and search (status, name, Arabic-digit phone, `#number` over HTMX, wildcards); wallet QR (upload, bad file, shown on the order page, staff 403); outcomes in the URL are not evaluated; another store gets 404 on every action and cannot assign this store's driver |
+| `CheckoutE2EIT` (2) | Adds the wallet flow in Edge: screenshot upload, the merchant views it through the signed link (image loads), approves, five status buttons to completed; the shopper sees completed and paid |
+| `CheckoutIT`, `CheckoutWebIT`, `MerchantSignupIT` | Updated for the new API, the "no orders in progress" text and the new dashboard |
+
+**Flaky test fixed:** `CheckoutWebIT` and `PhoneVerificationIT` read the OTP code from the log with a regex taking the first 6 digits of the line. The random test store's name sometimes contains 6 digits, so the full run failed once. The regex now takes the code at the end of the message.
+
+### Decisions and deviations
+
+- **Merchants can do every transition in M9,** including out for delivery, delivered, refused and returned. The driver view (M10) adds the same actions on the driver's phone. COD orders stay UNPAID when the merchant marks them delivered: COD becomes PAID when the driver records the collection (M10, `cod_collection`).
+- **All staff roles process orders;** blocking customers and payment settings are for owners and managers.
+- **Screenshots are images only** (JPEG, PNG, WebP up to 5 MB, re-encoded); PDF receipts are not accepted. Private images are never deleted for now: they are part of the order record.
+- **Signed links last 10 minutes** and are made when the page renders; reload the page for fresh ones.
+- **Interface default methods do not run in the service's transaction** (Spring's transaction annotations on the class do not reach them). The 3-argument `changeStatus` is declared on the service for that reason; this broke 5 tests during development.
+
+### Notes for M10
+
+- Driver list: `shop_order.driver_id` plus the new `shop_order_driver_idx`. Driver actions call `Orders.changeStatus` with `Actor.staff(driverId)`.
+- On DELIVERED with COD, record `cod_collection` and set the payment to PAID. The dashboard's third figure (outstanding COD) is still to come.
