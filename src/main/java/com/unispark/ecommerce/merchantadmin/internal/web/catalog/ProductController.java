@@ -30,6 +30,7 @@ import com.unispark.ecommerce.catalog.Products.Saved;
 import com.unispark.ecommerce.merchantadmin.internal.web.FormErrors;
 import com.unispark.ecommerce.shared.Currency;
 import com.unispark.ecommerce.shared.Htmx;
+import com.unispark.ecommerce.shared.ListParams;
 import com.unispark.ecommerce.tenant.StoreSettings;
 
 /**
@@ -57,8 +58,12 @@ class ProductController {
     }
 
     @GetMapping
-    String list(@RequestParam(required = false) String q, @RequestParam(required = false) ProductStatus status,
-            @RequestParam(defaultValue = "0") int page, Model model, HttpServletRequest request) {
+    String list(@RequestParam(required = false) String q,
+            @RequestParam(name = "status", required = false) String statusParam,
+            @RequestParam(name = "page", required = false) String pageParam, Model model, HttpServletRequest request) {
+        // Unknown filter values from edited URLs are ignored, not answered with an error page.
+        var status = ListParams.constant(ProductStatus.class, statusParam).orElse(null);
+        var page = ListParams.page(pageParam);
         model.addAttribute("q", q);
         model.addAttribute("status", status);
         model.addAttribute("statuses", ProductStatus.values());

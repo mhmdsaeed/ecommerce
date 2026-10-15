@@ -747,6 +747,12 @@ Run with a portable Node.js 24 and `npm install lighthouse` in the session scrat
 - **Signed links last 10 minutes** and are made when the page renders; reload the page for fresh ones.
 - **Interface default methods do not run in the service's transaction** (Spring's transaction annotations on the class do not reach them). The 3-argument `changeStatus` is declared on the service for that reason; this broke 5 tests during development.
 
+### Fix after the M9 runtime check (2026-10-15)
+
+- **Bug:** a crafted list URL answered 400 with the error page: `/admin/orders?payment=NOPE`, and likewise an unknown product status, a non-numeric `page` on any list, or an unknown storefront `sort`.
+- **Fix:** `shared.ListParams` reads page numbers and enum filters leniently (unknown → no filter, first page, default sort). It is used by the orders, customers, products and inventory lists and the storefront category and search pages.
+- **Tests:** `ListParamsTest`, and `LenientListParamsIT` covering all six lists. `./mvnw verify`: 486 tests, green.
+
 ### Notes for M10
 
 - Driver list: `shop_order.driver_id` plus the new `shop_order_driver_idx`. Driver actions call `Orders.changeStatus` with `Actor.staff(driverId)`.

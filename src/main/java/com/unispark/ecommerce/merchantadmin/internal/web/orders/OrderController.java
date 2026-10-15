@@ -43,6 +43,7 @@ import com.unispark.ecommerce.order.Orders.ProofReviewed;
 import com.unispark.ecommerce.payment.PaymentStatus;
 import com.unispark.ecommerce.payment.Payments;
 import com.unispark.ecommerce.shared.Htmx;
+import com.unispark.ecommerce.shared.ListParams;
 
 /**
  * Orders (SPEC 9.3). The list filters by status, payment and a search (number, phone or name) over HTMX, with the
@@ -84,10 +85,14 @@ class OrderController {
         this.images = images;
     }
 
+    /** Filters come from URLs people edit and share: unknown values are ignored (see {@link ListParams}). */
     @GetMapping
     String list(@RequestParam(defaultValue = VIEW_OPEN) String view,
-            @RequestParam(required = false) PaymentStatus payment, @RequestParam(required = false) String q,
-            @RequestParam(defaultValue = "0") int page, Model model, HttpServletRequest request) {
+            @RequestParam(name = "payment", required = false) String paymentParam,
+            @RequestParam(required = false) String q, @RequestParam(name = "page", required = false) String pageParam,
+            Model model, HttpServletRequest request) {
+        var payment = ListParams.constant(PaymentStatus.class, paymentParam).orElse(null);
+        var page = ListParams.page(pageParam);
         model.addAttribute("view", view);
         model.addAttribute("payment", payment);
         model.addAttribute("q", q);

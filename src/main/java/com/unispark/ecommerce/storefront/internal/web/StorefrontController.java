@@ -31,6 +31,7 @@ import com.unispark.ecommerce.catalog.StorefrontCatalog.VariantOffer;
 import com.unispark.ecommerce.inventory.Inventory;
 import com.unispark.ecommerce.pricing.ExchangeRates;
 import com.unispark.ecommerce.shared.Currency;
+import com.unispark.ecommerce.shared.ListParams;
 import com.unispark.ecommerce.shared.TenantContext;
 import com.unispark.ecommerce.tenant.StoreSettings;
 
@@ -72,9 +73,12 @@ class StorefrontController {
     }
 
     @GetMapping("/c/{slug}")
-    String category(@PathVariable String slug, @RequestParam(defaultValue = "NEWEST") Sort sort,
-            @RequestParam(defaultValue = "0") int page, Model model) {
+    String category(@PathVariable String slug, @RequestParam(name = "sort", required = false) String sortParam,
+            @RequestParam(name = "page", required = false) String pageParam, Model model) {
         requireStore();
+        // Shared and edited links must not end on an error page: unknown values fall back to the defaults.
+        var sort = ListParams.constant(Sort.class, sortParam).orElse(Sort.NEWEST);
+        var page = ListParams.page(pageParam);
         var category = catalog.category(slug, sort, priceScale(), page)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         model.addAttribute("page", category);
@@ -93,8 +97,10 @@ class StorefrontController {
     }
 
     @GetMapping("/search")
-    String search(@RequestParam(defaultValue = "") String q, @RequestParam(defaultValue = "0") int page, Model model) {
+    String search(@RequestParam(defaultValue = "") String q,
+            @RequestParam(name = "page", required = false) String pageParam, Model model) {
         requireStore();
+        var page = ListParams.page(pageParam);
         var query = q.length() > 100 ? q.substring(0, 100) : q;
         model.addAttribute("q", query);
         model.addAttribute("results", catalog.search(query, page));

@@ -25,6 +25,7 @@ import com.unispark.ecommerce.inventory.Inventory.Updated;
 import com.unispark.ecommerce.inventory.StockLevels;
 import com.unispark.ecommerce.shared.Amounts;
 import com.unispark.ecommerce.shared.Htmx;
+import com.unispark.ecommerce.shared.ListParams;
 
 /**
  * Inventory (SPEC 9.3): every variant with its stock. Each row saves on its own over HTMX and swaps only its stock
@@ -47,9 +48,9 @@ class InventoryController {
     }
 
     @GetMapping
-    String list(@RequestParam(required = false) String q, @RequestParam(defaultValue = "0") int page, Model model,
-            HttpServletRequest request) {
-        var result = products.variants(q, page);
+    String list(@RequestParam(required = false) String q, @RequestParam(name = "page", required = false) String page,
+            Model model, HttpServletRequest request) {
+        var result = products.variants(q, ListParams.page(page));
         model.addAttribute("q", q);
         model.addAttribute("result", result);
         model.addAttribute("levels", inventory.levels(result.items().stream().map(VariantRow::id).toList()));

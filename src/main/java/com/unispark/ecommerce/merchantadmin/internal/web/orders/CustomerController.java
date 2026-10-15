@@ -17,6 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.unispark.ecommerce.customer.Customers;
 import com.unispark.ecommerce.shared.Htmx;
+import com.unispark.ecommerce.shared.ListParams;
 
 /**
  * Customers (SPEC 9.3): who ordered, how many orders they received or refused, and the blocklist (SPEC 6.4). The
@@ -36,10 +37,10 @@ class CustomerController {
     }
 
     @GetMapping
-    String list(@RequestParam(required = false) String q, @RequestParam(defaultValue = "0") int page, Model model,
-            HttpServletRequest request) {
+    String list(@RequestParam(required = false) String q, @RequestParam(name = "page", required = false) String page,
+            Model model, HttpServletRequest request) {
         model.addAttribute("q", q);
-        model.addAttribute("customers", customers.search(q, page));
+        model.addAttribute("customers", customers.search(q, ListParams.page(page)));
         return Htmx.isHtmx(request) ? RESULTS : PAGE;
     }
 
