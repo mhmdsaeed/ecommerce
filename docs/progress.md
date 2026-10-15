@@ -819,3 +819,72 @@ Run with a portable Node.js 24 and `npm install lighthouse` in the session scrat
 - **The driver may type a different amount** (a customer short of change, or a discount at the door). The ledger keeps what was collected, and the order total is unchanged.
 - **Remittances are per currency** and cannot exceed the outstanding balance. Corrections (a negative remittance, editing an entry) are not supported; the ledger is append-only.
 - **No live curl check this time.** The Edge test drives both phones through real pages on a real server.
+
+## M11: Notifications (done, 2026-10-15)
+
+**Done when:** order status changes produce notifications in Mailpit and `notification_log`.
+- `NotificationIT.orderStatusChangesReachTheShopperAndTheMerchants`, with JobRunr's server running and a Mailpit container as the SMTP server:
+  - placing a COD order emails the owner and the manager (not plain staff or a deactivated manager): Arabic subject, items, total, customer, address, payment method and a link to the admin order page;
+  - the shopper's text goes to the application log, since no SMS or WhatsApp provider is configured;
+  - `notification_log` has one entry per message and recipient, all SENT;
+  - confirmed, out for delivery (with the cash to have ready) and delivered each add one shopper message, and preparing adds none;
+  - the admin order page lists the messages.
+- Live run against docker-compose (local profile):
+  - Flyway applied V13 and V14 to the dev database, and the `cart-expiry` recurring job was registered.
+  - Confirming demo1 order #1005 in the admin logged the shopper's Arabic text about a second later.
+  - Placing order #1007 on the demo1 storefront logged the shopper's text and put the owner's email in Mailpit (http://localhost:8025).
+  - The order page lists both messages.
+- `./mvnw verify` is green with 500 tests.
+
+### What was built
+
+- **Schema:**
+  - `V13__jobrunr_storage` is a Java Flyway migration that runs JobRunr's own table scripts as the schema owner. The app starts JobRunr with `skip-create` as `app_user`, which can use the tables but not alter them. They are platform tables, registered in `RlsCoverageIT`.
+  - `V14__notification_log.sql` creates `notification_log`, one row per message and recipient:
+    - template, order, channel (EMAIL, SMS, WHATSAPP, or LOG when no provider), recipient, status (PENDING, SENT, FAILED), attempts, provider reference, last error and sent time;
+    - `dedupe_key` is unique per tenant;
+    - `tenant_id` with RLS.
+- **Notification module:**
+  - `OrderMessages` listens to `OrderStatusChanged` (placed, confirmed, out for delivery, delivered) and the new `PaymentProofRejected`.
+    - Each event becomes a JobRunr job, `SendOrderMessages`, whose id is derived from the event. A redelivered event is skipped by JobRunr ("already exists").
+    - If queuing fails, the Modulith event stays incomplete and is republished after a restart.
+  - `SendOrderMessagesHandler` runs in the event's store. It renders the shopper's text and, for a new order, an email to each active owner and manager (`identity.StaffContacts`).
+    - If a message fails, the job fails and JobRunr retries it with back-off.
+  - `Deliveries` sends one message in its own transaction, holding the log row's lock. A message already SENT is skipped, so a retry repeats only what failed.
+  - `NotificationTexts`:
+    - texts come from the bundles (`notification.*`) in the store's language and digits, since shoppers have no language on record;
+    - the merchants' email is `templates/notification/new-order.html` with a plain-text alternative, inline styles and `dir` from the locale.
+  - **Channels:**
+    - `NotificationChannel` (sealed) has four implementations:
+      - `EmailChannel`: SMTP via `spring.mail`, active once `MAIL_HOST` is set, and then `MAIL_FROM` is required;
+      - `WhatsAppChannel` and `SmsChannel`: stubs bound to `WHATSAPP_*` and `SMS_*`;
+      - `LoggingChannel`: the fallback.
+    - `ChannelRouter` picks email for emails, and WhatsApp, then SMS, then the log for phones. It logs its choice at startup.
+  - `NotificationLog.forOrder` returns the entries for an order, for the admin.
+- **Verification codes:**
+  - The customer module now declares `CodeSender`, and the notification module implements it. Before, customer depended on notification, and notification now depends on order, which depends on customer; Modulith would have flagged the cycle.
+  - Codes are sent at once (not queued) and logged as `otp` without the code.
+- **Order module:** rejecting a payment proof publishes `PaymentProofRejected` with staff's reason. The shopper's message quotes it.
+- **Jobs:** `CartExpiryJob` moved from `@Scheduled` to a JobRunr `@Recurring` job (`cart-expiry`, hourly at :17), so it runs once however many instances there are. `SchedulingConfig` and `app.scheduling.enabled` are gone.
+- **Merchant admin:** the order page has a "Messages" section showing what was sent, to whom, through which channel, with the status and any error.
+- **Configuration:**
+  - `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASSWORD`, `MAIL_FROM`, `MAIL_SMTP_AUTH` and `MAIL_STARTTLS` (both default true), and `APP_LINK_SCHEME` (default https).
+  - The local profile points at Mailpit (`localhost:1025`, no auth or TLS).
+  - The JobRunr dashboard is off, and its anonymous usage reporting is disabled.
+  - Tests disable the JobRunr server except in `NotificationIT`.
+
+### Tests (500, all green: 261 unit, 239 integration)
+
+| Test | Checks |
+|---|---|
+| `NotificationIT` (5) | The done-when above; a rejected payment proof tells the shopper the reason; Mailpit refusing recipients (chaos mode) leaves the emails FAILED with the 451 error, and after it accepts again JobRunr's retry sends them while the shopper's text, already sent, is not repeated; an event published twice sends nothing twice; another store sees none of the entries |
+| `RlsCoverageIT` | JobRunr's tables listed as platform tables |
+| `ApplicationSmokeIT` | Health stays UP without a mail server: the mail health indicator is off, since failed emails are retried rather than making the app unhealthy |
+
+### Decisions and deviations
+
+- **Shoppers have no email** (SPEC 5 `customer`), so their status messages are phone messages. Until an SMS or WhatsApp provider is chosen (SPEC 19), they go to the application log and are recorded with channel LOG. Mailpit shows the merchants' new-order emails.
+- **SMS and WhatsApp are stubs.** Configuring one routes phone messages to it, and they fail with "not integrated yet" in the log rather than pretending to send. WhatsApp business-initiated messages need Meta-approved templates, which come with the provider decision.
+- **No merchant WhatsApp alert yet:** the store's `whatsapp` number has no settings screen, and there is no provider. It comes with the setup wizard (M13) and a provider.
+- **Messages use the store's default language,** since an order does not record the shopper's language.
+- **Only `cart-expiry` is a recurring job so far.** The other SPEC 14 jobs (stale reservations, auto-cancel, billing) arrive with the features that need them.

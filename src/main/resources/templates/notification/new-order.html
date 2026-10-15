@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<!--/* The merchants' new-order email (NotificationTexts.newOrder). Model: store, order (Orders.OrderView), total,
+       subtotal, deliveryFee, lines (name, options, quantity, total), address (one line) and link. Inline styles
+       only, since mail clients drop style sheets; no left or right, the dir attribute decides. */-->
+<html xmlns:th="http://www.thymeleaf.org" th:lang="${#locale.language}" th:dir="${#locale.language == 'ar'} ? 'rtl' : 'ltr'">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="#{notification.new_order.heading(${#strings.toString(order.number())})}">New order</title>
+</head>
+<body style="margin:0;padding:16px;background:#f3f4f6;font-family:Tahoma,Arial,sans-serif;color:#111827;">
+<div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;padding:20px;">
+    <p style="margin:0;color:#6b7280;font-size:14px;" th:text="${store}">Store</p>
+    <h1 style="margin:4px 0 16px;font-size:20px;" th:text="#{notification.new_order.heading(${#strings.toString(order.number())})}">New order #1001</h1>
+
+    <table role="presentation" style="width:100%;border-collapse:collapse;font-size:14px;">
+        <tr th:each="line : ${lines}" style="border-bottom:1px solid #f3f4f6;">
+            <td style="padding:6px 0;">
+                <span th:text="${line.name()}">Scarf</span>
+                <span th:if="${!line.options().isEmpty()}" style="color:#6b7280;" th:text="|(${line.options()})|">(Red)</span>
+                <span style="color:#6b7280;" th:text="|× ${line.quantity()}|">× 2</span>
+            </td>
+            <td style="padding:6px 0;text-align:end;white-space:nowrap;"><bdi th:text="${line.total()}">20,000</bdi></td>
+        </tr>
+        <tr>
+            <td style="padding:6px 0;color:#6b7280;" th:text="#{notification.new_order.subtotal}">Subtotal</td>
+            <td style="padding:6px 0;text-align:end;"><bdi th:text="${subtotal}">20,000</bdi></td>
+        </tr>
+        <tr>
+            <td style="padding:6px 0;color:#6b7280;" th:text="#{notification.new_order.delivery}">Delivery</td>
+            <td style="padding:6px 0;text-align:end;"><bdi th:text="${deliveryFee}">2,000</bdi></td>
+        </tr>
+        <tr>
+            <td style="padding:6px 0;font-weight:bold;" th:text="#{notification.new_order.total}">Total</td>
+            <td style="padding:6px 0;text-align:end;font-weight:bold;"><bdi th:text="${total}">22,000</bdi></td>
+        </tr>
+    </table>
+
+    <p style="margin:16px 0 4px;font-size:14px;">
+        <strong th:text="#{notification.new_order.payment}">Payment</strong>:
+        <span th:text="#{payment.method.__${order.paymentMethod()}__}">Cash on delivery</span>
+    </p>
+    <p style="margin:4px 0;font-size:14px;">
+        <strong th:text="#{notification.new_order.customer}">Customer</strong>:
+        <span th:text="${order.customerName()}">Sara</span>
+        <bdi dir="ltr" th:text="${order.customerPhone()}">+963933111001</bdi>
+    </p>
+    <p style="margin:4px 0;font-size:14px;">
+        <strong th:text="#{notification.new_order.address}">Address</strong>:
+        <span th:text="${address}">Damascus, Mazzeh, near the mosque</span>
+    </p>
+    <p th:if="${order.notes() != null}" style="margin:4px 0;font-size:14px;">
+        <strong th:text="#{notification.new_order.notes}">Notes</strong>:
+        <span th:text="${order.notes()}">Call before</span>
+    </p>
+
+    <p style="margin:20px 0 0;">
+        <a th:href="${link}" style="display:inline-block;background:#1d4ed8;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:6px;font-size:14px;"
+           th:text="#{notification.new_order.open}">Open the order</a>
+    </p>
+</div>
+</body>
+</html>

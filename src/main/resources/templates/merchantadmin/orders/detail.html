@@ -224,6 +224,24 @@
             </li>
         </ol>
     </section>
+
+    <section class="rounded-lg border border-gray-200 bg-white p-4 text-sm" aria-labelledby="messages-heading">
+        <h2 id="messages-heading" class="text-lg font-semibold" th:text="#{admin.orders.messages}">Messages</h2>
+        <p th:if="${messages.isEmpty()}" class="mt-2 text-gray-600" th:text="#{admin.orders.messages.none}">None yet.</p>
+        <ul class="mt-2 divide-y divide-gray-100">
+            <li th:each="message : ${messages}" class="py-2">
+                <div class="flex flex-wrap gap-x-3">
+                    <span class="text-gray-500" th:text="${@dates.format(message.at())}">date</span>
+                    <span class="font-medium" th:text="#{notification.template.__${message.template()}__}">Order confirmed</span>
+                    <bdi dir="ltr" th:text="${message.recipient()}">+963933111001</bdi>
+                    <span class="text-gray-500" th:text="#{notification.channel.__${message.channel()}__}">SMS</span>
+                    <span th:classappend="${message.status().name() == 'FAILED'} ? 'text-red-700' : (${message.status().name() == 'SENT'} ? 'text-green-700' : 'text-amber-700')"
+                          th:text="#{notification.status.__${message.status()}__}">Sent</span>
+                </div>
+                <p th:if="${message.error() != null}" class="mt-0.5 text-red-700" th:text="${message.error()}">Error</p>
+            </li>
+        </ul>
+    </section>
 </main>
 </body>
 </html>

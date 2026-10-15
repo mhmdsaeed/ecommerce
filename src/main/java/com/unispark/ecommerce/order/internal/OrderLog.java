@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import com.unispark.ecommerce.order.Actor;
 import com.unispark.ecommerce.order.OrderStatus;
 import com.unispark.ecommerce.order.OrderStatusChanged;
+import com.unispark.ecommerce.order.PaymentProofRejected;
 import com.unispark.ecommerce.order.internal.persistence.OrderEvent;
 import com.unispark.ecommerce.order.internal.persistence.OrderEventRepository;
 import com.unispark.ecommerce.order.internal.persistence.ShopOrder;
@@ -16,7 +17,8 @@ import com.unispark.ecommerce.shared.TenantContext;
 
 /**
  * Writes an order's events. Callers hold the order's row lock (or just created it), so positions never clash.
- * Status changes are also published as {@link OrderStatusChanged}.
+ * Status changes are also published as {@link OrderStatusChanged}, rejected payment proofs as
+ * {@link PaymentProofRejected}.
  */
 @Component
 class OrderLog {
@@ -49,5 +51,9 @@ class OrderLog {
     void fact(ShopOrder order, String type, Actor actor, Map<String, Object> payload) {
         events.save(new OrderEvent(order.getId(), events.countByOrderId(order.getId()), type, null, null,
                 actor.toString(), payload));
+        if (PAYMENT_REJECTED.equals(type)) {
+            publisher.publishEvent(new PaymentProofRejected(TenantContext.requireTenantId(), order.getId(),
+                    order.getNumber(), payload == null ? null : (String) payload.get("note"), clock.instant()));
+        }
     }
 }

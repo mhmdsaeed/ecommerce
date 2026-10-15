@@ -30,6 +30,11 @@ The `local` profile seeds demo data. These credentials exist only in local datab
 | Platform admin | http://admin.lvh.me:8080 | `admin@lvh.me`, password `local-admin-pass` |
 | New store | http://lvh.me:8080/signup | |
 | MinIO console | http://localhost:9101 | `minioadmin` / `minioadmin` |
+| Mailpit (sent emails) | http://localhost:8025 | none |
+
+Notifications go out through JobRunr a few seconds after each order event. Emails (the owners' and managers'
+new-order alert) land in Mailpit. Shopper texts and verification codes are written to the application log
+(`Message to +963…`), since no SMS or WhatsApp provider is integrated yet. Each order's admin page lists what was sent.
 
 demo1 also gets a small catalog (two categories, three products, generated images) the first time it has no products.
 MinIO is published on host port 9100, not 9000, which other software often occupies; after pulling this change run

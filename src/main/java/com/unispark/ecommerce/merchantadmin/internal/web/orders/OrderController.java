@@ -28,6 +28,7 @@ import com.unispark.ecommerce.identity.StaffDirectory;
 import com.unispark.ecommerce.identity.StaffDirectory.StaffCard;
 import com.unispark.ecommerce.identity.StaffPrincipal;
 import com.unispark.ecommerce.media.ImageStore;
+import com.unispark.ecommerce.notification.NotificationLog;
 import com.unispark.ecommerce.order.Actor;
 import com.unispark.ecommerce.order.IllegalOrderTransitionException;
 import com.unispark.ecommerce.order.OrderStatus;
@@ -76,13 +77,16 @@ class OrderController {
     private final Customers customers;
     private final StaffDirectory staff;
     private final ImageStore images;
+    private final NotificationLog notifications;
 
-    OrderController(Orders orders, Payments payments, Customers customers, StaffDirectory staff, ImageStore images) {
+    OrderController(Orders orders, Payments payments, Customers customers, StaffDirectory staff, ImageStore images,
+            NotificationLog notifications) {
         this.orders = orders;
         this.payments = payments;
         this.customers = customers;
         this.staff = staff;
         this.images = images;
+        this.notifications = notifications;
     }
 
     /** Filters come from URLs people edit and share: unknown values are ignored (see {@link ListParams}). */
@@ -115,6 +119,7 @@ class OrderController {
         model.addAttribute("drivers", staff.activeDrivers());
         model.addAttribute("staffNames", names());
         model.addAttribute("actors", actorLabels(order));
+        model.addAttribute("messages", notifications.forOrder(order.id()));
         var links = new HashMap<UUID, String>();
         order.proofs().stream().filter(proof -> proof.imageKey() != null)
                 .forEach(proof -> links.put(proof.id(), images.signedUrl(proof.imageKey(), SCREENSHOT_LINK)));

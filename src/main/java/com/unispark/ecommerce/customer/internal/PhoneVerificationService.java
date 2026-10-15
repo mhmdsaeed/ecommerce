@@ -8,10 +8,10 @@ import java.util.Locale;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.unispark.ecommerce.customer.CodeSender;
 import com.unispark.ecommerce.customer.PhoneVerification;
 import com.unispark.ecommerce.customer.internal.persistence.OtpChallenge;
 import com.unispark.ecommerce.customer.internal.persistence.OtpChallengeRepository;
-import com.unispark.ecommerce.notification.Notifications;
 import com.unispark.ecommerce.shared.Digits;
 import com.unispark.ecommerce.shared.PhoneNumbers;
 import com.unispark.ecommerce.shared.SecretTokens;
@@ -27,14 +27,14 @@ import com.unispark.ecommerce.tenant.StoreSettings;
 class PhoneVerificationService implements PhoneVerification {
 
     private final OtpChallengeRepository challenges;
-    private final Notifications notifications;
+    private final CodeSender codes;
     private final StoreSettings settings;
     private final Clock clock;
 
-    PhoneVerificationService(OtpChallengeRepository challenges, Notifications notifications, StoreSettings settings,
+    PhoneVerificationService(OtpChallengeRepository challenges, CodeSender codes, StoreSettings settings,
             Clock clock) {
         this.challenges = challenges;
-        this.notifications = notifications;
+        this.codes = codes;
         this.settings = settings;
         this.clock = clock;
     }
@@ -53,7 +53,7 @@ class PhoneVerificationService implements PhoneVerification {
         var challenge = new OtpChallenge(normalized.get(), now.plus(CODE_LIFETIME));
         challenge.setCodeHash(codeHash(challenge, code));
         challenges.saveAndFlush(challenge);
-        notifications.sendCode(normalized.get(), code, settings.current().name().in(locale), locale);
+        codes.sendCode(normalized.get(), code, settings.current().name().in(locale), locale);
         return new Sent(normalized.get());
     }
 

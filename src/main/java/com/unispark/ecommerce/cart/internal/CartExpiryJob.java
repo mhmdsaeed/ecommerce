@@ -1,8 +1,8 @@
 package com.unispark.ecommerce.cart.internal;
 
+import org.jobrunr.jobs.annotations.Recurring;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.unispark.ecommerce.cart.Carts;
@@ -11,10 +11,11 @@ import com.unispark.ecommerce.tenant.StoreLookup;
 
 /**
  * Deletes abandoned carts every hour (SPEC 14), store by store inside each store's tenant context, so row-level
- * security applies as usual. One failing store does not stop the others. Moves to JobRunr with the other jobs (M11).
+ * security applies as usual. One failing store does not stop the others. A JobRunr recurring job, so it runs once
+ * an hour however many instances there are. Public only because JobRunr invokes it.
  */
 @Component
-class CartExpiryJob {
+public class CartExpiryJob {
 
     private static final Logger log = LoggerFactory.getLogger(CartExpiryJob.class);
 
@@ -26,8 +27,8 @@ class CartExpiryJob {
         this.carts = carts;
     }
 
-    @Scheduled(cron = "${app.cart.expiry-cron:0 17 * * * *}")
-    void deleteExpiredCarts() {
+    @Recurring(id = "cart-expiry", cron = "${app.cart.expiry-cron:17 * * * *}")
+    public void deleteExpiredCarts() {
         var deleted = 0;
         for (var store : stores.allIds()) {
             try {

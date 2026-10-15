@@ -24,7 +24,10 @@ class RlsCoverageIT {
 
     /** Tables without tenant_id (SPEC 5 "Platform tables"). Add new platform tables here deliberately. */
     static final Set<String> PLATFORM_TABLES = Set.of(
-            "flyway_schema_history", "event_publication", "store", "platform_user");
+            "flyway_schema_history", "event_publication", "store", "platform_user",
+            // JobRunr (V13): jobs carry their store in the payload.
+            "jobrunr_migrations", "jobrunr_jobs", "jobrunr_recurring_jobs", "jobrunr_backgroundjobservers",
+            "jobrunr_metadata");
 
     @Autowired
     JdbcTemplate jdbc;

@@ -7,8 +7,12 @@ spring:
 app:
   # Fixed so tests do not depend on the developer's APP_BASE_DOMAIN.
   base-domain: lvh.me:8080
-  # Tests call jobs directly instead of waiting for their schedule.
-  scheduling:
+  notification:
+    link-scheme: http
+
+# Tests run jobs themselves (NotificationIT starts a JobRunr server of its own); queued jobs just wait.
+jobrunr:
+  background-job-server:
     enabled: false
 
 management:
