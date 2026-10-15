@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<!--/* One driver's cash (model: driver, a StaffCard; statement, CodSettlement.Statement; names; currencies; done and
-       error, checked message keys). */-->
+<!--/* One driver's cash (model: driver, a StaffCard; statement, CodSettlement.Statement; names; currencies; due, the first
+       balance still outstanding, or null; done and error, checked message keys). */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/admin}">
@@ -40,7 +40,7 @@
         <div class="space-y-1">
             <label for="amount" class="block text-sm font-medium text-gray-800" th:text="#{settlement.remit.amount}">Amount</label>
             <input id="amount" name="amount" type="text" inputmode="decimal" dir="ltr" required
-                   th:value="${statement.balances().isEmpty()} ? '' : ${statement.balances().get(0).outstanding().amount().stripTrailingZeros().toPlainString()}"
+                   th:value="${due == null} ? '' : ${due.outstanding().amount().stripTrailingZeros().toPlainString()}"
                    class="w-40 rounded-md border border-gray-300 px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
         </div>
         <div class="space-y-1">
@@ -48,7 +48,7 @@
             <select id="currency" name="currency"
                     class="rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                 <option th:each="currency : ${currencies}" th:value="${currency}"
-                        th:selected="${!statement.balances().isEmpty() and statement.balances().get(0).currency() == currency}"
+                        th:selected="${due != null and due.currency() == currency}"
                         th:text="#{currency.name.__${currency}__}">SYP</option>
             </select>
         </div>

@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -268,6 +269,37 @@ class DriverDeliveryIT {
         assertThat(order.codCollected()).isEqualTo(syp("12000"));
         assertThat(as(() -> settlement.statement(driver)).balances()).singleElement()
                 .satisfies(balance -> assertThat(balance.outstanding()).isEqualTo(syp("12000")));
+    }
+
+    @Test
+    void remitFormStartsOnTheCurrencyStillOutstanding() throws Exception {
+        for (var collected : List.of("12000", "50")) {
+            var placed = readyFor(driver, PaymentMethod.COD, 1);
+            driverPost(placed, "start");
+            driverPost(placed, "deliver", "collected", collected);
+        }
+        // The second collection was in dollars (the store's prices are in pounds, so set it directly).
+        TenantContext.runAs(store, () -> jdbc.update("UPDATE cod_collection SET currency = 'USD' WHERE amount = 50"));
+        remit("12000", "SYP").andExpect(redirectedUrl("/admin/settlement/" + driver + "?done=remitted"));
+
+        var page = statementPage();
+        assertThat(prefilledAmount(page)).isEqualTo("50");
+        assertThat(page).containsPattern("<option value=\"USD\"\\s+selected=\"selected\"");
+        remit("50", "USD").andExpect(redirectedUrl("/admin/settlement/" + driver + "?done=remitted"));
+        page = statementPage();
+        assertThat(prefilledAmount(page)).isEmpty();
+        assertThat(page).doesNotContain("selected=\"selected\"");
+    }
+
+    private String statementPage() throws Exception {
+        return mvc.perform(get(MAIN + "/admin/settlement/" + driver).session(owner)).andReturn().getResponse()
+                .getContentAsString();
+    }
+
+    private static String prefilledAmount(String page) {
+        var matcher = Pattern.compile("id=\"amount\"[^>]*?value=\"([^\"]*)\"").matcher(page);
+        assertThat(matcher.find()).isTrue();
+        return matcher.group(1);
     }
 
     @Test

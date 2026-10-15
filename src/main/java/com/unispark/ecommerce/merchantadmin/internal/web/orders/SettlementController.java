@@ -59,7 +59,11 @@ class SettlementController {
         var driver = staff.find(driverId).filter(card -> card.role() == StaffRole.DRIVER)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         model.addAttribute("driver", driver);
-        model.addAttribute("statement", settlement.statement(driverId));
+        var statement = settlement.statement(driverId);
+        model.addAttribute("statement", statement);
+        // The remit form starts on the first currency the driver still holds, empty when everything is handed over.
+        model.addAttribute("due", statement.balances().stream()
+                .filter(balance -> balance.outstanding().isPositive()).findFirst().orElse(null));
         model.addAttribute("names", names());
         model.addAttribute("currencies", Currency.values());
         model.addAttribute("done", "remitted".equals(done) ? "settlement.done.remitted" : null);
