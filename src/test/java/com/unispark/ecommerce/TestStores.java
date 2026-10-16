@@ -23,8 +23,8 @@ public final class TestStores {
     public static UUID create(JdbcTemplate jdbc, String slug, String status, String nameJson) {
         var id = Ids.newId();
         jdbc.update("""
-                INSERT INTO store (id, slug, name, status, created_at, updated_at, version)
-                VALUES (?, ?, ?::jsonb, ?, now(), now(), 0)
+                INSERT INTO store (id, slug, name, status, launched_at, created_at, updated_at, version)
+                VALUES (?, ?, ?::jsonb, ?, now(), now(), now(), 0)
                 """, id, slug, nameJson, status);
         return id;
     }

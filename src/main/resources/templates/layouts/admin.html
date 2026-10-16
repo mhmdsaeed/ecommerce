@@ -13,6 +13,8 @@
             <nav class="flex flex-wrap items-center gap-4 text-sm">
                 <th:block th:if="${currentStaff != null}">
                     <a th:href="@{/admin}" th:text="#{admin.nav.dashboard}">Dashboard</a>
+                    <a th:if="${currentStaff.role().managesStaff() and currentStore != null and !currentStore.launched()}"
+                       th:href="@{/admin/setup}" class="font-semibold text-brand-700" th:text="#{admin.nav.setup}">Setup</a>
                     <a th:href="@{/admin/orders}" th:text="#{admin.nav.orders}">Orders</a>
                     <a th:href="@{/admin/customers}" th:text="#{admin.nav.customers}">Customers</a>
                     <a th:href="@{/admin/products}" th:text="#{admin.nav.products}">Products</a>

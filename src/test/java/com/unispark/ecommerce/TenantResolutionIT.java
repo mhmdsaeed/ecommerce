@@ -18,7 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.unispark.ecommerce.shared.TenantContext;
 
-/** Host-based tenant resolution (SPEC 4.1). MockMvc does not render error pages; see {@link NotFoundPageIT}. */
+/** Host-based tenant resolution (SPEC 4.1). MockMvc does not render error pages; see {@link ErrorPagesIT}. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import({TestcontainersConfig.class, IsolationProbeWeb.class})

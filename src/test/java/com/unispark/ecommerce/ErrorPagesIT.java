@@ -9,19 +9,24 @@ import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
- * The localized 404 page through a real server, because MockMvc skips Spring Boot's error dispatch. Requests are
- * written by hand: Java's HTTP clients refuse to set the {@code Host} header that store resolution depends on.
+ * The localized error pages (404, 503, 4xx and 5xx) through a real server, because MockMvc skips Spring Boot's
+ * error dispatch. Requests are written by hand: Java's HTTP clients refuse to set the {@code Host} header that
+ * store resolution depends on.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Import(TestcontainersConfig.class)
+@Import({TestcontainersConfig.class, ErrorPagesIT.Failing.class})
 @ActiveProfiles("test")
-class NotFoundPageIT {
+class ErrorPagesIT {
 
     @LocalServerPort
     int port;
@@ -36,6 +41,7 @@ class NotFoundPageIT {
         assertThat(response).startsWith("HTTP/1.1 404")
                 .contains("dir=\"rtl\"")
                 .contains("لم نجد ما تبحث عنه")
+                .contains("<meta name=\"robots\" content=\"noindex\">")
                 .doesNotContain("??");
     }
 
@@ -68,6 +74,60 @@ class NotFoundPageIT {
                 .contains("dir=\"rtl\"")
                 .contains("هذا المتجر غير متاح مؤقتاً")
                 .doesNotContain("??");
+    }
+
+    @Test
+    void rendersOpeningSoonForAStoreNotLaunchedYet() throws IOException {
+        var slug = TestStores.randomSlug();
+        var store = TestStores.create(jdbc, slug, "TRIAL");
+        jdbc.update("UPDATE store SET launched_at = NULL WHERE id = ?", store);
+
+        var response = get(slug + ".lvh.me", "/", "");
+
+        assertThat(response).startsWith("HTTP/1.1 503")
+                .contains("هذا المتجر سيفتح قريباً")
+                .contains("noindex")
+                .doesNotContain("غير متاح مؤقتاً");
+    }
+
+    @Test
+    void rendersAFriendlyPageForAServerErrorWithoutDetails() throws IOException {
+        var response = get("lvh.me", "/test/failure", "");
+
+        assertThat(response).startsWith("HTTP/1.1 500")
+                .contains("حدث خطأ من جهتنا")
+                .contains("<meta name=\"robots\" content=\"noindex\">")
+                .doesNotContain("secret detail")
+                .doesNotContain("IllegalStateException")
+                .doesNotContain("at com.unispark");
+    }
+
+    @Test
+    void rendersAFriendlyPageForOtherClientErrors() throws IOException {
+        var response = get("lvh.me", "/test/number?n=abc", "");
+
+        assertThat(response).startsWith("HTTP/1.1 400")
+                .contains("لم نتمكن من تنفيذ هذا الطلب")
+                .contains("<meta name=\"robots\" content=\"noindex\">");
+    }
+
+    /** A page that always fails, to see what visitors get. Registered as a member of this configuration. */
+    @TestConfiguration(proxyBeanMethods = false)
+    static class Failing {
+
+        @RestController
+        static class FailingController {
+
+            @GetMapping("/test/failure")
+            String fail() {
+                throw new IllegalStateException("secret detail");
+            }
+
+            @GetMapping("/test/number")
+            String number(@RequestParam int n) {
+                return String.valueOf(n);
+            }
+        }
     }
 
     private String get(String host, String path, String extraHeaders) throws IOException {

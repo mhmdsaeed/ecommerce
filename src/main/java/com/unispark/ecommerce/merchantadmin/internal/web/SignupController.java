@@ -61,7 +61,7 @@ class SignupController {
         return switch (result) {
             case SignedUp(var owner) -> {
                 sessions.logIn(owner, request, response);
-                yield "redirect:/admin";
+                yield "redirect:/admin/setup";
             }
             case Rejected(var problems) -> {
                 problems.forEach(problem -> binding.rejectValue(

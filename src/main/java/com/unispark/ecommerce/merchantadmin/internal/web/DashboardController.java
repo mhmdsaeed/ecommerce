@@ -16,6 +16,7 @@ import com.unispark.ecommerce.order.CodSettlement;
 import com.unispark.ecommerce.order.Orders;
 import com.unispark.ecommerce.pricing.ExchangeRates;
 import com.unispark.ecommerce.tenant.Sites;
+import com.unispark.ecommerce.tenant.StoreSettings;
 
 /** Merchant admin home (SPEC 9.3): today's orders and what waits for the merchant. COD totals arrive with M10. */
 @Controller
@@ -28,13 +29,18 @@ class DashboardController {
     private final Orders orders;
     private final CodSettlement settlement;
     private final Clock clock;
+    private final SetupChecklist setup;
+    private final StoreSettings settings;
 
-    DashboardController(Sites sites, ExchangeRates rates, Orders orders, CodSettlement settlement, Clock clock) {
+    DashboardController(Sites sites, ExchangeRates rates, Orders orders, CodSettlement settlement, Clock clock,
+            SetupChecklist setup, StoreSettings settings) {
         this.sites = sites;
         this.rates = rates;
         this.orders = orders;
         this.settlement = settlement;
         this.clock = clock;
+        this.setup = setup;
+        this.settings = settings;
     }
 
     @GetMapping("/admin")
@@ -42,6 +48,9 @@ class DashboardController {
         var storefrontHost = sites.storeHost(staff.storeSlug());
         model.addAttribute("storefrontHost", storefrontHost);
         model.addAttribute("storefrontUrl", request.getScheme() + "://" + storefrontHost + "/");
+        // Until the store is live, owners and managers are pointed back to the setup wizard.
+        model.addAttribute("setup", staff.role().managesStaff() && !settings.current().launched()
+                ? setup.current() : null);
         // Without a rate, prices in the other currency cannot be converted for shoppers.
         model.addAttribute("rateMissing", staff.role().managesStaff() && rates.current().isEmpty());
         // "Today" as the store sees it: since midnight in Damascus (SPEC 11).

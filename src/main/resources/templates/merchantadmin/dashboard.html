@@ -16,6 +16,11 @@
               th:text="#{store.status.__${currentStore.status()}__}">Trial</span>
     </p>
 
+    <div th:if="${setup != null}" class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+        <span th:text="#{dashboard.setup(${setup.done()}, ${setup.steps().size()})}">Your store is not open yet.</span>
+        <a th:href="@{/admin/setup}" class="font-medium underline" th:text="#{dashboard.setup.link}">Continue setup</a>
+    </div>
+
     <div th:if="${rateMissing}" class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
         <span th:text="#{dashboard.rate-missing}">Set your exchange rate.</span>
         <a th:href="@{/admin/settings/pricing}" class="font-medium underline" th:text="#{dashboard.rate-missing.link}">Set rate</a>

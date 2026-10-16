@@ -61,7 +61,7 @@ class MerchantSignupIT {
         var slug = TestStores.randomSlug();
 
         var result = mvc.perform(signup(slug, "0933 222 333", "owner@example.com", "long-enough-pw"))
-                .andExpect(redirectedUrl("/admin"))
+                .andExpect(redirectedUrl("/admin/setup"))
                 .andReturn();
         var session = (MockHttpSession) result.getRequest().getSession(false);
 
@@ -80,7 +80,7 @@ class MerchantSignupIT {
         var slug = TestStores.randomSlug();
 
         mvc.perform(signup(slug, "+963 933 222 444", " Owner@Example.COM ", "long-enough-pw"))
-                .andExpect(redirectedUrl("/admin"));
+                .andExpect(redirectedUrl("/admin/setup"));
 
         var store = platform.jdbc().sql("""
                         SELECT id, status, name ->> 'ar' AS name_ar, default_locale, contact_phone, created_by
@@ -105,7 +105,7 @@ class MerchantSignupIT {
         var slug = TestStores.randomSlug();
 
         mvc.perform(signup(slug, "0933 222 555", "", "long-enough-pw").param("lang", "en"))
-                .andExpect(redirectedUrl("/admin"));
+                .andExpect(redirectedUrl("/admin/setup"));
 
         var store = platform.jdbc().sql("SELECT name::text AS name, default_locale FROM store WHERE slug = ?")
                 .param(slug).query().singleRow();
@@ -116,7 +116,7 @@ class MerchantSignupIT {
     @Test
     void theNewOwnerCanLogInWithTheirPhone() throws Exception {
         var slug = TestStores.randomSlug();
-        mvc.perform(signup(slug, "0933 222 666", "", "long-enough-pw")).andExpect(redirectedUrl("/admin"));
+        mvc.perform(signup(slug, "0933 222 666", "", "long-enough-pw")).andExpect(redirectedUrl("/admin/setup"));
 
         mvc.perform(post(MAIN + "/admin/login").with(csrf()).with(fromNewAddress())
                         .param("store", slug).param("username", "+963933222666").param("password", "long-enough-pw"))
@@ -183,7 +183,7 @@ class MerchantSignupIT {
         var address = from("198.51.100." + (1 + Math.abs(UUID.randomUUID().hashCode()) % 250));
         for (int signup = 0; signup < 5; signup++) {
             mvc.perform(signup(TestStores.randomSlug(), "0933 222 7" + signup + "0", "", "long-enough-pw").with(address))
-                    .andExpect(redirectedUrl("/admin"));
+                    .andExpect(redirectedUrl("/admin/setup"));
         }
 
         mvc.perform(signup(TestStores.randomSlug(), "0933 222 799", "", "long-enough-pw").with(address))

@@ -302,6 +302,59 @@ class CheckoutE2EIT {
         }
     }
 
+    /**
+     * M13 done-when, as a scripted run-through: a new merchant signs up, follows the setup wizard (a delivery zone
+     * and a first product; cash on delivery is on from the start), goes live, and shoppers see the store. The
+     * merchant's own pace decides the 15 minutes; this checks every step works in a real browser.
+     */
+    @Test
+    void newMerchantSignsUpSetsUpAndGoesLive() {
+        var newSlug = TestStores.randomSlug();
+        try (var merchantContext = browser.newContext(); var shopperContext = browser.newContext()) {
+            var merchant = merchantContext.newPage();
+            merchant.navigate(main("/signup"));
+            merchant.getByLabel("اسم المتجر").fill("بيت الصابون");
+            merchant.getByLabel("عنوان المتجر").fill(newSlug);
+            merchant.getByLabel("اسمك").fill("ريم");
+            merchant.getByLabel("رقم الهاتف").fill("0933 777 001");
+            merchant.getByLabel("كلمة المرور").fill("long-enough-pw");
+            merchant.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("أنشئ متجري")).click();
+            assertThat(merchant).hasURL(Pattern.compile(".*/admin/setup$"));
+            assertThat(merchant.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("افتح المتجر")))
+                    .isDisabled();
+
+            // Before launch, shoppers get "opening soon".
+            var shopper = shopperContext.newPage();
+            var closed = shopper.navigate("http://" + newSlug + ".lvh.me:" + port + "/");
+            org.assertj.core.api.Assertions.assertThat(closed.status()).isEqualTo(503);
+            assertThat(shopper.getByText("هذا المتجر سيفتح قريباً")).isVisible();
+
+            // A delivery zone.
+            merchant.locator("li", new Page.LocatorOptions().setHasText("منطقة التوصيل")).getByRole(AriaRole.LINK).click();
+            merchant.locator("select[name=governorate]").selectOption("DAMASCUS");
+            merchant.locator("input[name=fee]").fill("2000");
+            merchant.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("إضافة").setExact(true)).click();
+            assertThat(merchant.getByText("تمت إضافة المنطقة.")).isVisible();
+
+            // A first product, published.
+            merchant.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("تجهيز المتجر")).click();
+            merchant.locator("li", new Page.LocatorOptions().setHasText("أول منتج")).getByRole(AriaRole.LINK).click();
+            merchant.locator("input[name=nameAr]").fill("صابون غار");
+            merchant.locator("input[name=price]").fill("15000");
+            merchant.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("إنشاء المنتج")).click();
+            merchant.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("نشر").setExact(true)).click();
+
+            // Go live.
+            merchant.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("تجهيز المتجر")).click();
+            merchant.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("افتح المتجر")).click();
+            assertThat(merchant.getByText("متجرك مفتوح الآن للزبائن.")).isVisible();
+
+            var open = shopper.navigate("http://" + newSlug + ".lvh.me:" + port + "/");
+            org.assertj.core.api.Assertions.assertThat(open.status()).isEqualTo(200);
+            assertThat(shopper.getByText("صابون غار")).isVisible();
+        }
+    }
+
     private void logIn(Page merchant) {
         merchant.navigate(main("/admin/login"));
         merchant.locator("input[name=store]").fill(slug);

@@ -20,6 +20,7 @@ import com.unispark.ecommerce.shared.Ids;
 import com.unispark.ecommerce.shared.LocalizedText;
 import com.unispark.ecommerce.shared.NumberDigits;
 import com.unispark.ecommerce.shared.RoundingRule;
+import com.unispark.ecommerce.shared.SecretTokens;
 import com.unispark.ecommerce.tenant.StoreSettings;
 import com.unispark.ecommerce.tenant.StoreStatus;
 import com.unispark.ecommerce.tenant.StoreSummary;
@@ -98,6 +99,12 @@ public class Store extends BaseEntity {
     @Column(name = "suspension_reason")
     private String suspensionReason;
 
+    @Column(name = "launched_at")
+    private Instant launchedAt;
+
+    @Column(name = "preview_token", nullable = false, updatable = false)
+    private String previewToken = SecretTokens.newToken();
+
     protected Store() {
     }
 
@@ -129,7 +136,7 @@ public class Store extends BaseEntity {
     public StoreSettings.Settings toSettings() {
         return new StoreSettings.Settings(getId(), name, Locale.forLanguageTag(defaultLocale), baseCurrency,
                 displayCurrency, roundingRule, numberDigits, theme == null ? StoreTheme.DEFAULT : theme, otpRequired,
-                newCustomerMaxTotal);
+                newCustomerMaxTotal, contactPhone, whatsapp, launchedAt);
     }
 
     public void updateCheckout(boolean otpRequired, BigDecimal newCustomerMaxTotal) {
@@ -147,6 +154,27 @@ public class Store extends BaseEntity {
 
     public void recordCreator(UUID createdBy) {
         this.createdBy = createdBy;
+    }
+
+    /** Opens the store to shoppers; launching again keeps the first date. */
+    public void launch(Instant at) {
+        if (launchedAt == null) {
+            launchedAt = at;
+        }
+    }
+
+    public void updateDetails(LocalizedText name, String contactPhone, String whatsapp) {
+        this.name = name;
+        this.contactPhone = contactPhone;
+        this.whatsapp = whatsapp;
+    }
+
+    public Instant getLaunchedAt() {
+        return launchedAt;
+    }
+
+    public String getPreviewToken() {
+        return previewToken;
     }
 
     public void suspend(SuspensionKind kind, String reason) {
@@ -201,7 +229,8 @@ public class Store extends BaseEntity {
     }
 
     public StoreSummary toSummary() {
-        return new StoreSummary(getId(), slug, name, status, Locale.forLanguageTag(defaultLocale));
+        return new StoreSummary(getId(), slug, name, status, Locale.forLanguageTag(defaultLocale),
+                launchedAt != null);
     }
 
     public String getSlug() {

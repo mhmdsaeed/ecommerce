@@ -154,7 +154,7 @@ class BillingIT {
         assertThat(storeStatus()).isEqualTo(StoreStatus.SUSPENDED);
         assertThat(stores.find(store).orElseThrow().suspensionKind()).isEqualTo(SuspensionKind.BILLING);
         assertThat(subscription().status()).isEqualTo(SubscriptionStatus.SUSPENDED);
-        // NotFoundPageIT renders the page itself through a real server.
+        // ErrorPagesIT renders the page itself through a real server.
         mvc.perform(get(storefront(slug) + "/")).andExpect(status().isServiceUnavailable());
         // The owner still reaches the admin, sees why, and how to pay.
         mvc.perform(get(MAIN + "/admin/billing").session(owner))

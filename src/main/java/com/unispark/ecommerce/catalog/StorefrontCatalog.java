@@ -1,6 +1,7 @@
 package com.unispark.ecommerce.catalog;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,12 @@ public interface StorefrontCatalog {
     Optional<ProductView> product(String slug);
 
     ResultPage search(String query, int page);
+
+    /**
+     * Every page shoppers can reach, for the store's sitemap: visible categories, and visible products newest
+     * change first, at most {@code maxProducts} of them.
+     */
+    SitemapEntries sitemap(int maxProducts);
 
     /**
      * The variants among {@code variantIds} that shoppers may buy now: available variants of visible products.
@@ -90,6 +97,13 @@ public interface StorefrontCatalog {
      */
     record Offer(UUID variantId, UUID productId, LocalizedText productName, String productSlug, List<Choice> choices,
             Money price, ImageView image, String sku) {
+    }
+
+    /** Slugs, with when each product last changed. */
+    record SitemapEntries(List<String> categories, List<SitemapProduct> products) {
+    }
+
+    record SitemapProduct(String slug, Instant updatedAt) {
     }
 
     /** One option value of a variant, such as Size M. */

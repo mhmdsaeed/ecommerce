@@ -82,7 +82,7 @@ class SecurityConfig {
                         new PlatformAuthenticationProvider(users, passwords, throttle)))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(PUBLIC_ASSETS).permitAll()
-                        .requestMatchers("/platform/login").permitAll()
+                        .requestMatchers("/platform/login", "/robots.txt").permitAll()
                         .requestMatchers("/", "/platform", "/platform/**").hasRole("PLATFORM_ADMIN")
                         .anyRequest().denyAll())
                 .formLogin(form -> form

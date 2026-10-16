@@ -13,4 +13,10 @@ public interface StoreLookup {
 
     /** Every store id, for jobs that visit each tenant in turn (SPEC 14). */
     List<UUID> allIds();
+
+    /**
+     * Whether {@code token} is the store's preview secret, which lets its staff see the storefront before launch.
+     * Compared in constant time.
+     */
+    boolean previewAllowed(UUID storeId, String token);
 }

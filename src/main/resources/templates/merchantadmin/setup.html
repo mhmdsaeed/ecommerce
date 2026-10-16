@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<!--/* The setup wizard (model: checklist, SetupChecklist.Checklist; storefrontUrl; previewUrl, null once live). */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="#{setup.title}">Set up your store</title>
+</head>
+<body>
+<main layout:fragment="content" class="max-w-3xl space-y-6">
+    <div>
+        <h1 class="text-2xl font-bold" th:text="${checklist.launched()} ? #{setup.live.title} : #{setup.title}">Set up your store</h1>
+        <p class="mt-2 text-gray-600" th:unless="${checklist.launched()}"
+           th:text="#{setup.intro(${checklist.done()}, ${checklist.steps().size()})}">Intro</p>
+    </div>
+    <th:block th:if="${param.launched}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{setup.launched})}"></div></th:block>
+    <th:block th:if="${param['not-ready']}"><div th:replace="~{fragments/forms :: alert(kind='error', message=#{setup.not-ready})}"></div></th:block>
+
+    <ol class="space-y-3">
+        <li th:each="step, iteration : ${checklist.steps()}"
+            class="flex items-start gap-4 rounded-lg border bg-white p-4"
+            th:classappend="${step.done()} ? 'border-green-200' : 'border-gray-200'">
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold"
+                  th:classappend="${step.done()} ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700'"
+                  th:text="${step.done()} ? '✓' : ${iteration.count}" aria-hidden="true">1</span>
+            <div class="min-w-0 flex-1">
+                <h2 class="font-semibold">
+                    <span th:text="#{setup.step.__${step.key()}__}">Step</span>
+                    <span class="sr-only" th:text="${step.done()} ? #{setup.done} : #{setup.todo}">done</span>
+                    <span th:unless="${step.required()}" class="ms-1 text-sm font-normal text-gray-500" th:text="#{setup.optional}">(optional)</span>
+                </h2>
+                <p class="mt-1 text-sm text-gray-600" th:text="#{setup.step.__${step.key()}__.hint}">Hint</p>
+            </div>
+            <a th:href="@{${step.link()}}" class="shrink-0 rounded-md border px-3 py-1.5 text-sm font-medium"
+               th:classappend="${step.done()} ? 'border-gray-300 text-gray-700 hover:bg-gray-50' : 'border-brand-600 bg-brand-600 text-white hover:bg-brand-700'"
+               th:text="${step.done()} ? #{setup.edit} : #{setup.start}">Start</a>
+        </li>
+    </ol>
+
+    <section class="rounded-lg border border-gray-200 bg-white p-4" aria-labelledby="launch-heading">
+        <h2 id="launch-heading" class="text-lg font-semibold" th:text="#{setup.launch.heading}">Go live</h2>
+        <th:block th:if="${checklist.launched()}">
+            <p class="mt-2 text-gray-700" th:text="#{setup.live.body}">Your store is open.</p>
+            <a th:href="${storefrontUrl}" class="mt-3 inline-block font-medium text-brand-700 hover:underline" dir="ltr"
+               th:text="${storefrontUrl}">https://store.example.com/</a>
+        </th:block>
+        <th:block th:unless="${checklist.launched()}">
+            <p class="mt-2 text-gray-700" th:text="#{setup.launch.body}">Shoppers see "opening soon" until you go live.</p>
+            <p class="mt-2 text-sm">
+                <a th:href="${previewUrl}" target="_blank" rel="noopener" class="font-medium text-brand-700 hover:underline"
+                   th:text="#{setup.preview}">Preview your store</a>
+                <span class="text-gray-500" th:text="#{setup.preview.hint}">Only people with this link can see it.</span>
+            </p>
+            <form th:action="@{/admin/setup/launch}" method="post" class="mt-4">
+                <button type="submit" th:disabled="${!checklist.readyToLaunch()}"
+                        class="rounded-md bg-green-700 px-5 py-2 font-medium text-white hover:bg-green-800 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600"
+                        th:text="#{setup.launch}">Go live</button>
+                <p th:unless="${checklist.readyToLaunch()}" class="mt-2 text-sm text-gray-600" th:text="#{setup.launch.missing}">
+                    Finish the required steps first.</p>
+            </form>
+        </th:block>
+    </section>
+</main>
+</body>
+</html>

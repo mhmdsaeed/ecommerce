@@ -51,10 +51,12 @@ class StorefrontController {
     private final LocaleResolver locales;
     private final ObjectMapper json;
     private final Inventory inventory;
+    private final SeoTags seo;
 
     StorefrontController(StorefrontCatalog catalog, StoreSettings settings, ExchangeRates rates, ShopPrices shopPrices,
-            LocaleResolver locales, ObjectMapper json, Inventory inventory) {
+            LocaleResolver locales, ObjectMapper json, Inventory inventory, SeoTags seo) {
         this.inventory = inventory;
+        this.seo = seo;
         this.catalog = catalog;
         this.settings = settings;
         this.rates = rates;
@@ -69,6 +71,7 @@ class StorefrontController {
             return "storefront/placeholder";
         }
         model.addAttribute("newest", catalog.newest(NEWEST));
+        model.addAttribute("seo", seo.home(settings.current()));
         return "storefront/home";
     }
 
@@ -82,6 +85,7 @@ class StorefrontController {
         var category = catalog.category(slug, sort, priceScale(), page)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         model.addAttribute("page", category);
+        model.addAttribute("seo", seo.category(category, settings.current()));
         model.addAttribute("sort", sort);
         model.addAttribute("sorts", Sort.values());
         return "storefront/category";
@@ -92,6 +96,7 @@ class StorefrontController {
         requireStore();
         var product = catalog.product(slug).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         model.addAttribute("product", product);
+        model.addAttribute("seo", seo.product(product, settings.current()));
         model.addAttribute("variantsJson", variantsJson(product));
         return "storefront/product";
     }

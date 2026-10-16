@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<!--/* Store details: name and contact numbers (model: form, StoreDetailsController.DetailsForm). The "name" problem
+       is a global error on the form, since it covers both languages. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="#{settings.store.title}">Store details</title>
+</head>
+<body>
+<main layout:fragment="content">
+    <nav th:replace="~{merchantadmin/settings/theme :: tabs(active='store')}"></nav>
+    <h1 class="mt-6 text-2xl font-bold" th:text="#{settings.store.title}">Store details</h1>
+    <div class="mt-4 space-y-2">
+        <th:block th:if="${param.saved}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{settings.store.saved})}"></div></th:block>
+    </div>
+
+    <form th:action="@{/admin/settings/store}" th:object="${form}" method="post" novalidate
+          class="mt-6 max-w-lg space-y-5 rounded-lg border border-gray-200 bg-white p-6">
+        <p th:each="error : ${#fields.globalErrors()}" class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" th:text="${error}">Error</p>
+        <div th:replace="~{fragments/forms :: input(field='nameAr', label=#{settings.store.name-ar})}"></div>
+        <div th:replace="~{fragments/forms :: input(field='nameEn', label=#{settings.store.name-en}, ltr=true)}"></div>
+        <div th:replace="~{fragments/forms :: input(field='contactPhone', label=#{settings.store.phone}, type='tel', ltr=true, autocomplete='tel', hint=#{settings.store.phone.hint})}"></div>
+        <div th:replace="~{fragments/forms :: input(field='whatsapp', label=#{settings.store.whatsapp}, type='tel', ltr=true, hint=#{settings.store.whatsapp.hint})}"></div>
+        <div th:replace="~{fragments/forms :: submit(label=#{settings.store.save})}"></div>
+    </form>
+</main>
+</body>
+</html>

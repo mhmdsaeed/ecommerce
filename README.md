@@ -32,6 +32,11 @@ The `local` profile seeds demo data. These credentials exist only in local datab
 | MinIO console | http://localhost:9101 | `minioadmin` / `minioadmin` |
 | Mailpit (sent emails) | http://localhost:8025 | none |
 
+A new store (http://lvh.me:8080/signup) lands on its setup wizard at http://lvh.me:8080/admin/setup and stays
+closed to shoppers ("opening soon") until its owner goes live. It needs a payment method, a delivery zone and a
+published product. Before that, the wizard's private preview link shows the storefront. The demo stores are already
+live. Each live store serves `robots.txt` and `sitemap.xml`.
+
 Billing: every store starts a 14-day trial on the `basic` plan. A daily JobRunr job (03:00 Syrian time) invoices
 each month in advance and suspends stores whose invoice is still open 7 days later; their storefront then shows
 "temporarily unavailable". The platform admin records payments under **Invoices**, which reopens the store, and

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import com.unispark.ecommerce.catalog.StorefrontCatalog;
 import com.unispark.ecommerce.media.ImageSize;
 import com.unispark.ecommerce.media.ImageStore;
+import com.unispark.ecommerce.shared.ListParams;
 import com.unispark.ecommerce.shared.TenantContext;
 import com.unispark.ecommerce.tenant.StoreSettings;
 
@@ -25,6 +26,8 @@ import com.unispark.ecommerce.tenant.StoreSettings;
 class StorefrontAdvice {
 
     static final String CACHE = "private, max-age=60";
+    /** Set by the tenant module's resolution filter on a store's preview before launch. */
+    static final String PREVIEW_ATTRIBUTE = "storePreview";
 
     private final StoreSettings settings;
     private final StorefrontCatalog catalog;
@@ -57,5 +60,18 @@ class StorefrontAdvice {
         model.addAttribute("logoUrl", shop.theme().logoKey() == null ? null
                 : images.url(shop.theme().logoKey(), ImageSize.SMALL));
         model.addAttribute("navigation", catalog.navigation());
+        if ("GET".equals(request.getMethod()) && request.getAttribute(PREVIEW_ATTRIBUTE) == null) {
+            model.addAttribute("canonicalUrl", canonical(request));
+        }
+    }
+
+    /**
+     * The page's own address for search engines: no query string (sorting, the preview link, tracking), except a
+     * later page of a listing.
+     */
+    static String canonical(HttpServletRequest request) {
+        var url = request.getRequestURL().toString();
+        var page = ListParams.page(request.getParameter("page"));
+        return page > 0 ? url + "?page=" + page : url;
     }
 }

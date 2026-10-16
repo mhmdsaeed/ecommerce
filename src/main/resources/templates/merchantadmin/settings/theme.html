@@ -9,6 +9,9 @@
 <main layout:fragment="content" class="space-y-8">
     <div>
         <nav th:fragment="tabs(active)" th:with="active=${active ?: 'theme'}" class="flex gap-4 border-b border-gray-200 text-sm" th:attr="aria-label=#{admin.nav.settings}">
+            <a th:href="@{/admin/settings/store}" class="-mb-px border-b-2 px-1 pb-2"
+               th:classappend="${active == 'store'} ? 'border-brand-600 font-medium text-brand-700' : 'border-transparent text-gray-600'"
+               th:text="#{settings.store.title}">Store details</a>
             <a th:href="@{/admin/settings/pricing}" class="-mb-px border-b-2 px-1 pb-2"
                th:classappend="${active == 'pricing'} ? 'border-brand-600 font-medium text-brand-700' : 'border-transparent text-gray-600'"
                th:text="#{settings.pricing.title}">Prices</a>

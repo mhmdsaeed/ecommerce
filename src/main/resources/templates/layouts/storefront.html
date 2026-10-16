@@ -7,6 +7,25 @@
 <head>
     <title layout:title-pattern="$CONTENT_TITLE · $LAYOUT_TITLE"
            th:text="${shop != null} ? ${shop.name().in(#locale)} : #{app.name}">Store</title>
+    <!--/* Shared SEO tags (SPEC 9.5); pages add their description, og:title, og:type and og:image. canonicalUrl
+           comes from StorefrontAdvice: the page's address without tracking parameters. */-->
+    <th:block th:if="${shop != null}">
+        <meta property="og:site_name" th:content="${shop.name().in(#locale)}">
+        <meta property="og:locale" th:content="${#locale.language == 'ar'} ? 'ar_SY' : 'en_US'">
+    </th:block>
+    <th:block th:if="${canonicalUrl != null}">
+        <link rel="canonical" th:href="${canonicalUrl}">
+        <meta property="og:url" th:content="${canonicalUrl}">
+    </th:block>
+    <th:block th:if="${seo != null}">
+        <meta name="description" th:content="${seo.description()}">
+        <meta property="og:type" th:content="${seo.type()}">
+        <meta property="og:title" th:content="${seo.title()}">
+        <meta property="og:description" th:content="${seo.description()}">
+        <meta th:if="${seo.image() != null}" property="og:image" th:content="${seo.image()}">
+        <meta name="twitter:card" th:content="${seo.image() != null} ? 'summary_large_image' : 'summary'">
+    </th:block>
+    <meta th:if="${storePreview != null}" name="robots" content="noindex">
 </head>
 <body>
 <div layout:fragment="body" class="flex min-h-screen flex-col" data-area="storefront">
@@ -47,12 +66,21 @@
             </ul>
         </nav>
     </header>
+    <p th:if="${storePreview != null}" role="status"
+       class="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900" th:text="#{shop.preview}">Preview</p>
     <!--/* Shown by app.js when an HTMX request fails. */-->
     <div id="htmx-error" role="alert" hidden
          class="mx-auto mt-4 w-full max-w-6xl rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
          th:text="#{shop.htmx-error}">Something went wrong.</div>
     <main id="content" class="mx-auto w-full max-w-6xl flex-1 px-4 py-6" layout:fragment="content"></main>
     <footer class="border-t border-gray-200 py-4 text-center text-xs text-gray-500">
+        <p th:if="${shop != null and (shop.contactPhone() != null or shop.whatsapp() != null)}" class="mb-2 flex flex-wrap justify-center gap-4 text-sm">
+            <a th:if="${shop.contactPhone() != null}" th:href="|tel:${shop.contactPhone()}|" class="hover:text-brand-700">
+                <span th:text="#{shop.contact.phone}">Call</span> <bdi dir="ltr" th:text="${shop.contactPhone()}">+963</bdi>
+            </a>
+            <a th:if="${shop.whatsapp() != null}" th:href="|https://wa.me/${#strings.substringAfter(shop.whatsapp(), '+')}|"
+               rel="noopener" class="hover:text-brand-700" th:text="#{shop.contact.whatsapp}">WhatsApp</a>
+        </p>
         <span th:text="${shop != null} ? ${shop.name().in(#locale)} : #{app.name}">Store</span> ·
         <span th:text="#{layout.footer}">All rights reserved</span>
     </footer>

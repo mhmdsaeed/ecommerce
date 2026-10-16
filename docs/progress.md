@@ -977,3 +977,80 @@ Run with a portable Node.js 24 and `npm install lighthouse` in the session scrat
 - **Review fixes before commit:** a payment locks the subscription before checking for open invoices, so it never settles over an invoice the daily job is issuing at the same moment; a free month after a paid one stays PAST_DUE while an earlier invoice is unpaid.
 - **Plan limits are stored and shown but not enforced yet.** Enforcing them (products, staff, orders per month) needs checks in catalog, identity and checkout, and is left for later.
 - **No billing emails yet** (invoice issued, store suspended); merchants see the banner in the admin. They can be added as notification templates.
+
+## M13: Setup wizard and polish (done, 2026-10-15)
+
+**Done when:** a new merchant goes live in under 15 minutes in a manual run-through.
+- In Edge, `CheckoutE2EIT.newMerchantSignsUpSetsUpAndGoesLive` scripts the run-through:
+  - sign up, landing on the wizard with "Go live" disabled, while shoppers get "opening soon" (503);
+  - add a delivery zone and a first product through the real forms, and publish it (cash on delivery is on from the start);
+  - go live; the storefront then shows the product.
+  - It takes about 5 seconds. A person needs the time to type their product, zone and payment details; there are five short forms and no step outside the wizard.
+- `StoreSetupIT` (5) covers the same path in MockMvc, and checks the preview, the store details, the SEO tags, `robots.txt` and the sitemap.
+- Live run against docker-compose:
+  - V16 applied, and the existing stores stayed open;
+  - demo1's home and product pages carry the description, Open Graph and canonical tags;
+  - `robots.txt` and `sitemap.xml` (Arabic slugs percent-encoded) are served;
+  - a new signup lands on `/admin/setup` with "Go live" disabled; its storefront shows "opening soon", and the preview link from the wizard shows the store with the preview banner.
+- `./mvnw verify` is green with 521 tests.
+
+### What was built
+
+- **Going live (`V16__store_launch.sql`):**
+  - `store.launched_at` and `store.preview_token`. Existing stores are marked launched. Every store gets a random preview token: the migration backfills existing stores with 64 hex characters, and new stores get 32 random bytes in URL-safe Base64 (43 characters).
+  - `StoreSummary.launched`, `StoreSettings.launch()` and `previewToken()`, and `StoreLookup.previewAllowed()` (constant-time comparison).
+  - `TenantResolutionFilter`: a store not launched answers 503 with `error/503.html` in its "opening soon" form, unless the request carries the preview:
+    - `?preview=<token>` on a GET sets an HttpOnly cookie for the rest of the visit;
+    - preview pages get `X-Robots-Tag: noindex`, a noindex meta tag, no canonical link, and a preview banner.
+  - The local demo stores are seeded as launched, and test stores (`TestStores.create`) are created launched.
+- **Setup wizard** (`/admin/setup`, owners and managers; signup now lands here):
+  - five steps, each linking to the page that does it:
+    - store details (optional);
+    - logo and colours (optional);
+    - payment methods (required; cash on delivery counts, and is on by default);
+    - a delivery zone (required, at least one active);
+    - a first product (required, one shoppers can see);
+  - the checklist (`SetupChecklist`) reads what the store already has, so steps tick themselves;
+  - "Go live" is disabled until the required steps are done, and the server checks again (`?not-ready`);
+  - the private preview link;
+  - once live, the page says so and links to the store.
+  - Until launch, a "Setup" nav link and a dashboard card ("2 of 5 steps done") point back to the wizard.
+- **Store details** (`/admin/settings/store`, a new first settings tab):
+  - Arabic and English names (at least one), contact phone and WhatsApp, validated and stored in E.164. This was deferred in M11.
+  - The storefront footer shows a call link and a `wa.me` link.
+- **SEO** (SPEC 9.5):
+  - home, category and product pages get a description, `og:type`, `og:title`, `og:description`, `og:image` (the product's first photo, a category's first product, the store logo) and `twitter:card`;
+  - descriptions are cut to 160 characters at a word boundary;
+  - the merchant's own text is used where there is some (product description, hero text), and a bundle text otherwise;
+  - every store page gets `og:site_name`, `og:locale`, `og:url` and `<link rel=canonical>`. The canonical link is the URL without the query (no sorting or tracking parameters), keeping only `?page=`.
+- **Crawlers** (`CrawlerController`):
+  - `robots.txt` on every host:
+    - stores disallow cart, checkout, orders, search and the language switch, and name their sitemap;
+    - the main site disallows `/admin/` and `/driver/`;
+    - the platform admin disallows everything (its security chain lets `/robots.txt` through).
+  - `sitemap.xml` per store lists the home, visible categories and visible products (with `lastmod`), from `StorefrontCatalog.sitemap()` with the storefront's visibility rules. It is 404 on the main site.
+  - Both are cached publicly for an hour.
+- **Error pages:**
+  - `error/4xx.html` and `error/5xx.html` for statuses without their own page (400, 405, 500…), in the storefront layout, noindex, with a link home and no detail;
+  - the 404 and 403 pages are noindex too;
+  - 503 now distinguishes "opening soon" from "temporarily unavailable".
+- **Empty states:** the lists already had them (M3–M12). The empty product list now has an "Add your first product" button.
+
+### Tests (521, all green: 261 unit, 260 integration)
+
+| Test | Checks |
+|---|---|
+| `StoreSetupIT` (5) | The wizard flow in MockMvc: closed storefront, disabled launch, `?not-ready`, ticks after adding a zone and product, launch, live storefront, setup card and nav gone; the preview link (a wrong token, the cookie, `noindex`, no canonical, the banner, product pages through the cookie, another store's token refused); store details validation and the footer links; description, Open Graph and canonical tags on home, product (tracking parameter dropped) and category (page kept, sort dropped), and none on search; `robots.txt` on store, main and platform hosts, the sitemap with categories and products but not drafts, and 404 on the main host |
+| `ErrorPagesIT` (7, was `NotFoundPageIT`) | Adds: "opening soon" for an unlaunched store; a 500 from a failing page shows the Arabic page without the exception or its message; a 400 shows the client-error page; 404, 400 and 500 pages carry `noindex` |
+| `CheckoutE2EIT` (+1) | The run-through above in Edge |
+| `MerchantSignupIT` | Signup now redirects to `/admin/setup` |
+
+### Decisions and deviations
+
+- **"Go live" is a launch date, not a store status.** TRIAL and ACTIVE stay about billing and screening (M12), and launching is the merchant's own decision. A store that is suspended later still shows "temporarily unavailable" first.
+- **Required steps:** a payment method, a delivery zone and a visible product, because without them a shopper cannot order. Store details and logo/colours are optional, and marked so.
+- **Stores from before M13 count as launched,** so nothing that is open today closes.
+- **The preview is a link, not a login.** Admin sessions live on the main host and do not reach store subdomains. The token is only shown in the admin and only works before launch. Previewed pages are never indexed.
+- **No hreflang:** the language comes from a cookie, not the URL, so there is one address per page. Canonical URLs use the request's scheme and host, so production needs proxy headers trusted (M15).
+- **No JSON-LD product markup:** SPEC 9.1 allows no inline scripts. The Open Graph tags cover link previews.
+- **Not done:** the "exchange rate is weeks old" dashboard hint noted in M4 is still open.

@@ -1,5 +1,7 @@
 package com.unispark.ecommerce.tenant.internal;
 
+import java.time.Instant;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -40,7 +42,9 @@ class LocalDemoStores implements ApplicationRunner {
 
     private void seed(String slug, LocalizedText name) {
         if (!stores.existsBySlug(slug)) {
-            stores.save(new Store(slug, name, StoreStatus.ACTIVE));
+            var store = new Store(slug, name, StoreStatus.ACTIVE);
+            store.launch(Instant.now());
+            stores.save(store);
             log.info("Seeded demo store {}", slug);
         }
     }

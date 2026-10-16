@@ -1,7 +1,10 @@
 package com.unispark.ecommerce.tenant.internal;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
@@ -14,8 +17,11 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.unispark.ecommerce.shared.Currency;
 import com.unispark.ecommerce.shared.DefaultLocaleSource;
+import com.unispark.ecommerce.shared.FieldProblem;
 import com.unispark.ecommerce.shared.LocaleAdjuster;
+import com.unispark.ecommerce.shared.LocalizedText;
 import com.unispark.ecommerce.shared.NumberDigits;
+import com.unispark.ecommerce.shared.PhoneNumbers;
 import com.unispark.ecommerce.shared.RoundingRule;
 import com.unispark.ecommerce.shared.TenantContext;
 import com.unispark.ecommerce.tenant.StoreSettings;
@@ -37,15 +43,18 @@ class StoreSettingsService implements StoreSettings, LocaleAdjuster, DefaultLoca
 
     static final Duration CACHE_TTL = Duration.ofSeconds(60);
     static final NumberDigits PLATFORM_DIGITS = NumberDigits.WESTERN;
+    static final int MAX_NAME_LENGTH = 100;
 
     private final StoreRepository stores;
+    private final Clock clock;
     private final Cache<UUID, Optional<Settings>> cache = Caffeine.newBuilder()
             .maximumSize(10_000)
             .expireAfterWrite(CACHE_TTL)
             .build();
 
-    StoreSettingsService(StoreRepository stores) {
+    StoreSettingsService(StoreRepository stores, Clock clock) {
         this.stores = stores;
+        this.clock = clock;
     }
 
     @Override
@@ -89,6 +98,58 @@ class StoreSettingsService implements StoreSettings, LocaleAdjuster, DefaultLoca
         store.updateCheckout(otpRequired, newCustomerMaxTotal);
         cache.invalidate(store.getId());
         return store.toSettings();
+    }
+
+    @Override
+    @Transactional
+    public DetailsResult updateDetails(String nameAr, String nameEn, String contactPhone, String whatsapp) {
+        var problems = new ArrayList<FieldProblem>();
+        var ar = clean(nameAr);
+        var en = clean(nameEn);
+        if (ar == null && en == null) {
+            problems.add(new FieldProblem("name", "required"));
+        } else if (ar != null && ar.length() > MAX_NAME_LENGTH || en != null && en.length() > MAX_NAME_LENGTH) {
+            problems.add(new FieldProblem("name", "too-long"));
+        }
+        var phone = phone(contactPhone, "contactPhone", problems);
+        var whatsappNumber = phone(whatsapp, "whatsapp", problems);
+        if (!problems.isEmpty()) {
+            return new DetailsInvalid(problems);
+        }
+        var store = currentStore();
+        store.updateDetails(LocalizedText.of(ar, en), phone, whatsappNumber);
+        cache.invalidate(store.getId());
+        return new DetailsSaved(store.toSettings());
+    }
+
+    @Override
+    @Transactional
+    public void launch() {
+        var store = currentStore();
+        store.launch(clock.instant());
+        cache.invalidate(store.getId());
+    }
+
+    @Override
+    public String previewToken() {
+        return currentStore().getPreviewToken();
+    }
+
+    /** Blank is no number; anything else must be a valid phone, stored in E.164. */
+    private static String phone(String typed, String field, List<FieldProblem> problems) {
+        if (typed == null || typed.isBlank()) {
+            return null;
+        }
+        var normalized = PhoneNumbers.normalize(typed);
+        if (normalized.isEmpty()) {
+            problems.add(new FieldProblem(field, "invalid"));
+            return null;
+        }
+        return normalized.get();
+    }
+
+    private static String clean(String text) {
+        return text == null || text.isBlank() ? null : text.strip();
     }
 
     @Override

@@ -1,5 +1,7 @@
 package com.unispark.ecommerce.tenant.internal;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -43,6 +45,17 @@ class StoreDirectory implements StoreLookup, StoreRegistration {
     @Override
     public List<UUID> allIds() {
         return stores.findAllIds();
+    }
+
+    @Override
+    public boolean previewAllowed(UUID storeId, String token) {
+        if (token == null || token.isBlank()) {
+            return false;
+        }
+        return stores.findById(storeId)
+                .map(store -> MessageDigest.isEqual(store.getPreviewToken().getBytes(StandardCharsets.UTF_8),
+                        token.getBytes(StandardCharsets.UTF_8)))
+                .orElse(false);
     }
 
     @Override

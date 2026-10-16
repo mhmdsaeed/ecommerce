@@ -1,16 +1,20 @@
 <!DOCTYPE html>
-<!--/* Rendered by Spring Boot's error controller for any 503; the storefront of a suspended store answers with it. */-->
+<!--/* Rendered by Spring Boot's error controller for any 503: a suspended store, or a store not launched yet
+       (storeOpeningSoon, set by TenantResolutionFilter). Neither shows the store's catalog or cart. */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/storefront}">
 <head>
-    <title th:text="#{error.unavailable.title}">Temporarily unavailable</title>
+    <title th:text="${storeOpeningSoon != null} ? #{error.opening-soon.title} : #{error.unavailable.title}">Temporarily unavailable</title>
+    <meta name="robots" content="noindex">
 </head>
 <body>
 <main layout:fragment="content">
     <section class="mx-auto max-w-2xl py-16 text-center">
-        <h1 class="text-3xl font-bold tracking-tight" th:text="#{error.unavailable.heading}">This store is temporarily unavailable</h1>
-        <p class="mt-4 text-gray-600" th:text="#{error.unavailable.body}">Body</p>
+        <h1 class="text-3xl font-bold tracking-tight"
+            th:text="${storeOpeningSoon != null} ? #{error.opening-soon.heading} : #{error.unavailable.heading}">This store is temporarily unavailable</h1>
+        <p class="mt-4 text-gray-600"
+           th:text="${storeOpeningSoon != null} ? #{error.opening-soon.body} : #{error.unavailable.body}">Body</p>
     </section>
 </main>
 </body>

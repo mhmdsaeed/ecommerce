@@ -1,6 +1,7 @@
 package com.unispark.ecommerce.catalog.internal;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -12,6 +13,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import jakarta.persistence.EntityManager;
 
@@ -149,6 +151,24 @@ class StorefrontCatalogService implements StorefrontCatalog {
                 .setParameter("pattern", ProductSearch.containsPattern(normalized))
                 .getSingleResult();
         return page(found, page, count);
+    }
+
+    @Override
+    public SitemapEntries sitemap(int maxProducts) {
+        var visible = new Visible(categories.findAll());
+        var categorySlugs = visible.tree().stream()
+                .flatMap(link -> Stream.concat(Stream.of(link), link.children().stream()))
+                .map(CategoryLink::slug)
+                .toList();
+        var found = entityManager.createQuery("select p.slug, p.updatedAt from Product p where " + VISIBLE
+                        + " order by p.updatedAt desc", Object[].class)
+                .setParameter("active", ProductStatus.ACTIVE)
+                .setParameter("visibleCategories", visible.ids())
+                .setMaxResults(maxProducts)
+                .getResultList().stream()
+                .map(row -> new SitemapProduct((String) row[0], (Instant) row[1]))
+                .toList();
+        return new SitemapEntries(categorySlugs, found);
     }
 
     @Override
