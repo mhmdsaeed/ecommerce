@@ -1053,7 +1053,7 @@ Run with a portable Node.js 24 and `npm install lighthouse` in the session scrat
 - **The preview is a link, not a login.** Admin sessions live on the main host and do not reach store subdomains. The token is only shown in the admin and only works before launch. Previewed pages are never indexed.
 - **No hreflang:** the language comes from a cookie, not the URL, so there is one address per page. Canonical URLs use the request's scheme and host, so production needs proxy headers trusted (M15).
 - **No JSON-LD product markup:** SPEC 9.1 allows no inline scripts. The Open Graph tags cover link previews.
-- **Not done:** the "exchange rate is weeks old" dashboard hint noted in M4 is still open.
+- **Done after M15:** the "exchange rate is weeks old" dashboard hint noted in M4 (see "Stale exchange rate hint" below).
 
 ## M14: API v1 skeleton and OpenAPI (done, 2026-10-16)
 
@@ -1180,3 +1180,19 @@ The M15 known issue: without an SMS, WhatsApp or mail provider, `LoggingChannel`
 | Test | Checks |
 |---|---|
 | `LoggingChannelTest` (4) | Masked: no number, code or store name in the log for a text, no address, subject or body for an email; full content when enabled; short or malformed recipients fully masked |
+
+## After M15: Stale exchange rate hint (2026-10-16)
+
+Open since M4: shoppers pay for dollar-priced products at the store's rate, and nothing reminded merchants when it fell behind the market.
+
+- **Rule (pricing):** `ExchangeRates.STALE_AFTER` is 7 days. `ExchangeRate.staleAt(now)` and `ageInDays(now)` live with the rate, not in the dashboard.
+- **Dashboard:** owners and managers (who set the rate) get an amber banner next to the existing "no rate yet" one: "حددت سعر صرف الدولار (1 دولار = 118.5 ل.س) منذ 12 يوماً …", with a link to the pricing settings. Staff do not see it.
+  - The Arabic plural follows the number: 10 أيام, 12 يوماً, 100 يوم.
+  - The "1" is a formatted argument, so stores with Arabic-Indic digits get it in their digits (the M4 lesson).
+- **Every store with a rate is reminded,** even one whose products are all in the display currency. That matches the "no rate yet" nudge. Showing it only to stores with products in the other currency would need a catalog query for one banner.
+- **Live check (demo1):** with its 2-day-old rate there was no banner. With the rate backdated 10 days, after the 60 s rate cache expired, the banner appeared in Arabic ("منذ 10 أيام") and English ("was set 10 days ago"). The date was restored afterwards.
+
+| Test | Checks |
+|---|---|
+| `ExchangeRateAgeTest` (3) | Fresh for exactly 7 days, stale a second later; whole days counted |
+| `PricingIT` (+1) | No banner at 6 days; at 12 days the Arabic banner with the rate and "منذ 12 يوماً", not the "no rate" one; staff don't see it; setting a new rate removes it |

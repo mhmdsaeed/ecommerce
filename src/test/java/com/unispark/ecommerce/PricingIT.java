@@ -188,6 +188,31 @@ class PricingIT {
     }
 
     @Test
+    void remindsManagersWhenTheRateIsOverAWeekOld() throws Exception {
+        TenantContext.runAs(store, () -> rates.set("118.5", null));
+        backdateRate(6);
+        mvc.perform(get(MAIN + "/admin").session(owner))
+                .andExpect(content().string(not(containsString("حددت سعر صرف الدولار"))));
+
+        // The rate is read fresh after it is set, and set again here to clear the cached one.
+        TenantContext.runAs(store, () -> rates.set("118.5", null));
+        backdateRate(12);
+        mvc.perform(get(MAIN + "/admin").session(owner))
+                .andExpect(content().string(allOf(
+                        containsString("حددت سعر صرف الدولار (1 دولار = 118.5 ل.س) منذ 12 يوماً"),
+                        containsString("حدّث سعر الصرف"), not(containsString("لم تحدد سعر صرف الدولار بعد")))));
+
+        // Staff do not set the rate, so they are not told.
+        TestAccounts.staff(staffUsers, passwords, store, "Clerk", "clerk@" + slug + ".test", null, StaffRole.STAFF);
+        mvc.perform(get(MAIN + "/admin").session(TestAccounts.logIn(mvc, slug, "clerk@" + slug + ".test")))
+                .andExpect(content().string(not(containsString("حددت سعر صرف الدولار"))));
+
+        mvc.perform(setRate("125"));
+        mvc.perform(get(MAIN + "/admin").session(owner))
+                .andExpect(content().string(not(containsString("حددت سعر صرف الدولار"))));
+    }
+
+    @Test
     void onlyOwnersAndManagersChangePricing() throws Exception {
         TestAccounts.staff(staffUsers, passwords, store, "Clerk", "clerk@" + slug + ".test", null, StaffRole.STAFF);
         var clerk = TestAccounts.logIn(mvc, slug, "clerk@" + slug + ".test");
@@ -197,6 +222,13 @@ class PricingIT {
                 .andExpect(status().isForbidden());
         mvc.perform(get(MAIN + "/admin").session(clerk))
                 .andExpect(content().string(not(containsString("لم تحدد سعر صرف الدولار بعد"))));
+    }
+
+    /** Inside the store's context: the test DataSource is subject to row-level security like the app's. */
+    private void backdateRate(int days) {
+        TenantContext.runAs(store, () -> assertThat(jdbc.update(
+                "UPDATE exchange_rate SET effective_at = now() - make_interval(days => ?) WHERE tenant_id = ?",
+                days, store)).isPositive());
     }
 
     private MockHttpServletRequestBuilder setRate(String rate) {

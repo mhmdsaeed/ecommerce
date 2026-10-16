@@ -1,8 +1,10 @@
 package com.unispark.ecommerce.merchantadmin.internal.web;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Optional;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -15,6 +17,7 @@ import com.unispark.ecommerce.identity.StaffPrincipal;
 import com.unispark.ecommerce.order.CodSettlement;
 import com.unispark.ecommerce.order.Orders;
 import com.unispark.ecommerce.pricing.ExchangeRates;
+import com.unispark.ecommerce.pricing.ExchangeRates.ExchangeRate;
 import com.unispark.ecommerce.tenant.Sites;
 import com.unispark.ecommerce.tenant.StoreSettings;
 
@@ -51,13 +54,22 @@ class DashboardController {
         // Until the store is live, owners and managers are pointed back to the setup wizard.
         model.addAttribute("setup", staff.role().managesStaff() && !settings.current().launched()
                 ? setup.current() : null);
-        // Without a rate, prices in the other currency cannot be converted for shoppers.
-        model.addAttribute("rateMissing", staff.role().managesStaff() && rates.current().isEmpty());
+        // Without a rate, prices in the other currency cannot be converted for shoppers; with an old one, they are
+        // converted at yesterday's market. Owners and managers set it.
+        var rate = staff.role().managesStaff() ? rates.current() : Optional.<ExchangeRate>empty();
+        var now = clock.instant();
+        model.addAttribute("rateMissing", staff.role().managesStaff() && rate.isEmpty());
+        model.addAttribute("staleRate", rate.filter(current -> current.staleAt(now))
+                .map(current -> new StaleRate(current.sypPerUsd(), current.ageInDays(now))).orElse(null));
         // "Today" as the store sees it: since midnight in Damascus (SPEC 11).
         var midnight = LocalDate.now(clock.withZone(STORE_ZONE)).atStartOfDay(STORE_ZONE).toInstant();
         model.addAttribute("counts", orders.counts(midnight));
         // The store's cash in drivers' hands: for owners and managers, who settle it.
         model.addAttribute("outstanding", staff.role().managesStaff() ? settlement.outstanding() : null);
         return "merchantadmin/dashboard";
+    }
+
+    /** The current rate and how many days ago it was set, once it is older than {@link ExchangeRates#STALE_AFTER}. */
+    record StaleRate(BigDecimal sypPerUsd, long days) {
     }
 }

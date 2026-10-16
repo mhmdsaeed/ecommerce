@@ -26,6 +26,11 @@
         <a th:href="@{/admin/settings/pricing}" class="font-medium underline" th:text="#{dashboard.rate-missing.link}">Set rate</a>
     </div>
 
+    <div th:if="${staleRate}" class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <span th:text="#{dashboard.rate-stale(1, ${staleRate.sypPerUsd()}, ${staleRate.days()})}">Your rate is old.</span>
+        <a th:href="@{/admin/settings/pricing}" class="font-medium underline" th:text="#{dashboard.rate-stale.link}">Update the rate</a>
+    </div>
+
     <section class="mt-8 grid gap-4 sm:grid-cols-3" th:attr="aria-label=#{dashboard.orders}">
         <a th:href="@{/admin/orders(view='all')}" class="rounded-lg border border-gray-200 bg-white p-5 hover:border-brand-600">
             <span class="block text-sm text-gray-600" th:text="#{dashboard.orders.today}">Orders today</span>
