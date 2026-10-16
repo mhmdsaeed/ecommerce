@@ -7,6 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 
 class TenantContextTest {
 
@@ -34,6 +35,16 @@ class TenantContextTest {
             assertThat(TenantContext.requireTenantId()).isEqualTo(A);
         });
         assertThat(TenantContext.currentTenantId()).isEmpty();
+    }
+
+    @Test
+    void putsTheTenantInTheLoggingContext() {
+        TenantContext.runAs(A, () -> {
+            assertThat(MDC.get(TenantContext.LOG_KEY)).isEqualTo(A.toString());
+            TenantContext.runAs(B, () -> assertThat(MDC.get(TenantContext.LOG_KEY)).isEqualTo(B.toString()));
+            assertThat(MDC.get(TenantContext.LOG_KEY)).isEqualTo(A.toString());
+        });
+        assertThat(MDC.get(TenantContext.LOG_KEY)).isNull();
     }
 
     @Test

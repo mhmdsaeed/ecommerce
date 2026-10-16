@@ -28,6 +28,7 @@
         <jobrunr.version>9.0.1</jobrunr.version>
         <!-- 2.9.x is the line built against Spring Boot 3.5; 3.x needs Boot 4. -->
         <springdoc.version>2.9.1</springdoc.version>
+        <sentry.version>8.59.0</sentry.version>
         <tailwind.skip>false</tailwind.skip>
     </properties>
 
@@ -171,6 +172,17 @@
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
             <scope>runtime</scope>
+        </dependency>
+        <!-- Error reporting (SPEC 2, 15): unhandled exceptions and ERROR logs. Off without SENTRY_DSN. -->
+        <dependency>
+            <groupId>io.sentry</groupId>
+            <artifactId>sentry-spring-boot-starter-jakarta</artifactId>
+            <version>${sentry.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.sentry</groupId>
+            <artifactId>sentry-logback</artifactId>
+            <version>${sentry.version}</version>
         </dependency>
 
         <!-- Tests -->

@@ -1,0 +1,23 @@
+# Production (SPEC 15). Connection details and secrets come from environment variables (application.yml, and
+# docs/operations.md for the full list); this profile sets what differs from local development.
+
+server:
+  # The app runs behind a reverse proxy or load balancer that terminates TLS. Tomcat's RemoteIpValve takes the
+  # client address from X-Forwarded-For and https from X-Forwarded-Proto, but only from proxies matching
+  # server.tomcat.remoteip.internal-proxies: by default private and loopback addresses. A proxy elsewhere (a CDN
+  # calling in over the internet) needs SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES set to its addresses.
+  # Rate limits, secure cookies, canonical links and HSTS all depend on this.
+  forward-headers-strategy: native
+
+app:
+  # Plain http is redirected to https (HttpsRedirectFilter), except actuator for the platform's probes.
+  https-only: true
+
+# One JSON object per line (Elastic Common Schema), with the tenant id of the request or job (TenantContext).
+logging:
+  structured:
+    format:
+      console: ecs
+    ecs:
+      service:
+        name: ecommerce

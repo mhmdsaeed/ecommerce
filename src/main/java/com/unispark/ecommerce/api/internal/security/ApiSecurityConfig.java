@@ -24,6 +24,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
@@ -31,6 +32,7 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
 import org.springframework.security.web.util.matcher.AndRequestMatcher;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.unispark.ecommerce.shared.RateLimits;
 import com.unispark.ecommerce.tenant.Site;
 import com.unispark.ecommerce.tenant.Sites;
 import com.unispark.ecommerce.tenant.StoreLookup;
@@ -52,7 +54,7 @@ class ApiSecurityConfig {
     @Bean
     @Order(0)
     SecurityFilterChain apiChain(HttpSecurity http, Sites sites, StoreLookup stores, JwtDecoder apiJwtDecoder,
-            ObjectMapper json) throws Exception {
+            ObjectMapper json, RateLimits limits) throws Exception {
         var entryPoint = new BearerTokenAuthenticationEntryPoint();
         var deniedHandler = new BearerTokenAccessDeniedHandler();
         http.securityMatcher(new AndRequestMatcher(request -> sites.siteOf(request) == Site.MAIN,
@@ -78,6 +80,7 @@ class ApiSecurityConfig {
                             deniedHandler.handle(request, response, exception);
                             Problems.write(json, request, response, HttpStatus.FORBIDDEN, "Not allowed.");
                         }))
+                .addFilterBefore(new ApiRateLimitFilter(limits, json), BearerTokenAuthenticationFilter.class)
                 .addFilterAfter(new ApiTenantFilter(stores, json), AuthorizationFilter.class);
         return http.build();
     }

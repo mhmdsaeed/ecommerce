@@ -58,3 +58,9 @@ On Windows use `mvnw.cmd` and `scripts\tailwind.cmd`.
 ./mvnw verify                      # Tailwind build + unit tests + Testcontainers integration tests
 ./scripts/tailwind.sh --watch      # rebuild CSS while editing templates
 ```
+
+## Production
+
+`docker build -t ecommerce .` packages the jar from `./mvnw verify` into an image that runs with the `prod` profile.
+[docs/operations.md](docs/operations.md) covers setting up a fresh database, configuration, the reverse proxy,
+logs, rate limits, and backups.

@@ -1102,3 +1102,68 @@ Run with a portable Node.js 24 and `npm install lighthouse` in the session scrat
 - **Strict parameters:** unlike storefront links, the API rejects unknown sorts and pages with a 400, so client bugs show up.
 - **No caching headers or rate limits yet:** rate limits come with M15 (production readiness). Responses vary by the `X-Store-Id` header, so a shared cache would need `Vary: X-Store-Id`.
 - **Unknown paths under `/api/v1` with a valid token** get Boot's JSON 404 body rather than a problem detail, since no API controller handles them.
+
+## M15: Production readiness (done, 2026-10-16)
+
+**Done when:** the image builds and runs against a fresh database. Done live:
+- `./mvnw package` and `docker build` produced `ecommerce:m15`.
+- A throwaway compose project ran it with the `prod` profile against a new PostgreSQL 16 (roles from `01-roles.sh`, with non-default names and passwords) and a new MinIO bucket:
+  - Flyway applied V1–V16; the app created the bucket and the first platform admin from the environment, and seeded no demo data. Logs were JSON from the first line.
+  - Plain http got a 308 to https; health answered over http.
+  - Through proxy headers: HSTS, Secure session cookie. Signup, the wizard, a product with a photo (WebP renditions encoded in the container, served from the bucket), a delivery zone, launch, the storefront with https canonical links, the API, platform admin login, and a COD order. The order's notification was logged as JSON with the store's `tenantId`.
+  - As the runtime role without a tenant, `product` returned no rows; with one, its rows; creating a table was refused.
+- `ProductionProfileIT` repeats the proxy, https and rate-limit parts on a real server in every build.
+- `./mvnw verify` is green.
+
+### What was built
+
+- **Image** (`Dockerfile`, `.dockerignore`): packages the jar Maven built, in Boot's layers (dependencies apart from the application), on `eclipse-temurin:21-jre-noble`.
+  - Glibc for the WebP natives, so not Alpine.
+  - Runs as uid 10001, `prod` profile, UTC, `MaxRAMPercentage=75`, exits on out-of-memory.
+  - Building needs no network beyond the base image. Maven inside a build stage would also have failed on this machine's TLS interception.
+  - CI builds the image on pushes to `main` (no registry yet).
+- **`prod` profile** (`application-prod.yml`):
+  - **Forwarded headers:** `server.forward-headers-strategy: native`, so Tomcat's RemoteIpValve takes the client address and https from proxies on private or loopback addresses. This feeds the rate limits, Secure cookies, canonical links, redirects and HSTS. A client cannot get around it by prepending addresses to `X-Forwarded-For`.
+  - **`app.https-only`:** `HttpsRedirectFilter` (first filter) answers plain http with 308 to https, except `/actuator/`. Spring Security already sends HSTS on https responses.
+  - **JSON logs:** Boot's ECS format on stdout.
+- **Tenant in logs:** `TenantContext` puts `tenantId` in the logging MDC and restores it with the scope, so request and job log lines say which store they are about.
+- **Sentry** (`sentry-spring-boot-starter-jakarta` and `sentry-logback` 8.59.0): off without `SENTRY_DSN`.
+  - Its exception resolver runs last, so only exceptions nothing else handled (real 500s) become events, plus ERROR log lines.
+  - `send-default-pii: false`.
+- **Rate limits** (`shared.RateLimits`): per client address, in memory, Bucket4j and Caffeine, `Retry-After` on 429.
+  - Storefront (`StorefrontRateLimitFilter`, before security): verification texts 10/hour, code checks 30/15 min, orders 20/hour, payment proofs 20/hour, cart changes 120/min. Browsers get a localized `error/429.html`; HTMX gets the page's error banner.
+  - API (`ApiRateLimitFilter`, in the API chain before token checks): 300/min, as a problem detail.
+  - Login and signup limits (M2) are unchanged.
+  - Off in the test profile, since all MockMvc requests share one address and the context is shared across classes.
+- **springdoc:** docs enabled explicitly (public on purpose), which silences its production warning.
+- **`docs/operations.md`:**
+  - what runs where;
+  - setting up a fresh database (roles, the `BYPASSRLS` caveat on managed services);
+  - every environment variable;
+  - the proxy and HTTPS setup and what breaks without it;
+  - logs, Sentry, the rate limits, scaling;
+  - backups and restore.
+  The README links it.
+- **Backups, tested:**
+  - `pg_dump` as `app_owner` fails, because the tables force RLS on their owner.
+  - Dumping as `app_platform` (BYPASSRLS) works.
+  - Restoring as the superuser into a new database gave the same row counts, all 23 tables still forcing RLS, `app_owner` ownership and the runtime grants.
+
+### Tests (542, all green: 265 unit, 277 integration)
+
+| Test | Checks |
+|---|---|
+| `ProductionProfileIT` (6) | `test` + `prod` profiles on a real server, requests over sockets as a proxy sends them: plain http → 308 to https (GET keeps the query, POST stays POST); readiness over plain http; through the proxy: HSTS with subdomains, Secure CSRF cookie, https canonical link; verification texts limited per forwarded address (429 page in Arabic, `Retry-After`, noindex; another address unaffected; browsing unaffected); a client prepending a made-up address is still counted as the proxy saw it; the API limited per address (problem detail, `Retry-After`) |
+| `TenantContextTest` (+1) | The tenant is in the logging context inside a scope, the outer one after a nested scope, and gone after |
+
+### Decisions and deviations
+
+- **The Dockerfile packages a prebuilt jar** instead of building inside Docker: the tests run once (in `verify`), CI caches Maven, and building the image works on machines with TLS interception.
+- **One instance.** Sessions and rate limits are in memory. A second instance needs Spring Session JDBC (or sticky sessions) and shared limits (`docs/operations.md`, Scaling).
+- **The app does the https redirect**, so a misconfigured proxy is visible at once (redirect loop) instead of silently serving http. Actuator stays on http for probes.
+- **No CDN page caching:** pages vary by the language cookie (M5). The guide says what a CDN may cache.
+- **Not done:**
+  - pushing the image to a registry (needs the hosting choice, SPEC 19);
+  - Prometheus stays unexposed;
+  - a real Sentry project was not connected, so event delivery is untested; the configuration loads and stays off without a DSN.
+- **Known issue:** the SMS stub logs phone numbers and message texts (M11). In JSON logs shipped to a log service that is personal data. The guide says to keep retention short until a provider replaces the stub.

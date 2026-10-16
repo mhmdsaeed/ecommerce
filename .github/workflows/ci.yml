@@ -59,3 +59,9 @@ jobs:
         with:
           name: modulith-docs
           path: target/spring-modulith-docs
+
+      # SPEC 16: the production image, from the jar verify just built and tested (see Dockerfile). Built on main
+      # only; pushing it to a registry comes with the hosting choice.
+      - name: Build Docker image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: docker build -t ecommerce:${{ github.sha }} .

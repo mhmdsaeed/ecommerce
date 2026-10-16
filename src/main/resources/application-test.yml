@@ -5,6 +5,10 @@ spring:
     locations: classpath:db/migration, classpath:db/testmigration
 
 app:
+  # Every MockMvc request comes from 127.0.0.1 and the context is shared between test classes, so per-address
+  # limits would add up across the suite. RateLimitIT turns them on in a context of its own.
+  rate-limits:
+    enabled: false
   # Tests sign API tokens with this key (ApiIT).
   api:
     jwt-secret: test-only-jwt-secret-0123456789abcdef

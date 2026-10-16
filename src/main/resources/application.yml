@@ -96,16 +96,30 @@ server:
         secure: ${SESSION_COOKIE_SECURE:true}
 
 # OpenAPI for the REST API (SPEC 13): the UI at /api/docs, the document at /api/docs/openapi.json. Only the API's
-# controllers are described, not the HTML pages.
+# controllers are described, not the HTML pages. Public on purpose in every environment (SPEC 13).
 springdoc:
   packages-to-scan: com.unispark.ecommerce.api
   paths-to-match: /api/v1/**
   api-docs:
+    enabled: true
     path: /api/docs/openapi.json
   swagger-ui:
+    enabled: true
     path: /api/docs
     url: /api/docs/openapi.json
     disable-swagger-default-url: true
+
+# Error reporting (SPEC 15). Without SENTRY_DSN nothing is sent. The SDK reads SENTRY_ENVIRONMENT and
+# SENTRY_RELEASE itself. Only failures no other handler took (real 500s) and ERROR logs become events; 404s,
+# validation errors and other handled exceptions do not. No request bodies, cookies or user data (send-default-pii).
+sentry:
+  dsn: ${SENTRY_DSN:}
+  send-default-pii: false
+  exception-resolver-order: 2147483647
+  in-app-includes: com.unispark.ecommerce
+  logging:
+    minimum-event-level: error
+    minimum-breadcrumb-level: info
 
 management:
   endpoints:
