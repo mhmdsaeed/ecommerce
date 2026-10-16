@@ -95,6 +95,18 @@ server:
         # SPEC 10. Only plain-http local development turns this off.
         secure: ${SESSION_COOKIE_SECURE:true}
 
+# OpenAPI for the REST API (SPEC 13): the UI at /api/docs, the document at /api/docs/openapi.json. Only the API's
+# controllers are described, not the HTML pages.
+springdoc:
+  packages-to-scan: com.unispark.ecommerce.api
+  paths-to-match: /api/v1/**
+  api-docs:
+    path: /api/docs/openapi.json
+  swagger-ui:
+    path: /api/docs
+    url: /api/docs/openapi.json
+    disable-swagger-default-url: true
+
 management:
   endpoints:
     web:
@@ -130,6 +142,9 @@ app:
     # Host in signed links to private images (payment screenshots), as browsers reach storage. Empty: S3_ENDPOINT.
     presign-endpoint: ${S3_PRESIGN_ENDPOINT:}
     manage-bucket: ${S3_MANAGE_BUCKET:false}
+  # REST API bearer tokens (SPEC 13): HS256, at least 32 bytes. Without it the API refuses every token.
+  api:
+    jwt-secret: ${JWT_SECRET:}
   # SaaS billing (SPEC 8). BILLING_PAY_TO tells merchants where to send payments, e.g. a wallet number.
   billing:
     pay-to: ${BILLING_PAY_TO:}

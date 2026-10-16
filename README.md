@@ -29,6 +29,7 @@ The `local` profile seeds demo data. These credentials exist only in local datab
 | Driver view | http://lvh.me:8080/driver | store `demo1`, phone `0933000002`, password `demo-pass-123` |
 | Platform admin | http://admin.lvh.me:8080 | `admin@lvh.me`, password `local-admin-pass` |
 | New store | http://lvh.me:8080/signup | |
+| REST API docs | http://lvh.me:8080/api/docs | none (catalog reads take the store id in `X-Store-Id`) |
 | MinIO console | http://localhost:9101 | `minioadmin` / `minioadmin` |
 | Mailpit (sent emails) | http://localhost:8025 | none |
 

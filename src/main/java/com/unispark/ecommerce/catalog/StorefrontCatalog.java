@@ -1,6 +1,7 @@
 package com.unispark.ecommerce.catalog;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
@@ -30,7 +31,12 @@ public interface StorefrontCatalog {
 
     Optional<CategoryPage> category(String slug, Sort sort, PriceScale scale, int page);
 
+    /** Every visible product, a page at a time. */
+    ResultPage products(Sort sort, PriceScale scale, int page);
+
     Optional<ProductView> product(String slug);
+
+    Optional<ProductView> product(UUID id);
 
     ResultPage search(String query, int page);
 
@@ -59,6 +65,19 @@ public interface StorefrontCatalog {
     record PriceScale(Currency foreign, BigDecimal factor) {
 
         public static final PriceScale NONE = new PriceScale(null, BigDecimal.ONE);
+
+        /**
+         * Compares prices in the {@code display} currency: the other currency is scaled at {@code sypPerUsd}, or
+         * {@link #NONE} without a rate.
+         */
+        public static PriceScale forDisplay(Currency display, BigDecimal sypPerUsd) {
+            if (sypPerUsd == null) {
+                return NONE;
+            }
+            return display == Currency.SYP
+                    ? new PriceScale(Currency.USD, sypPerUsd)
+                    : new PriceScale(Currency.SYP, BigDecimal.ONE.divide(sypPerUsd, 10, RoundingMode.HALF_UP));
+        }
     }
 
     record CategoryLink(UUID id, LocalizedText name, String slug, List<CategoryLink> children) {

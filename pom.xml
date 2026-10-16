@@ -26,6 +26,8 @@
         <metadata-extractor.version>2.21.0</metadata-extractor.version>
         <playwright.version>1.63.0</playwright.version>
         <jobrunr.version>9.0.1</jobrunr.version>
+        <!-- 2.9.x is the line built against Spring Boot 3.5; 3.x needs Boot 4. -->
+        <springdoc.version>2.9.1</springdoc.version>
         <tailwind.skip>false</tailwind.skip>
     </properties>
 
@@ -75,6 +77,16 @@
         <dependency>
             <groupId>org.thymeleaf.extras</groupId>
             <artifactId>thymeleaf-extras-springsecurity6</artifactId>
+        </dependency>
+        <!-- REST API v1 (SPEC 13): stateless JWT bearer tokens, and OpenAPI docs at /api/docs. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
         </dependency>
         <!-- Login and signup rate limits (SPEC 10); buckets live in a bounded Caffeine cache. -->
         <dependency>

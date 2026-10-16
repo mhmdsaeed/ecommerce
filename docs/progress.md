@@ -1054,3 +1054,51 @@ Run with a portable Node.js 24 and `npm install lighthouse` in the session scrat
 - **No hreflang:** the language comes from a cookie, not the URL, so there is one address per page. Canonical URLs use the request's scheme and host, so production needs proxy headers trusted (M15).
 - **No JSON-LD product markup:** SPEC 9.1 allows no inline scripts. The Open Graph tags cover link previews.
 - **Not done:** the "exchange rate is weeks old" dashboard hint noted in M4 is still open.
+
+## M14: API v1 skeleton and OpenAPI (done, 2026-10-16)
+
+**Done when:** the SPEC 13 endpoints return data, and the docs are at `/api/docs`.
+- `ApiIT` (11) covers the endpoints, the security chain and the docs.
+- Live against docker-compose on demo1:
+  - `GET /api/v1/stores/demo1` returns the store;
+  - with its id in `X-Store-Id`, `GET /api/v1/products` lists the catalog ($ prices converted to ل.س as on the storefront, image renditions from MinIO), and `GET /api/v1/products/{id}` returns a product;
+  - without the header, a 400 problem detail and no cookie;
+  - `/api/docs` opens Swagger UI.
+- `./mvnw verify` is green.
+
+### What was built
+
+- **`api` module** (SPEC 3), depending on catalog, inventory, media, pricing and tenant through their public types only.
+- **Security chain** (`ApiSecurityConfig`, ordered before the web chains): `/api/**` on the main host.
+  - Stateless: no session, no cookies, CSRF off.
+  - Bearer tokens are HS256 JWTs signed with `JWT_SECRET` (at least 32 bytes), and must carry `exp`. Without a secret the API refuses every token, and the catalog reads still work. The local and test profiles have their own keys.
+  - The three catalog reads and the docs are open; everything else under `/api/**` needs a token.
+  - Authentication errors are 401 with `WWW-Authenticate: Bearer` and a problem detail.
+  - Store hosts answer `/api/**` with 404; the platform host sends it to its login, like any other path there.
+- **Tenant** (`ApiTenantFilter`, SPEC 4.1): a merchant token's `store_id` claim, or the `X-Store-Id` header.
+  - The header reaches only stores open to shoppers: unknown, closed or unlaunched stores are 404, suspended ones 503.
+  - A token's store only has to exist (not closed), so merchants can use the API before launch.
+  - A header naming another store than the token is 403; a header that is not a canonical UUID is 400.
+- **Endpoints** (`StoreApiController`, `ProductApiController`):
+  - `GET /api/v1/stores/{slug}`: id, slug, name, default language, display currency, colour, logo, contact numbers, storefront URL. Same availability rules as the header.
+  - `GET /api/v1/products`: 24 per page; `sort` (`newest`, `price_asc`, `price_desc`), `category` (a slug, with subcategories) or `q` (search by relevance), `page`. Invalid values are 400, not silently replaced as on the storefront.
+  - `GET /api/v1/products/{id}`: available variants with `inStock`, options with only the offered values, images, category.
+- **Responses:** both languages for every text; prices in the display currency, converted and rounded like the storefront, as strings with two decimals; images as 320/640/1024 rendition URLs. Errors are RFC 9457 problem details (`ApiExceptionHandler`, scoped to the API; problem details stay off for pages), never with exception text.
+- **Catalog:** `StorefrontCatalog.products(sort, scale, page)` and `product(UUID)`, sharing the queries and visibility rule of the category and slug lookups. `PriceScale.forDisplay` moved the price-sort scaling out of `StorefrontController`, so both use it.
+- **OpenAPI** (springdoc 2.9.1, the line built on Boot 3.5): only the API package is described. Document at `/api/docs/openapi.json`; `/api/docs` redirects to Swagger UI at `/api/swagger-ui/index.html`. The `X-Store-Id` header and the bearer scheme are documented.
+
+### Tests (535, all green: 264 unit, 271 integration)
+
+| Test | Checks |
+|---|---|
+| `ApiIT` (11) | Store by slug, no cookie; unknown, unlaunched, suspended and closed stores. Products: newest first, drafts absent, $4.50 → 535.00 SYP, `fromPrice`, price sort, category, Arabic search, an empty later page. A product with options, variants, compare-at price and stock; draft, unknown and malformed ids. Isolation: another store's product by id, in the list and in search is never shown with this store's header. Problem details for a missing or malformed header, unknown store, bad sort, page (negative, huge, non-numeric), q with category, unknown category. Tokens: the claim selects the store, works before launch, and a different header is 403; expired, forged, endless and malformed tokens are 401. Other API paths need a token. The API is not served on store hosts. The OpenAPI document lists the three paths and the header but no pages; the docs redirect, and the UI and its configuration load |
+| `PriceScaleTest` (3) | Dollars scaled up for SYP display, pounds down for USD display, no rate → raw amounts |
+
+### Decisions and deviations
+
+- **No token endpoint.** SPEC 13 limits the MVP to the chain and three reads; issuing tokens (merchant login, refresh) comes with the mobile app. Until then nothing issues tokens, and the chain accepts tokens signed with the shared secret. Rotating to asymmetric keys (RS256 with a JWKS) is worth considering when a separate service issues them.
+- **API errors are English,** fixed texts for developers. They are not user-facing pages, so they are not in the message bundles; the app shows its own messages.
+- **Amounts are strings with two decimals** (`Money`'s scale), so no client parses them as floating point, and the format never changes with the value.
+- **Strict parameters:** unlike storefront links, the API rejects unknown sorts and pages with a 400, so client bugs show up.
+- **No caching headers or rate limits yet:** rate limits come with M15 (production readiness). Responses vary by the `X-Store-Id` header, so a shared cache would need `Vary: X-Store-Id`.
+- **Unknown paths under `/api/v1` with a valid token** get Boot's JSON 404 body rather than a problem detail, since no API controller handles them.

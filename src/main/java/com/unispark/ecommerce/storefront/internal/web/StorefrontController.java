@@ -1,7 +1,5 @@
 package com.unispark.ecommerce.storefront.internal.web;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,7 +28,6 @@ import com.unispark.ecommerce.catalog.StorefrontCatalog.Sort;
 import com.unispark.ecommerce.catalog.StorefrontCatalog.VariantOffer;
 import com.unispark.ecommerce.inventory.Inventory;
 import com.unispark.ecommerce.pricing.ExchangeRates;
-import com.unispark.ecommerce.shared.Currency;
 import com.unispark.ecommerce.shared.ListParams;
 import com.unispark.ecommerce.shared.TenantContext;
 import com.unispark.ecommerce.tenant.StoreSettings;
@@ -142,11 +139,8 @@ class StorefrontController {
 
     /** Sorting by price compares in the display currency, at the current rate when there is one. */
     private PriceScale priceScale() {
-        var display = settings.current().displayCurrency();
-        return rates.current().map(rate -> display == Currency.SYP
-                        ? new PriceScale(Currency.USD, rate.sypPerUsd())
-                        : new PriceScale(Currency.SYP, BigDecimal.ONE.divide(rate.sypPerUsd(), 10, RoundingMode.HALF_UP)))
-                .orElse(PriceScale.NONE);
+        return PriceScale.forDisplay(settings.current().displayCurrency(),
+                rates.current().map(ExchangeRates.ExchangeRate::sypPerUsd).orElse(null));
     }
 
     /** For the Alpine variant picker: each available variant's values, displayed prices and whether it is in stock. */

@@ -58,6 +58,9 @@ app:
   notification:
     mail-from: ${MAIL_FROM:orders@lvh.me}
     link-scheme: ${APP_LINK_SCHEME:http}
+  # Local-only key for API bearer tokens.
+  api:
+    jwt-secret: ${JWT_SECRET:local-only-jwt-secret-0123456789abcdef}
 
 management:
   endpoint:

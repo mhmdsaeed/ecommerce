@@ -90,37 +90,58 @@ class StorefrontCatalogService implements StorefrontCatalog {
         var ids = new ArrayList<UUID>();
         ids.add(category.get().getId());
         visible.children(category.get().getId()).forEach(child -> ids.add(child.getId()));
-        var order = switch (sort) {
-            case NEWEST -> "p.createdAt desc";
-            case PRICE_ASC -> PRICE + " asc, p.createdAt desc";
-            case PRICE_DESC -> PRICE + " desc, p.createdAt desc";
-        };
-        var where = VISIBLE + " and p.categoryId in :categoryIds";
-        var query = entityManager.createQuery("select p from Product p where " + where + " order by " + order,
-                        Product.class)
-                .setParameter("active", ProductStatus.ACTIVE)
-                .setParameter("visibleCategories", visible.ids())
-                .setParameter("categoryIds", ids);
-        if (sort != Sort.NEWEST) {
-            query.setParameter("foreign", scale.foreign()).setParameter("factor", scale.factor())
-                    .setParameter("unscaled", BigDecimal.ONE);
-        }
-        var count = entityManager.createQuery("select count(p) from Product p where " + where, Long.class)
-                .setParameter("active", ProductStatus.ACTIVE)
-                .setParameter("visibleCategories", visible.ids())
-                .setParameter("categoryIds", ids)
-                .getSingleResult();
-        var results = page(query.setFirstResult(Math.max(page, 0) * PAGE_SIZE).setMaxResults(PAGE_SIZE)
-                .getResultList(), page, count);
+        var results = sorted(visible, VISIBLE + " and p.categoryId in :categoryIds", Map.of("categoryIds", ids),
+                sort, scale, page);
         var parent = Optional.ofNullable(category.get().getParentId()).flatMap(visible::byId)
                 .map(found -> visible.link(found)).orElse(null);
         return Optional.of(new CategoryPage(visible.link(category.get()), parent, results));
     }
 
     @Override
+    public ResultPage products(Sort sort, PriceScale scale, int page) {
+        return sorted(new Visible(categories.findAll()), VISIBLE, Map.of(), sort, scale, page);
+    }
+
+    /** A page of the visible products matching {@code where}, which may use {@code parameters} besides VISIBLE's. */
+    private ResultPage sorted(Visible visible, String where, Map<String, Object> parameters, Sort sort,
+            PriceScale scale, int page) {
+        var order = switch (sort) {
+            case NEWEST -> "p.createdAt desc";
+            case PRICE_ASC -> PRICE + " asc, p.createdAt desc";
+            case PRICE_DESC -> PRICE + " desc, p.createdAt desc";
+        };
+        var query = entityManager.createQuery("select p from Product p where " + where + " order by " + order,
+                        Product.class)
+                .setParameter("active", ProductStatus.ACTIVE)
+                .setParameter("visibleCategories", visible.ids());
+        var count = entityManager.createQuery("select count(p) from Product p where " + where, Long.class)
+                .setParameter("active", ProductStatus.ACTIVE)
+                .setParameter("visibleCategories", visible.ids());
+        parameters.forEach((name, value) -> {
+            query.setParameter(name, value);
+            count.setParameter(name, value);
+        });
+        if (sort != Sort.NEWEST) {
+            query.setParameter("foreign", scale.foreign()).setParameter("factor", scale.factor())
+                    .setParameter("unscaled", BigDecimal.ONE);
+        }
+        return page(query.setFirstResult(Math.max(page, 0) * PAGE_SIZE).setMaxResults(PAGE_SIZE).getResultList(),
+                page, count.getSingleResult());
+    }
+
+    @Override
     public Optional<ProductView> product(String slug) {
+        return visibleView(products.findBySlug(slug));
+    }
+
+    @Override
+    public Optional<ProductView> product(UUID id) {
+        return visibleView(products.findById(id));
+    }
+
+    private Optional<ProductView> visibleView(Optional<Product> found) {
         var visible = new Visible(categories.findAll());
-        return products.findBySlug(slug)
+        return found
                 .filter(product -> product.getStatus() == ProductStatus.ACTIVE)
                 .filter(product -> product.getCategoryId() == null || visible.ids().contains(product.getCategoryId()))
                 .filter(product -> product.getVariants().stream().anyMatch(ProductVariant::isActive))

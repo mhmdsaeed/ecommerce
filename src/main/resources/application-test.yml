@@ -5,6 +5,9 @@ spring:
     locations: classpath:db/migration, classpath:db/testmigration
 
 app:
+  # Tests sign API tokens with this key (ApiIT).
+  api:
+    jwt-secret: test-only-jwt-secret-0123456789abcdef
   # Fixed so tests do not depend on the developer's APP_BASE_DOMAIN.
   base-domain: lvh.me:8080
   notification:

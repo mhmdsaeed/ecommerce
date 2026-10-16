@@ -45,6 +45,7 @@ import com.unispark.ecommerce.tenant.StoreLookup;
 /**
  * One security filter chain per area (SPEC 10), each with its own login and authentication manager:
  * <ol>
+ *   <li>REST API: {@code /api/**} on the main site; stateless bearer tokens (the api module's own chain, first);
  *   <li>platform admin: every request on {@code admin.<base>}; platform admins only, under {@code /platform};
  *   <li>merchant admin: {@code /admin/**} on the main site; owners, managers and staff;
  *   <li>driver: {@code /driver/**} on the main site; drivers;
@@ -128,7 +129,8 @@ class SecurityConfig {
         http.securityMatcher(request -> sites.siteOf(request) == Site.STOREFRONT)
                 .authorizeHttpRequests(authorize -> authorize
                         // Areas of the main site, on a store's host.
-                        .requestMatchers("/admin/**", "/driver/**", "/platform/**", "/signup/**").denyAll()
+                        .requestMatchers("/admin/**", "/driver/**", "/platform/**", "/signup/**", "/api/**")
+                        .denyAll()
                         .anyRequest().permitAll())
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokens)
