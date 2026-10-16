@@ -31,6 +31,10 @@ public class StaffUser extends TenantScopedEntity {
     @Column(nullable = false)
     private boolean active;
 
+    /** Goes up with every password change; sessions from before it end (StaffSessionFilter). */
+    @Column(name = "credentials_version", nullable = false)
+    private int credentialsVersion;
+
     protected StaffUser() {
     }
 
@@ -69,5 +73,23 @@ public class StaffUser extends TenantScopedEntity {
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    public int getCredentialsVersion() {
+        return credentialsVersion;
+    }
+
+    /** {@code email} lowercase, {@code phone} in E.164; at least one of them. */
+    public void updateDetails(String name, String email, String phone, StaffRole role) {
+        this.name = name;
+        this.email = email;
+        this.phone = phone;
+        this.role = role;
+    }
+
+    /** A new password ends every session that logged in with the old one. */
+    public void changePassword(String passwordHash) {
+        this.passwordHash = passwordHash;
+        this.credentialsVersion++;
     }
 }

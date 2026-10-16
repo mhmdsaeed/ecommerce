@@ -34,17 +34,19 @@ public class StaffAccounts {
             case Phone(var phone) -> staff.findByPhone(phone);
             case Unusable unusable -> Optional.<StaffUser>empty();
         };
-        return user.map(found -> new StaffLogin(
-                found.getId(), found.getName(), found.getPasswordHash(), found.getRole(), found.isActive()));
+        return user.map(found -> new StaffLogin(found.getId(), found.getName(), found.getPasswordHash(),
+                found.getRole(), found.isActive(), found.getCredentialsVersion()));
     }
 
     public Optional<StaffState> currentState(UUID staffId) {
-        return staff.findById(staffId).map(found -> new StaffState(found.getRole(), found.isActive()));
+        return staff.findById(staffId)
+                .map(found -> new StaffState(found.getRole(), found.isActive(), found.getCredentialsVersion()));
     }
 
-    public record StaffLogin(UUID id, String name, String passwordHash, StaffRole role, boolean active) {
+    public record StaffLogin(UUID id, String name, String passwordHash, StaffRole role, boolean active,
+            int credentialsVersion) {
     }
 
-    public record StaffState(StaffRole role, boolean active) {
+    public record StaffState(StaffRole role, boolean active, int credentialsVersion) {
     }
 }

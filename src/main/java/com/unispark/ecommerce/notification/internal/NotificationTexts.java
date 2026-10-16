@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
 import org.thymeleaf.ITemplateEngine;
 import org.thymeleaf.context.Context;
 
+import com.unispark.ecommerce.identity.ResetLinkSender.ResetLink;
+import com.unispark.ecommerce.identity.StaffPasswords;
 import com.unispark.ecommerce.order.Orders.Address;
 import com.unispark.ecommerce.order.Orders.OrderView;
 import com.unispark.ecommerce.payment.PaymentMethod;
@@ -29,6 +31,7 @@ class NotificationTexts {
     private final PriceFormatter prices;
     private final ITemplateEngine templates;
     private final String adminOrders;
+    private final String passwordReset;
 
     NotificationTexts(MessageSource messages, PriceFormatter prices, ITemplateEngine templates,
             NotificationProperties properties, @Value("${app.base-domain}") String baseDomain) {
@@ -36,6 +39,7 @@ class NotificationTexts {
         this.prices = prices;
         this.templates = templates;
         this.adminOrders = properties.linkScheme() + "://" + baseDomain.strip() + "/admin/orders/";
+        this.passwordReset = properties.linkScheme() + "://" + baseDomain.strip() + "/admin/password/reset";
     }
 
     /** The language and digits messages of the store are written in. */
@@ -45,6 +49,19 @@ class NotificationTexts {
 
     Message code(String phone, String code, String storeName, Locale locale) {
         return Message.phone(phone, text("notification.otp", locale, code, storeName));
+    }
+
+    /** A password reset link, by email or text: whichever the member asked with. Plain text, no HTML. */
+    Message resetLink(ResetLink link) {
+        var url = passwordReset + "?store=" + link.storeSlug() + "&token=" + link.token();
+        var minutes = StaffPasswords.LINK_LIFETIME.toMinutes();
+        if (link.email() != null) {
+            return Message.email(link.email(),
+                    text("notification.password_reset.subject", link.locale(), link.storeName()),
+                    text("notification.password_reset.email", link.locale(), link.storeName(), url, minutes), null);
+        }
+        return Message.phone(link.phone(),
+                text("notification.password_reset", link.locale(), link.storeName(), url, minutes));
     }
 
     /**
@@ -64,7 +81,8 @@ class NotificationTexts {
             case PAYMENT_PROOF_REJECTED -> note == null
                     ? text("notification.payment_proof_rejected", locale, store, number)
                     : text("notification.payment_proof_rejected.reason", locale, store, number, note);
-            case OTP, NEW_ORDER -> throw new IllegalArgumentException("Not a shopper message about an order: " + template);
+            case OTP, NEW_ORDER, PASSWORD_RESET ->
+                    throw new IllegalArgumentException("Not a shopper message about an order: " + template);
         };
         return Message.phone(order.customerPhone(), text);
     }

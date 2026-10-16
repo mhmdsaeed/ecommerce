@@ -52,7 +52,11 @@ final class EmailChannel implements NotificationChannel {
             helper.setFrom(from);
             helper.setTo(message.to());
             helper.setSubject(message.subject());
-            helper.setText(message.text(), message.html());
+            if (message.html() == null) {
+                helper.setText(message.text());
+            } else {
+                helper.setText(message.text(), message.html());
+            }
         } catch (MessagingException e) {
             throw new MailSendException("Could not build the email", e);
         }

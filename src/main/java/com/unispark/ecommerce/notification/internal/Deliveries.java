@@ -56,7 +56,9 @@ class Deliveries {
                 entry.sent(channel.send(message), clock.instant());
                 return true;
             } catch (RuntimeException e) {
-                log.warn("Could not send {} to {} through {}", template.code(), message.to(), channel.kind(), e);
+                // Masked like LoggingChannel: logs leave the app; notification_log keeps the full recipient.
+                log.warn("Could not send {} to {} through {}", template.code(),
+                        LoggingChannel.mask(message.medium(), message.to()), channel.kind(), e);
                 entry.failed(e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
                 return false;
             }

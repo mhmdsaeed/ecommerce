@@ -88,7 +88,8 @@ class MerchantSignupService implements MerchantSignup {
                 var owner = staff.save(new StaffUser(
                         request.ownerName().strip(), email, phone, passwordHash, StaffRole.OWNER));
                 stores.recordCreator(storeId, owner.getId());
-                return new SignedUp(new StaffPrincipal(owner.getId(), storeId, slug, owner.getName(), StaffRole.OWNER));
+                return new SignedUp(new StaffPrincipal(owner.getId(), storeId, slug, owner.getName(), StaffRole.OWNER,
+                        owner.getCredentialsVersion()));
             }));
         } catch (SlugUnavailableException e) {
             return new Rejected(List.of(new FieldProblem("slug", "taken")));

@@ -122,6 +122,7 @@ In memory, per instance, keyed by client address (so they depend on the proxy se
 |---|---|
 | Login attempts | 5 per account per 15 minutes; 30 per address per 5 minutes |
 | Signups | 5 per address per hour |
+| Password reset requests | 10 per address and 3 per account per hour (beyond that nothing is sent, and the form says the same) |
 | Checkout verification texts | 10 per address per hour; 3 per phone per 15 minutes |
 | Code checks | 30 per address per 15 minutes; 5 per code |
 | Orders | 20 per address per hour |

@@ -19,7 +19,7 @@ import com.unispark.ecommerce.tenant.StoreLookup;
 /**
  * Runs merchant admin and driver requests in the logged-in staff member's store (SPEC 4.1: tenant from the
  * session principal). Also re-checks the account on every request, so disabling a staff member, changing their
- * role or closing the store ends their session immediately rather than when it expires.
+ * role or password, or closing the store ends their session immediately rather than when it expires.
  */
 final class StaffSessionFilter extends OncePerRequestFilter {
 
@@ -55,7 +55,8 @@ final class StaffSessionFilter extends OncePerRequestFilter {
     private boolean stillValid(StaffPrincipal staff) {
         var storeOpen = stores.findById(staff.tenantId()).filter(store -> store.status().hasStorefront()).isPresent();
         return storeOpen && accounts.currentState(staff.staffId())
-                .filter(state -> state.active() && state.role() == staff.role())
+                .filter(state -> state.active() && state.role() == staff.role()
+                        && state.credentialsVersion() == staff.credentialsVersion())
                 .isPresent();
     }
 }

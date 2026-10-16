@@ -14,7 +14,8 @@ import io.github.bucket4j.Bucket;
  * <ul>
  *   <li>per account: 5 attempts per 15 minutes, reset by a successful login, against password guessing;
  *   <li>per client address: 30 login attempts per 5 minutes, against trying many accounts;
- *   <li>per client address: 5 signups per hour.
+ *   <li>per client address: 5 signups per hour;
+ *   <li>password reset requests: 10 per client address and 3 per account per hour.
  * </ul>
  * Behind a reverse proxy the client address must come from forwarded headers (production setup, M15).
  */
@@ -27,6 +28,9 @@ public class LoginThrottle {
     static final Duration ADDRESS_WINDOW = Duration.ofMinutes(5);
     static final int SIGNUPS = 5;
     static final Duration SIGNUP_WINDOW = Duration.ofHours(1);
+    static final int RESETS_PER_ADDRESS = 10;
+    static final int RESETS_PER_ACCOUNT = 3;
+    static final Duration RESET_WINDOW = Duration.ofHours(1);
 
     private final Cache<String, Bucket> buckets = Caffeine.newBuilder()
             .maximumSize(100_000)
@@ -47,6 +51,17 @@ public class LoginThrottle {
 
     public boolean trySignup(String clientAddress) {
         return bucket("signup-address:" + clientAddress, SIGNUPS, SIGNUP_WINDOW).tryConsume(1);
+    }
+
+    /**
+     * Counts one password reset request; false when the address or the account asked too often. Each request may
+     * send an email or a paid text.
+     */
+    public boolean tryResetRequest(String clientAddress, String account) {
+        if (!bucket("reset-address:" + clientAddress, RESETS_PER_ADDRESS, RESET_WINDOW).tryConsume(1)) {
+            return false;
+        }
+        return bucket("reset-account:" + account, RESETS_PER_ACCOUNT, RESET_WINDOW).tryConsume(1);
     }
 
     private Bucket bucket(String key, int attempts, Duration window) {

@@ -78,7 +78,8 @@ final class StaffAuthenticationProvider implements AuthenticationProvider {
     }
 
     private static Authentication authenticated(StaffLogin user, StoreSummary store) {
-        var principal = new StaffPrincipal(user.id(), store.id(), store.slug(), user.name(), user.role());
+        var principal = new StaffPrincipal(user.id(), store.id(), store.slug(), user.name(), user.role(),
+                user.credentialsVersion());
         return UsernamePasswordAuthenticationToken.authenticated(
                 principal, null, List.of(new SimpleGrantedAuthority(user.role().authority())));
     }

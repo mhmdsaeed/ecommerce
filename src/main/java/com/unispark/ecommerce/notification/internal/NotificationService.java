@@ -8,13 +8,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.unispark.ecommerce.customer.CodeSender;
+import com.unispark.ecommerce.identity.ResetLinkSender;
 import com.unispark.ecommerce.notification.NotificationLog;
 import com.unispark.ecommerce.notification.internal.persistence.NotificationLogEntry;
 import com.unispark.ecommerce.notification.internal.persistence.NotificationLogRepository;
 
-/** Verification codes, sent at once, and the log of what was sent. */
+/** Verification codes and password reset links, sent at once, and the log of what was sent. */
 @Service
-class NotificationService implements CodeSender, NotificationLog {
+class NotificationService implements CodeSender, ResetLinkSender, NotificationLog {
 
     private final Deliveries deliveries;
     private final NotificationTexts texts;
@@ -30,6 +31,12 @@ class NotificationService implements CodeSender, NotificationLog {
     @Override
     public void sendCode(String phone, String code, String storeName, Locale locale) {
         deliveries.deliver("otp:" + UUID.randomUUID(), Template.OTP, null, texts.code(phone, code, storeName, locale));
+    }
+
+    /** Recorded in the log like any message, without its text: the link stays out of the database. */
+    @Override
+    public void send(ResetLink link) {
+        deliveries.deliver("reset:" + UUID.randomUUID(), Template.PASSWORD_RESET, null, texts.resetLink(link));
     }
 
     @Override

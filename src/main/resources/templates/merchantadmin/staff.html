@@ -12,6 +12,8 @@
     <th:block th:if="${param.added}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{staff.added})}"></div></th:block>
     <th:block th:if="${param.enabled}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{staff.enabled})}"></div></th:block>
     <th:block th:if="${param.disabled}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{staff.disabled})}"></div></th:block>
+    <th:block th:if="${param.updated}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{staff.updated})}"></div></th:block>
+    <th:block th:if="${param['password-set']}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{staff.password-set})}"></div></th:block>
 
     <section class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
         <table class="w-full text-start text-sm">
@@ -43,12 +45,16 @@
                           th:text="#{staff.status.inactive}">Disabled</span>
                 </td>
                 <td class="px-4 py-3 text-end">
-                    <form th:if="${member.id() != currentStaff.staffId() and currentStaff.role().canManage(member.role())}"
-                          th:action="@{/admin/staff/{id}/active(id=${member.id()})}" method="post">
-                        <input type="hidden" name="active" th:value="${!member.active()}">
-                        <button type="submit" class="text-brand-700 hover:underline"
-                                th:text="${member.active()} ? #{staff.action.disable} : #{staff.action.enable}">Disable</button>
-                    </form>
+                    <div th:if="${member.id() != currentStaff.staffId() and currentStaff.role().canManage(member.role())}"
+                         class="flex flex-wrap items-center justify-end gap-4">
+                        <a th:href="@{/admin/staff/{id}(id=${member.id()})}" class="text-brand-700 hover:underline"
+                           th:text="#{staff.action.edit}">Edit</a>
+                        <form th:action="@{/admin/staff/{id}/active(id=${member.id()})}" method="post">
+                            <input type="hidden" name="active" th:value="${!member.active()}">
+                            <button type="submit" class="text-brand-700 hover:underline"
+                                    th:text="${member.active()} ? #{staff.action.disable} : #{staff.action.enable}">Disable</button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             </tbody>

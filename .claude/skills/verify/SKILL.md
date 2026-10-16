@@ -77,3 +77,6 @@ curl -s $R -c jar -b jar --data-urlencode "_csrf=$T" -d "store=demo1&username=ow
   cookies are `Secure`, so send `X-Forwarded-Proto: https` and carry cookies by hand (curl drops Secure cookies
   over http).
 - Runs write to the local dev database (signups, staff). Use fresh slugs (`name$RANDOM`).
+- **Passwords:** a reset link for a demo account arrives in Mailpit (`/api/v1/search?query=to:<email>`, the link's
+  `&` is `&` in its JSON). Changing a demo password breaks the README credentials: set it back on
+  `/admin/account` (`demo-pass-123`). A password change ends that account's other sessions.

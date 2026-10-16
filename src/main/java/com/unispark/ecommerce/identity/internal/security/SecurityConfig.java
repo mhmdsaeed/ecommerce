@@ -165,7 +165,8 @@ class SecurityConfig {
                 .authenticationManager(new ProviderManager(
                         new StaffAuthenticationProvider(stores, accounts, passwords, throttle)))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(loginUrl).permitAll()
+                        // The login form and the forgotten-password pages (merchant admin only).
+                        .requestMatchers(loginUrl, area + "/password/**").permitAll()
                         .anyRequest().hasAnyRole(roleNames))
                 .formLogin(form -> form
                         .loginPage(loginUrl)

@@ -17,6 +17,7 @@
             <th:block th:if="${param.disabled}"><div th:replace="~{fragments/forms :: alert(kind='error', message=#{auth.login.disabled})}"></div></th:block>
             <th:block th:if="${param.expired}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{auth.session.expired})}"></div></th:block>
             <th:block th:if="${param.logout}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{auth.logout.done})}"></div></th:block>
+            <th:block th:if="${param.reset}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{password.reset.done})}"></div></th:block>
         </div>
 
         <form th:action="@{${loginAction}}" method="post" class="mt-4 space-y-4">
@@ -45,8 +46,12 @@
             </div>
             <div class="flex flex-col items-start gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
                 <button th:replace="~{fragments/forms :: submit(label=#{auth.submit})}">Log in</button>
-                <a th:if="${area == 'admin'}" th:href="@{/signup}" class="text-sm text-brand-700 hover:underline"
-                   th:text="#{admin.login.signup-link}">Open a new store</a>
+                <div th:if="${area == 'admin'}" class="flex flex-col items-start gap-1 sm:items-end">
+                    <a th:href="@{/admin/password/forgot(store=${store})}" class="text-sm text-brand-700 hover:underline"
+                       th:text="#{admin.login.forgot-link}">Forgot your password?</a>
+                    <a th:href="@{/signup}" class="text-sm text-brand-700 hover:underline"
+                       th:text="#{admin.login.signup-link}">Open a new store</a>
+                </div>
             </div>
         </form>
     </section>

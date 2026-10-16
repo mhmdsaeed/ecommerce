@@ -30,7 +30,8 @@
                        th:text="#{admin.nav.staff}">Staff</a>
                     <a th:if="${currentStaff.role().managesStaff()}" th:href="@{/admin/billing}"
                        th:text="#{admin.nav.billing}">Billing</a>
-                    <span class="text-gray-500" th:text="${currentStaff.name()}">Name</span>
+                    <a th:href="@{/admin/account}" class="text-gray-500 hover:underline" th:title="#{admin.nav.account}"
+                       th:text="${currentStaff.name()}">Name</a>
                     <form th:action="@{/admin/logout}" method="post">
                         <button type="submit" class="text-brand-700 hover:underline"
                                 th:text="#{auth.logout}">Log out</button>

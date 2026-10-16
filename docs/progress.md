@@ -1196,3 +1196,47 @@ Open since M4: shoppers pay for dollar-priced products at the store's rate, and 
 |---|---|
 | `ExchangeRateAgeTest` (3) | Fresh for exactly 7 days, stale a second later; whole days counted |
 | `PricingIT` (+1) | No banner at 6 days; at 12 days the Arabic banner with the rate and "منذ 12 يوماً", not the "no rate" one; staff don't see it; setting a new rate removes it |
+
+## After M15: Staff passwords (2026-10-16)
+
+Deferred since M2: once added, a staff member's details and password could not change, and anyone who forgot a password had no way back in.
+
+### What was built
+
+- **Editing staff** (`/admin/staff/{id}`, owners and managers):
+  - name, phone, email and role, with the same contact checks as adding (normalized, at least one, not another member's);
+  - the actor must manage both the old and the new role, and never edits themself. Managers get 404 for owners, other managers and themselves, and 403 when promoting to a role they do not manage;
+  - a new role ends the member's sessions (the session filter already re-checked the role).
+- **Setting a password for someone** (same page): for a member who forgot theirs.
+- **Own password** (`/admin/account`, every admin role; the name in the header links there): current password, new one twice. This session stays logged in (logged in again with the new principal); others end.
+- **Forgotten password** (`/admin/password/forgot` and `/reset`, open without login; "Forgot your password?" on the admin login):
+  - store plus the email or phone the member logs in with; the answer is the same whether or not the account exists;
+  - a link goes to whichever was typed: email, or a text once an SMS provider exists (the log until then; masked outside local runs);
+  - links work once, for 30 minutes (`StaffPasswords.LINK_LIFETIME`), for active members of an open store;
+  - only the token's SHA-256 is stored (`password_reset`), and the notification log keeps the template and recipient, not the text;
+  - the reset page sends `Referrer-Policy: no-referrer` and `Cache-Control: no-store`;
+  - a reset clears the member's login lock, since they proved they own the email or phone;
+  - limited to 10 requests per address and 3 per account per hour (`LoginThrottle`); beyond that nothing is sent.
+- **Every password change** (`PasswordChanges`): the new hash, `staff_user.credentials_version` + 1, and the member's open reset links closed. `StaffPrincipal` carries the version it logged in with, and `StaffSessionFilter` ends sessions whose version is behind, on the next request.
+- **Delivery:** `identity.ResetLinkSender`, implemented by the notification module like `customer.CodeSender`, so identity does not depend on notifications. Email reset messages are plain text: `EmailChannel` now sends text-only emails.
+- **Migration** `V17__staff_passwords.sql`: `credentials_version`, and `password_reset` with RLS, keyed to the staff member by `(tenant_id, staff_id)`.
+- **Also:** the warning logged when a message fails to send now masks the recipient too, like the log channel.
+
+### Tests
+
+| Test | Checks |
+|---|---|
+| `StaffPasswordsIT` (12) | Owner edits name, phone and role; the new role ends the member's session and the new phone logs in. Another member's email refused, one's own kept. Managers: owners, themselves and promotions refused; staff can't open the page. A password set by the owner: too short refused; old session ends, old password fails, new works. Own change: wrong current, mismatch, then success keeping this session and ending the other. Forgotten password by email: login locked by failures, form prefilled with the store, same answer, link from the log, `no-referrer` header, mismatch, reset, login works, the old session ends, the link works once. By phone (text). Unknown account or store: same answer, nothing sent. Disabled member: nothing sent. Expired link and another store's slug refused, old password still works. Fourth request in an hour sends nothing. Only the hash in `password_reset`; the notification log has template and recipient |
+
+**Live check (local profile):**
+- "Forgot your password?" for demo1's owner put an email in Mailpit: Arabic subject and text, plain text only, the link valid for 30 minutes.
+- The link opened the form (`no-referrer`, `no-store`) and set a new password, and the owner logged in with it. Opening the link again said it no longer works.
+- The owner's staff list had Edit links, and the edit page showed both sections.
+- On `/admin/account` the owner changed the password back to the README's `demo-pass-123` and stayed logged in. A fresh login with it worked.
+
+### Decisions
+
+- **Drivers** have no account page or reset link; their manager sets a new password (the driver view is phone-first and minimal).
+- **Owners don't edit their own details** on the staff page (no one manages an owner). Their name and contacts stay as signed up for now; only the password can change.
+- **Requests answer at once, after sending.** A real account takes as long as sending the email, so timing could hint that an account exists. The per-address and per-account limits make probing slow; sending in the background would close it.
+- **No email verification:** a member's email is whatever the owner typed. A reset goes only to an address already on the account, never one typed in the form.
