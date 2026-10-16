@@ -79,7 +79,7 @@ All from environment variables. Required unless a default is shown.
 | `JWT_SECRET` | API bearer tokens: 32+ random bytes (`openssl rand -base64 48`); empty: tokens refused |
 | `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `SENTRY_RELEASE` | Error reporting; empty DSN: off |
 | `BILLING_PAY_TO`, `BILLING_TRIAL_DAYS`, `BILLING_GRACE_DAYS` | SaaS billing (defaults 14 and 7 days) |
-| `SMS_PROVIDER`, `SMS_API_KEY`, `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` | Not wired to a provider yet: texts go to the log |
+| `SMS_PROVIDER`, `SMS_API_KEY`, `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` | Not wired to a provider yet: texts are not sent, only noted (masked) in the log |
 | `PLATFORM_ADMIN_EMAIL`, `PLATFORM_ADMIN_PASSWORD` | First start only, see above |
 | `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES` | Only if the proxy is not on a private address, see below |
 
@@ -105,8 +105,10 @@ front can cache the hashed CSS and JS (`/css/`, `/js/`, a year) and images, but 
 
 - Logs are JSON lines on stdout (Elastic Common Schema). Lines written for a store's request or job carry
   `tenantId`. Collect stdout with whatever the host offers.
-- Shopper texts are written to the log until an SMS provider is connected, including phone numbers. Keep log
-  retention short, and restrict who can read logs, until then.
+- Until an SMS or WhatsApp provider is connected (and for email without `MAIL_HOST`), messages are not sent. The
+  log gets a WARN line per message with a masked recipient (`+963******666`, `o***@example.com`) and no text, so
+  verification codes and order details never reach the logs. The merchant still sees each message on the order's
+  page. Only the `local` and `test` profiles log messages in full (`app.notification.log-content`).
 - Sentry gets unhandled exceptions (real 500s) and ERROR log lines; not 404s or validation errors, not request
   bodies, cookies or user data.
 - Actuator exposes only `health` and `info`. Prometheus metrics are available but not exposed until the endpoint

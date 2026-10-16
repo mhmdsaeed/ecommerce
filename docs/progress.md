@@ -1166,4 +1166,17 @@ Run with a portable Node.js 24 and `npm install lighthouse` in the session scrat
   - pushing the image to a registry (needs the hosting choice, SPEC 19);
   - Prometheus stays unexposed;
   - a real Sentry project was not connected, so event delivery is untested; the configuration loads and stays off without a DSN.
-- **Known issue:** the SMS stub logs phone numbers and message texts (M11). In JSON logs shipped to a log service that is personal data. The guide says to keep retention short until a provider replaces the stub.
+- **Fixed after M15:** the SMS stub logged phone numbers and message texts (M11), which JSON logs would ship to a log service. See "Masked notification logs" below.
+
+## After M15: Masked notification logs (2026-10-16)
+
+The M15 known issue: without an SMS, WhatsApp or mail provider, `LoggingChannel` wrote each message in full to the log, including the phone number or address, order details and verification codes. In production those logs go to a log service.
+
+- **Masked by default:** `app.notification.log-content` (default `false`). The log gets one WARN line per message: medium, masked recipient (`+963******666`, `o***@demo1.test`), "not delivered", and the text's length, never the text.
+- **Full content in `local` and `test` only:** developers read verification codes from the console (README), and `CheckoutWebIT`, `PhoneVerificationIT` and `NotificationIT` read them the same way.
+- **Unchanged:** the merchant still sees every message on the order page (`notification_log`); that table is protected by row-level security like the rest of the store's data.
+- **WARN rather than INFO:** in production a message that is not sent means a shopper got nothing, which operators should see.
+
+| Test | Checks |
+|---|---|
+| `LoggingChannelTest` (4) | Masked: no number, code or store name in the log for a text, no address, subject or body for an email; full content when enabled; short or malformed recipients fully masked |

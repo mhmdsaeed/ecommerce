@@ -16,6 +16,8 @@ app:
   base-domain: lvh.me:8080
   notification:
     link-scheme: http
+    # Tests read verification codes from the log, like a developer on a local run.
+    log-content: true
 
 # Tests run jobs themselves (NotificationIT starts a JobRunr server of its own); queued jobs just wait.
 jobrunr:
