@@ -1419,3 +1419,22 @@ The platform admin's dashboard listed the 50 newest stores. It is now the operat
 | `BillingIT` (changed) | After a billing cycle, the overview shows the open invoice and past-due rows with an amber edge and links to the filtered lists; the overview and stores pages mark their own navigation link; the stores list carries the status mark |
 
 **Live check (local profile):** headless Edge screenshots of the overview and stores list as `admin@lvh.me`. Locally nothing is owed, past due or suspended, so the amber rows were checked only by the test, and the closed mark only in a saved copy with one row edited to show it.
+
+## After M15: Merchant order page, next step and delivery slip (2026-10-18)
+
+The order page staff use all day now leads with the order's progress and puts what each decision needs beside its buttons.
+
+### What was built
+
+- **Track:** the shopper's numbered track of the order's steps moved into a shared fragment (`fragments/order.html :: track`), used by the shopper's and the merchant's order pages.
+- **Next step** (the status block, its heading and buttons unchanged): an amber start edge while the order waits on the merchant (to be confirmed, or a transfer proof to check), green otherwise. While it awaits confirmation, the customer's name, their phone as a large call link and their record ("delivered N · refused N", amber when they have refused before) sit next to the buttons. Driver assignment stays in the panel.
+- **Delivery slip:** the address (landmark first, the area path, details, the customer's note in an amber box), a tear line, then the items and totals: the slip the driver carries.
+- **Customer card:** name, phone, record (amber with refusals), block and unblock; titled "Customer" now that the address is on the slip (`admin.orders.customer`).
+
+### Tests (569, all green: 272 unit, 297 integration)
+
+| Test | Checks |
+|---|---|
+| `OrderManagementIT` (changed) | A new order can be confirmed but has no "delivered" action (checked on the form: the step name now shows on the track); the next-step panel has its amber edge; the track marks the current step |
+
+**Live check (local profile):** headless Edge screenshots, as demo1's owner, of order #1008 (awaiting confirmation, 1280 px) and #1009 (out for delivery, 500 px). No demo customer has a refusal, so the amber record was not seen with data.

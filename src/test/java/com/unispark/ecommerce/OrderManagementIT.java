@@ -175,7 +175,12 @@ class OrderManagementIT {
                 .andExpect(content().string(allOf(containsString("#" + placed.number()), containsString("سارة"))));
         mvc.perform(get(page).session(staff))
                 .andExpect(content().string(allOf(containsString("تأكيد الطلب"), containsString("إلغاء الطلب"),
-                        containsString("أبو سمير"), not(containsString("تم التسليم")))));
+                        containsString("أبو سمير"),
+                        // It can be confirmed, not delivered yet (the "delivered" step itself shows on the track).
+                        containsString("name=\"target\" value=\"CONFIRMED\""),
+                        not(containsString("name=\"target\" value=\"DELIVERED\"")),
+                        // It waits on the merchant (the next-step panel's amber edge); the track marks its step.
+                        containsString("border-s-amber-400"), containsString("aria-current=\"step\""))));
 
         step(page, "CONFIRMED").andExpect(redirectedUrl(page.substring(MAIN.length()) + "?done=CONFIRMED"));
         mvc.perform(get(page + "?done=CONFIRMED").session(staff))

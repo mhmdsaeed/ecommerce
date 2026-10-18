@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!--/* Order building blocks, shared by the shopper's order page and the merchant's order page.
+       track(order): the order's steps in order (awaiting confirmation, confirmed, preparing, out for delivery,
+       delivered; "completed" once closed), done ones ticked, the current one filled and aria-current="step". A
+       cancelled, refused or returned order left the path: its status shows alone. */-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<section th:fragment="track(order)"
+         th:with="last=${order.status().name() == 'COMPLETED'} ? 'COMPLETED' : 'DELIVERED',
+                  steps=${ {'PENDING_CONFIRMATION', 'CONFIRMED', 'PREPARING', 'OUT_FOR_DELIVERY', last} },
+                  current=${steps.indexOf(order.status().name())}"
+         aria-labelledby="track-heading">
+    <h2 id="track-heading" class="sr-only" th:text="#{order.track}">The order so far</h2>
+    <ol th:if="${current >= 0}" class="flex flex-col gap-2 sm:flex-row sm:gap-0">
+        <li th:each="step, state : ${steps}" class="flex items-center gap-2 sm:flex-1 sm:flex-col sm:items-start"
+            th:attr="aria-current=${state.index == current} ? 'step'">
+            <span aria-hidden="true" class="flex size-8 shrink-0 items-center justify-center rounded-md border-2 text-sm font-bold"
+                  th:classappend="${state.index < current} ? 'border-brand-600 bg-brand-600 text-white'
+                        : (${state.index == current} ? 'border-brand-700 bg-brand-700 text-white' : 'border-gray-300 bg-white text-gray-500')"
+                  th:text="${state.index < current} ? '✓' : ${state.count}">1</span>
+            <span class="text-sm" th:classappend="${state.index == current} ? 'font-bold text-gray-900' : (${state.index < current} ? 'text-gray-700' : 'text-gray-500')"
+                  th:text="#{order.status.__${step}__}">Pending</span>
+        </li>
+    </ol>
+    <p th:if="${current < 0}" class="text-lg font-semibold">
+        <span th:text="#{order.status}">Status</span>: <span th:text="#{order.status.__${order.status()}__}">Cancelled</span>
+    </p>
+</section>
+
+</body>
+</html>
