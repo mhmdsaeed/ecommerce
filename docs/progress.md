@@ -1240,3 +1240,23 @@ Deferred since M2: once added, a staff member's details and password could not c
 - **Owners don't edit their own details** on the staff page (no one manages an owner). Their name and contacts stay as signed up for now; only the password can change.
 - **Requests answer at once, after sending.** A real account takes as long as sending the email, so timing could hint that an account exists. The per-address and per-account limits make probing slow; sending in the background would close it.
 - **No email verification:** a member's email is whatever the owner typed. A reset goes only to an address already on the account, never one typed in the form.
+
+## After M15: Sign-in shop sign (2026-10-18)
+
+The login, forgot-password and reset panels open with a shop sign: a rolled-up shutter over the address of the store being logged in to (`demo1.lvh.me`). It confirms which store the member is logging in to, which the "store address" field alone did not make clear.
+
+### What was built
+
+- **`fragments/auth.html :: sign`**: the shutter and the address. The member's part of the address is bold, the platform's domain lighter. It reads left to right but lines up with the page's start edge, and long slugs wrap. An empty slug shows as a dashed blank. The sign repeats the store field, so it is `aria-hidden`.
+- **States:** `opening` on the login (the shutter rolls up once, 450 ms; no animation with `prefers-reduced-motion`), `open` on forgot and reset, `closed` when a reset link no longer works (shutter down, no address). The driver login shares the template and gets the sign too.
+- **Live address:** the Alpine component `storeSign` (`app.js`) follows the `#store` input as it is typed. Without that input it keeps the address the server rendered.
+- **Styles** in `tailwind/app.css` (`.shop-sign*`), plus `--color-brand-800` for the slats. System fonts only; no new JS library.
+- **`PasswordResetController`:** the store domain is a model attribute on every response, and the store typed on the forgot form reaches the "sent" page as a flash attribute, so its URL stays `?sent`.
+
+### Tests (563, all green: 272 unit, 291 integration)
+
+| Test | Checks |
+|---|---|
+| `StaffPasswordsIT` (+1, now 13) | Login and forgot pages show the store on a live sign, the login's shutter opens; sending a link keeps the store (flash); a working reset link shows the store on an open sign; an unusable one shows a closed sign with no address |
+
+**Live check (local profile):** the login, forgot, reset and driver login pages rendered the sign; after "Send link" the sign kept `demo1`; an expired link showed the closed shutter; owner login still worked. Headless Edge screenshots in Arabic and English, desktop and ~500 px wide, with a long slug. Edge will not render narrower than about 492 px, so a 375 px phone view and the roll-up animation itself were not seen.
