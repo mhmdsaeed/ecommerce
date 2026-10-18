@@ -162,6 +162,18 @@ class OrderManagementIT {
         // HTMX fragments don't count.
         mvc.perform(get(MAIN + "/admin/products").session(staff).header("HX-Request", "true"))
                 .andExpect(content().string(not(containsString("بانتظار التأكيد"))));
+
+        // The orders list's tabs: open is current; the "awaiting confirmation" tab counts both, in amber.
+        mvc.perform(get(MAIN + "/admin/orders").session(staff))
+                .andExpect(content().string(allOf(current("/admin/orders\\?view=open"),
+                        matchesPattern("(?s).*view=PENDING_CONFIRMATION.*?بانتظار التأكيد</span>\\s*<span class=\"[^\"]*bg-amber-100[^\"]*\">2</span>.*"),
+                        containsString("<input type=\"hidden\" name=\"view\" form=\"order-filters\" value=\"open\">"))));
+        // A tab's results carry its view, so searching stays on it.
+        mvc.perform(get(MAIN + "/admin/orders").param("view", "PENDING_CONFIRMATION").session(staff)
+                        .header("HX-Request", "true"))
+                .andExpect(content().string(allOf(not(containsString("<html")),
+                        containsString("name=\"view\" form=\"order-filters\" value=\"PENDING_CONFIRMATION\""),
+                        current("/admin/orders\\?view=PENDING_CONFIRMATION"))));
     }
 
     @Test

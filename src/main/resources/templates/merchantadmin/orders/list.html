@@ -1,6 +1,9 @@
 <!DOCTYPE html>
-<!--/* Orders, newest first (model: orders, an Orders.OrderPage; view, payment, q: the filters; staffNames). Changing a
-       filter swaps the "results" fragment and puts the filters in the URL. */-->
+<!--/* Orders, newest first (model: orders, an Orders.OrderPage; view, payment, q: the filters; counts, openCount,
+       openStatuses, closedStatuses: the tabs; staffNames). The status tabs follow the order's steps, the open ones
+       counted. Tabs and results are the "results" fragment, swapped whole by every change; the current view rides
+       along with the search and payment filter in a hidden field tied to the form (form="order-filters"). Rows that
+       wait on the merchant (to confirm, or a payment to check) have an amber edge. */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/admin}">
@@ -11,20 +14,12 @@
 <main layout:fragment="content">
     <h1 class="text-2xl font-bold" th:text="#{admin.orders.title}">Orders</h1>
 
-    <form method="get" th:action="@{/admin/orders}" class="mt-6 flex flex-wrap gap-3" role="search"
+    <form id="order-filters" method="get" th:action="@{/admin/orders}" class="mt-6 flex flex-wrap gap-3" role="search"
           th:hx-get="@{/admin/orders}" hx-target="#order-results" hx-push-url="true"
-          hx-trigger="input delay:300ms from:#q, change from:#view, change from:#payment, submit">
+          hx-trigger="input delay:300ms from:#q, change from:#payment, submit">
         <label for="q" class="sr-only" th:text="#{admin.orders.search}">Search</label>
         <input id="q" name="q" type="search" th:value="${q}" th:placeholder="#{admin.orders.search}"
                class="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
-        <label for="view" class="sr-only" th:text="#{admin.orders.col.status}">Status</label>
-        <select id="view" name="view"
-                class="rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
-            <option value="open" th:selected="${view == 'open'}" th:text="#{admin.orders.view.open}">Open</option>
-            <option value="all" th:selected="${view == 'all'}" th:text="#{admin.orders.view.all}">All</option>
-            <option th:each="status : ${statuses}" th:value="${status}" th:selected="${view == status.name()}"
-                    th:text="#{order.status.__${status}__}">Pending</option>
-        </select>
         <label for="payment" class="sr-only" th:text="#{admin.orders.col.payment}">Payment</label>
         <select id="payment" name="payment"
                 class="rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
@@ -35,52 +30,90 @@
         <noscript><button type="submit" class="rounded-md border border-gray-300 px-4 py-2" th:text="#{admin.orders.filter}">Filter</button></noscript>
     </form>
 
-    <div id="order-results" th:fragment="results" class="mt-4">
+    <div id="order-results" th:fragment="results" class="mt-4 space-y-4">
+        <input type="hidden" name="view" form="order-filters" th:value="${view}">
+
+        <!--/* The status tabs: open, then the open steps in order with their counts; all, then the closed ones. */-->
+        <nav th:attr="aria-label=#{admin.orders.col.status}" class="-mx-4 overflow-x-auto px-4">
+            <ul class="flex min-w-max items-stretch gap-1 border-b border-gray-200 text-sm">
+                <li th:replace="~{:: tab(value='open', label=#{admin.orders.view.open}, count=${openCount})}"></li>
+                <th:block th:each="status : ${openStatuses}">
+                    <li th:replace="~{:: tab(value=${status.name()}, label=#{order.status.__${status}__}, count=${counts.get(status)})}"></li>
+                </th:block>
+                <li aria-hidden="true" class="mx-2 my-2 w-px bg-gray-200"></li>
+                <li th:replace="~{:: tab(value='all', label=#{admin.orders.view.all}, count=null)}"></li>
+                <th:block th:each="status : ${closedStatuses}">
+                    <li th:replace="~{:: tab(value=${status.name()}, label=#{order.status.__${status}__}, count=null)}"></li>
+                </th:block>
+            </ul>
+        </nav>
+
         <p th:if="${orders.rows().isEmpty()}" class="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-gray-600"
            th:text="${q == null and view == 'open' and payment == null} ? #{admin.orders.none-open} : #{admin.orders.no-match}">No orders yet.</p>
 
-        <div th:unless="${orders.rows().isEmpty()}" class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50 text-gray-600">
-                <tr>
-                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.number}">Order</th>
-                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.placed}">Placed</th>
-                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.customer}">Customer</th>
-                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.total}">Total</th>
-                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.status}">Status</th>
-                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.payment}">Payment</th>
-                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.driver}">Driver</th>
-                </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                <tr th:each="row : ${orders.rows()}">
-                    <td class="px-4 py-3">
-                        <a th:href="@{/admin/orders/{number}(number=${row.number()})}" class="font-medium text-brand-700 hover:underline"
-                           th:text="|#${row.number()}|">#1001</a>
-                    </td>
-                    <td class="px-4 py-3 whitespace-nowrap" th:text="${@dates.format(row.placedAt())}">14 Oct</td>
-                    <td class="px-4 py-3">
-                        <div th:text="${row.customerName()}">Name</div>
-                        <div class="text-xs text-gray-500" dir="ltr" th:text="${row.customerPhone()}">+963</div>
-                    </td>
-                    <td class="px-4 py-3 whitespace-nowrap"><bdi th:text="${@money.format(row.total())}">5,000</bdi></td>
-                    <td class="px-4 py-3">
-                        <span class="rounded-full px-2 py-0.5 text-xs"
-                              th:classappend="${row.status().name() == 'PENDING_CONFIRMATION'} ? 'bg-amber-100 text-amber-900' : (${row.status().isOpen()} ? 'bg-brand-50 text-brand-700' : 'bg-gray-100 text-gray-700')"
-                              th:text="#{order.status.__${row.status()}__}">Pending</span>
-                    </td>
-                    <td class="px-4 py-3">
-                        <div th:text="#{payment.method.__${row.paymentMethod()}__}">COD</div>
-                        <div class="text-xs" th:classappend="${row.paymentStatus().name() == 'AWAITING_VERIFICATION'} ? 'font-medium text-amber-800' : 'text-gray-500'"
-                             th:text="#{payment.status.__${row.paymentStatus()}__}">Unpaid</div>
-                    </td>
-                    <td class="px-4 py-3 text-gray-600" th:text="${row.driverId() != null} ? ${staffNames.get(row.driverId())} : '—'">Driver</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
+        <th:block th:unless="${orders.rows().isEmpty()}">
+            <!--/* Phones: one block per order. */-->
+            <ul class="divide-y divide-gray-200 overflow-hidden rounded-lg border border-gray-200 bg-white md:hidden">
+                <li th:each="row : ${orders.rows()}" class="border-s-4"
+                    th:classappend="${row.status().name() == 'PENDING_CONFIRMATION' or row.paymentStatus().name() == 'AWAITING_VERIFICATION'} ? 'border-s-amber-400' : 'border-s-transparent'">
+                    <a th:href="@{/admin/orders/{number}(number=${row.number()})}" class="block space-y-1 px-4 py-3 hover:bg-gray-50">
+                        <span class="flex items-center justify-between gap-3">
+                            <span class="font-semibold text-brand-700" th:text="|#${row.number()}|">#1001</span>
+                            <span th:replace="~{:: status-chip(row=${row})}"></span>
+                        </span>
+                        <span class="flex items-baseline justify-between gap-3">
+                            <span class="min-w-0 truncate" th:text="${row.customerName()}">Name</span>
+                            <bdi class="shrink-0 font-semibold tabular-nums" th:text="${@money.format(row.total())}">5,000</bdi>
+                        </span>
+                        <span class="flex justify-between gap-3 text-xs text-gray-500">
+                            <span th:text="${@dates.format(row.placedAt())}">14 Oct</span>
+                            <span th:classappend="${row.paymentStatus().name() == 'AWAITING_VERIFICATION'} ? 'font-medium text-amber-800'"
+                                  th:text="|#{payment.method.__${row.paymentMethod()}__} · #{payment.status.__${row.paymentStatus()}__}|">COD · Unpaid</span>
+                        </span>
+                    </a>
+                </li>
+            </ul>
 
-        <nav th:if="${orders.page() > 0 or orders.hasNext()}" class="mt-4 flex justify-between text-sm" th:attr="aria-label=#{admin.orders.pages}">
+            <div class="hidden overflow-x-auto rounded-lg border border-gray-200 bg-white md:block">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 text-gray-600">
+                    <tr>
+                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.number}">Order</th>
+                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.placed}">Placed</th>
+                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.customer}">Customer</th>
+                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.total}">Total</th>
+                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.status}">Status</th>
+                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.payment}">Payment</th>
+                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.driver}">Driver</th>
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                    <tr th:each="row : ${orders.rows()}">
+                        <td class="border-s-4 px-4 py-3"
+                            th:classappend="${row.status().name() == 'PENDING_CONFIRMATION' or row.paymentStatus().name() == 'AWAITING_VERIFICATION'} ? 'border-s-amber-400' : 'border-s-transparent'">
+                            <a th:href="@{/admin/orders/{number}(number=${row.number()})}" class="font-semibold text-brand-700 hover:underline"
+                               th:text="|#${row.number()}|">#1001</a>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap" th:text="${@dates.format(row.placedAt())}">14 Oct</td>
+                        <td class="px-4 py-3">
+                            <div th:text="${row.customerName()}">Name</div>
+                            <div class="text-xs text-gray-500" dir="ltr" th:text="${row.customerPhone()}">+963</div>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap"><bdi class="tabular-nums" th:text="${@money.format(row.total())}">5,000</bdi></td>
+                        <td class="px-4 py-3"><span th:replace="~{:: status-chip(row=${row})}"></span></td>
+                        <td class="px-4 py-3">
+                            <div th:text="#{payment.method.__${row.paymentMethod()}__}">COD</div>
+                            <div class="text-xs" th:classappend="${row.paymentStatus().name() == 'AWAITING_VERIFICATION'} ? 'font-medium text-amber-800' : 'text-gray-500'"
+                                 th:text="#{payment.status.__${row.paymentStatus()}__}">Unpaid</div>
+                        </td>
+                        <td class="px-4 py-3 text-gray-600" th:text="${row.driverId() != null} ? ${staffNames.get(row.driverId())} : '—'">Driver</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </th:block>
+
+        <nav th:if="${orders.page() > 0 or orders.hasNext()}" class="flex justify-between text-sm" th:attr="aria-label=#{admin.orders.pages}">
             <a th:if="${orders.page() > 0}" th:href="@{/admin/orders(view=${view}, payment=${payment}, q=${q}, page=${orders.page() - 1})}"
                th:hx-get="@{/admin/orders(view=${view}, payment=${payment}, q=${q}, page=${orders.page() - 1})}" hx-target="#order-results" hx-push-url="true"
                class="text-brand-700 hover:underline" th:text="#{admin.orders.newer}">Newer</a>
@@ -91,5 +124,25 @@
         </nav>
     </div>
 </main>
+
+<!--/* A status tab: a link that keeps the search and payment filter, only those that are set (the link lands in the
+       address bar). count: shown for the open ones, null otherwise. */-->
+<li th:fragment="tab(value, label, count)"
+    th:with="link=@{|/admin/orders?view=${value}${payment != null ? '&payment=' + payment : ''}${q != null and !q.isBlank() ? '&q=' + #uris.escapeQueryParam(q) : ''}|}">
+    <a th:href="${link}" th:hx-get="${link}" hx-target="#order-results" hx-push-url="true"
+       th:attr="aria-current=${view == value} ? 'page'"
+       class="-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 whitespace-nowrap"
+       th:classappend="${view == value} ? 'border-brand-600 font-semibold text-gray-900' : 'border-transparent text-gray-600 hover:text-gray-900'">
+        <span th:text="${label}">Open</span>
+        <span th:if="${count != null}" class="rounded-full px-1.5 text-xs tabular-nums"
+              th:classappend="${value == 'PENDING_CONFIRMATION' and count > 0} ? 'bg-amber-100 font-semibold text-amber-900' : 'bg-gray-100 text-gray-700'"
+              th:text="${count}">3</span>
+    </a>
+</li>
+
+<!--/* An order's status: amber while it awaits confirmation, the brand tint while open, grey once closed. */-->
+<span th:fragment="status-chip(row)" class="rounded-full px-2 py-0.5 text-xs"
+      th:classappend="${row.status().name() == 'PENDING_CONFIRMATION'} ? 'bg-amber-100 text-amber-900' : (${row.status().isOpen()} ? 'bg-brand-50 text-brand-700' : 'bg-gray-100 text-gray-700')"
+      th:text="#{order.status.__${row.status()}__}">Pending</span>
 </body>
 </html>

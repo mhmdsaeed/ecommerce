@@ -100,7 +100,13 @@ class OrderController {
         model.addAttribute("view", view);
         model.addAttribute("payment", payment);
         model.addAttribute("q", q);
-        model.addAttribute("statuses", OrderStatus.values());
+        // The tabs: the open statuses in their order, counted, then the closed ones.
+        var counts = orders.countsByStatus();
+        model.addAttribute("counts", counts);
+        model.addAttribute("openCount", counts.entrySet().stream()
+                .filter(entry -> entry.getKey().isOpen()).mapToLong(Map.Entry::getValue).sum());
+        model.addAttribute("openStatuses", Arrays.stream(OrderStatus.values()).filter(OrderStatus::isOpen).toList());
+        model.addAttribute("closedStatuses", Arrays.stream(OrderStatus.values()).filter(status -> !status.isOpen()).toList());
         model.addAttribute("paymentStatuses", PaymentStatus.values());
         model.addAttribute("orders", orders.list(new OrderFilter(statuses(view), payment, q), page));
         model.addAttribute("staffNames", names());

@@ -43,5 +43,9 @@ public interface ShopOrderRepository extends JpaRepository<ShopOrder, UUID>, Jpa
 
     long countByStatus(OrderStatus status);
 
+    /** Each status present, with its number of orders: rows of [OrderStatus, Long]. */
+    @Query("select o.status, count(o) from ShopOrder o group by o.status")
+    List<Object[]> countGroupedByStatus();
+
     long countByPaymentStatus(PaymentStatus paymentStatus);
 }

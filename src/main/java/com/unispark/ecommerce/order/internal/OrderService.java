@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -104,6 +105,19 @@ class OrderService implements Orders {
         return new Counts(orders.countByPlacedAtGreaterThanEqual(placedSince),
                 orders.countByStatus(OrderStatus.PENDING_CONFIRMATION),
                 orders.countByPaymentStatus(PaymentStatus.AWAITING_VERIFICATION));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<OrderStatus, Long> countsByStatus() {
+        var counts = new EnumMap<OrderStatus, Long>(OrderStatus.class);
+        for (var status : OrderStatus.values()) {
+            counts.put(status, 0L);
+        }
+        for (var row : orders.countGroupedByStatus()) {
+            counts.put((OrderStatus) row[0], (Long) row[1]);
+        }
+        return counts;
     }
 
     /** Declared here, not as an interface default, so it runs in a transaction like every other method. */

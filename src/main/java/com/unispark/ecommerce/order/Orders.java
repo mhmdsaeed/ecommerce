@@ -3,6 +3,7 @@ package com.unispark.ecommerce.order;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -33,6 +34,9 @@ public interface Orders {
 
     /** What needs attention, for the dashboard. */
     Counts counts(Instant placedSince);
+
+    /** How many orders are in each status: every status, zero for none (the orders list's tabs). */
+    Map<OrderStatus, Long> countsByStatus();
 
     /** {@link #changeStatus(UUID, OrderStatus, Actor, String)} without a note. */
     Optional<OrderView> changeStatus(UUID orderId, OrderStatus target, Actor actor);

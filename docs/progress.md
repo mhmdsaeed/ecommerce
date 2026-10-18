@@ -1438,3 +1438,22 @@ The order page staff use all day now leads with the order's progress and puts wh
 | `OrderManagementIT` (changed) | A new order can be confirmed but has no "delivered" action (checked on the form: the step name now shows on the track); the next-step panel has its amber edge; the track marks the current step |
 
 **Live check (local profile):** headless Edge screenshots, as demo1's owner, of order #1008 (awaiting confirmation, 1280 px) and #1009 (out for delivery, 500 px). No demo customer has a refusal, so the amber record was not seen with data.
+
+## After M15: Merchant orders list, status tabs (2026-10-18)
+
+The orders list filtered by a status dropdown. It now opens on the order's pipeline, so staff see at a glance where orders are waiting.
+
+### What was built
+
+- **Status tabs** (`merchantadmin/orders/list.html`): "In progress" (all open orders), then the four open steps in order (awaiting confirmation, confirmed, preparing, out for delivery), each with its count; the awaiting-confirmation count is amber when above zero. A divider, then "All" and the closed statuses (no counts). The tabs replace the status dropdown and are part of the results fragment, so every search or filter change refreshes them. The current tab is marked `aria-current="page"`.
+- **Filters:** the view rides along with the search and payment filter in a hidden field tied to the form (`form="order-filters"`). Tab links carry only the filters that are set (no `&payment=&q=` in the address bar).
+- **Rows:** orders awaiting confirmation or a payment check get an amber start edge, as on the dashboard. On phones each order is a stacked block (number and status; customer and total; date, payment method and status) instead of a sideways-scrolling table; the desktop table keeps its columns.
+- **Counts:** `Orders.countsByStatus()`, every status with zero for none, from one grouped query (`ShopOrderRepository.countGroupedByStatus`), limited to the current store like every order query.
+
+### Tests (569, all green: 272 unit, 297 integration)
+
+| Test | Checks |
+|---|---|
+| `OrderManagementIT` (changed) | With two orders awaiting confirmation, "In progress" is the current tab, the awaiting-confirmation tab shows 2 in amber, and the hidden field carries the view; an HTMX request for one status returns a fragment that keeps the view and marks its tab |
+
+**Live check (local profile):** headless Edge screenshots of demo1's orders list as the owner, at 1280 px and 500 px.
