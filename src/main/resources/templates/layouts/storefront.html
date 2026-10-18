@@ -72,7 +72,10 @@
     <div id="htmx-error" role="alert" hidden
          class="mx-auto mt-4 w-full max-w-6xl rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
          th:text="#{shop.htmx-error}">Something went wrong.</div>
-    <main id="content" class="mx-auto w-full max-w-6xl flex-1 px-4 py-6" layout:fragment="content"></main>
+    <!--/* Width and padding live on a wrapper: a page's own class on its <main> replaces the layout's. */-->
+    <div class="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+        <main id="content" layout:fragment="content"></main>
+    </div>
     <footer class="border-t border-gray-200 py-4 text-center text-xs text-gray-500">
         <p th:if="${shop != null and (shop.contactPhone() != null or shop.whatsapp() != null)}" class="mb-2 flex flex-wrap justify-center gap-4 text-sm">
             <a th:if="${shop.contactPhone() != null}" th:href="|tel:${shop.contactPhone()}|" class="hover:text-brand-700">

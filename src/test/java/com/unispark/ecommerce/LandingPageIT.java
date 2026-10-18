@@ -74,6 +74,9 @@ class LandingPageIT {
     @Test
     void signupStartsWithTheChosenAddress() throws Exception {
         mvc.perform(get(MAIN + "/signup").param("slug", " My-Shop "))
-                .andExpect(content().string(containsString("value=\"my-shop\"")));
+                .andExpect(content().string(allOf(containsString("value=\"my-shop\""),
+                        // The sign follows the name and address fields, starting from the chosen address.
+                        containsString("data-input=\"slug\" data-name-input=\"storeName\""),
+                        containsString("<span class=\"shop-sign__slug\" x-text=\"slug\">my-shop</span>"))));
     }
 }

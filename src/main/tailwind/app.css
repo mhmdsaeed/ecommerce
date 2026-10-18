@@ -76,6 +76,51 @@
 .shop-sign__domain {
   color: var(--color-brand-100);
 }
+/* Signup and setup: the store's name on the sign, with the address under it. Until there is a name, the
+   address keeps the display size. */
+.shop-sign__name {
+  font-size: clamp(1.75rem, 6vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.shop-sign__name:empty {
+  display: none;
+}
+.shop-sign__name:not(:empty) + .shop-sign__address {
+  margin-top: 0.25rem;
+  font-size: 1.125rem;
+}
+/* Setup (merchantadmin/setup.html): the shopfront. The sign stays readable on top; the shutter closes the doorway
+   under it by the share of steps still to do (inline height), and rolls up once when the store goes live. */
+.shop-front {
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+.shop-front .shop-sign {
+  padding-top: 1.5rem;
+}
+.shop-front__door {
+  position: relative;
+  height: 5rem;
+  background: var(--color-brand-50);
+  border-bottom: 4px solid var(--color-brand-800);
+}
+.shop-front__door .shop-sign__shutter {
+  height: 0.75rem;
+}
+.shop-front--opening .shop-sign__shutter {
+  animation: shop-front-open 700ms cubic-bezier(0.3, 0, 0.2, 1) 200ms both;
+}
+@keyframes shop-front-open {
+  from { height: 100%; }
+  to { height: 0.75rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shop-front--opening .shop-sign__shutter {
+    animation: none;
+  }
+}
 /* The landing page's hero (merchantadmin/landing.html): the whole band is the sign, the address its display type. */
 .shop-sign--hero {
   padding: 4rem 0 3.5rem;

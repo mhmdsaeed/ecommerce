@@ -104,7 +104,10 @@ class StoreSetupIT {
                 .andExpect(status().isOk())
                 .andExpect(content().string(allOf(containsString("جهّز متجرك"), containsString("منطقة التوصيل"),
                         containsString("أول منتج"), containsString("disabled=\"disabled\""),
-                        containsString("?preview="))));
+                        containsString("?preview="),
+                        // The sign's shutter is down by the steps left: details (the signup phone) and payments (cash on
+                        // delivery) are done, three of five to go.
+                        containsString("style=\"height: max(0.75rem, 60%)\""))));
         mvc.perform(get(MAIN + "/admin").session(owner))
                 .andExpect(content().string(allOf(containsString("متجرك غير مفتوح بعد"),
                         containsString("تجهيز المتجر"))));
@@ -115,9 +118,14 @@ class StoreSetupIT {
         // The required steps: cash on delivery is on from the start; a zone and a product are added.
         addZoneAndProduct();
         mvc.perform(get(MAIN + "/admin/setup").session(owner))
-                .andExpect(content().string(not(containsString("disabled=\"disabled\""))));
+                .andExpect(content().string(allOf(not(containsString("disabled=\"disabled\"")),
+                        containsString("style=\"height: max(0.75rem, 20%)\""))));
         mvc.perform(post(MAIN + "/admin/setup/launch").session(owner).with(csrf()))
                 .andExpect(redirectedUrl("/admin/setup?launched"));
+        // Going live rolls the shutter up.
+        mvc.perform(get(MAIN + "/admin/setup?launched").session(owner))
+                .andExpect(content().string(allOf(containsString("shop-front shop-front--opening"),
+                        not(containsString("height: max(")))));
 
         assertThat(stores.findBySlug(slug).orElseThrow().launched()).isTrue();
         mvc.perform(get(storefront(slug) + "/"))

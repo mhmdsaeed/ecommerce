@@ -61,5 +61,10 @@ class SetupChecklist {
         public long done() {
             return steps.stream().filter(Step::done).count();
         }
+
+        /** The share of steps still to do, 0 to 100; the setup page lowers the sign's shutter by it. */
+        public long percentToDo() {
+            return launched || steps.isEmpty() ? 0 : (steps.size() - done()) * 100 / steps.size();
+        }
     }
 }

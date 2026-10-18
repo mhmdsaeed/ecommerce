@@ -40,6 +40,7 @@ class SetupController {
         var storefront = request.getScheme() + "://" + sites.storeHost(staff.storeSlug()) + "/";
         model.addAttribute("checklist", current);
         model.addAttribute("storefrontUrl", storefront);
+        model.addAttribute("storeAddress", sites.storeHost(staff.storeSlug()));
         model.addAttribute("previewUrl", current.launched() ? null : storefront + "?preview=" + settings.previewToken());
         return "merchantadmin/setup";
     }

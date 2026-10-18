@@ -7,7 +7,15 @@
 </head>
 <body>
 <main layout:fragment="content">
-    <section class="mx-auto max-w-lg rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+    <section class="mx-auto max-w-lg overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+        <!--/* The store's sign, following the name and address fields; hidden from screen readers (it repeats them). */-->
+        <div class="shop-sign shop-sign--open" aria-hidden="true"
+             x-data="storeSign" data-input="slug" data-name-input="storeName">
+            <div class="shop-sign__shutter"></div>
+            <p class="shop-sign__name" dir="auto" th:text="${form.storeName}" x-text="name"></p>
+            <p class="shop-sign__address"><bdi dir="ltr"><span class="shop-sign__slug" th:text="${form.slug}" x-text="slug"></span><span class="shop-sign__domain" th:text="${storeDomain}">.example.com</span></bdi></p>
+        </div>
+        <div class="p-6">
         <h1 class="text-2xl font-bold" th:text="#{signup.heading}">Open your store</h1>
         <p class="mt-2 text-gray-600" th:text="#{signup.intro}">Intro</p>
 
@@ -49,6 +57,7 @@
                    th:text="#{signup.have-account}">Already have a store? Log in</a>
             </div>
         </form>
+        </div>
     </section>
 </main>
 </body>

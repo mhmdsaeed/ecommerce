@@ -53,7 +53,10 @@
     <div id="htmx-error" role="alert" hidden
          class="mx-auto mt-4 w-full max-w-5xl rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
          th:text="#{admin.htmx-error}">Something went wrong.</div>
-    <main id="content" class="mx-auto w-full max-w-5xl flex-1 px-4 py-8" layout:fragment="content"></main>
+    <!--/* Width and padding live on a wrapper: a page's own class on its <main> replaces the layout's. */-->
+    <div class="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
+        <main id="content" layout:fragment="content"></main>
+    </div>
     <footer class="border-t border-gray-200 py-4 text-center text-xs text-gray-500" th:text="#{layout.footer}">
         All rights reserved
     </footer>

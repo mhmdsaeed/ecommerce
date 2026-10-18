@@ -1291,3 +1291,24 @@ The main site's `/` showed a "coming soon" placeholder. It now shows a landing p
 
 - **No testimonials, numbers or screenshots:** none exist yet, and the page does not invent them.
 - **Product name and domain** still come from `app.name` and the base host (SPEC 19 open question); the page changes with them.
+
+## After M15: Signup and setup shopfront (2026-10-18)
+
+Signup and the setup wizard continue the shop sign from the sign-in and landing pages.
+
+### What was built
+
+- **Signup:** the panel opens with the store's sign. The store name typed in the form shows on it large, the address under it (`storeSign` now also follows a name input, `data-name-input`). Until there is a name, the address keeps the display size. Arriving from the landing page, the chosen address is already on it.
+- **Setup:** a shopfront at the top: the store's sign (name and address, always readable) over a doorway whose shutter is down by the share of steps still to do (`Checklist.percentToDo()`, inline height). A fresh store is at 60%: details (the signup phone) and payments (cash on delivery) are done. On `?launched` the shutter rolls up once (not with `prefers-reduced-motion`). The shopfront is `aria-hidden`; "2 of 5 steps done" stays in text.
+  - A first version lowered the shutter over the sign itself; at partial heights it cut through the store name. Sign above, shutter over the doorway below, as on a real shopfront, keeps the name whole.
+- **Steps** as the landing page's numbered sequence instead of bordered cards: a filled slot with ✓ when done, a solid outline when required, dashed when optional; going live is the last step (6).
+- **Layout fix (all four layouts):** a page's own `class` on `<main layout:fragment="content">` replaced the layout's, dropping the width cap and padding, so 22 pages (setup, staff, the storefront home, ...) touched the screen edges on phones. Width and padding now live on a wrapper `<div>` around `<main>` in `admin`, `driver`, `platform` and `storefront`.
+
+### Tests (568, all green: 272 unit, 296 integration)
+
+| Test | Checks |
+|---|---|
+| `StoreSetupIT` (changed) | Fresh store: shutter at 60%; after a zone and a product, 20%; after going live, the shopfront opens (`shop-front--opening`) with no inline height |
+| `LandingPageIT` (changed) | The signup sign follows the name and address fields and starts from the chosen address |
+
+**Live check (local profile):** headless Edge screenshots of signup (filled in, with an error), a fresh store's setup (60%) and demo1's live setup, at desktop and ~500 px width; demo1's storefront home at ~500 px after the layout fix. Logged-in pages were saved with curl (with a `<base>` to the app) and screenshotted, since headless Edge cannot log in. The roll-up and typing into signup were not exercised in a browser; driver and platform pages were not looked at after the layout fix. A test store `ward2649` was signed up in the local database.
