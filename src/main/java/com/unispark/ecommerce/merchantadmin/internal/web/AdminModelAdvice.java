@@ -4,6 +4,8 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -11,7 +13,9 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import com.unispark.ecommerce.billing.SubscriptionStatus;
 import com.unispark.ecommerce.billing.Subscriptions;
 import com.unispark.ecommerce.identity.StaffPrincipal;
+import com.unispark.ecommerce.order.Orders;
 import com.unispark.ecommerce.shared.TenantContext;
+import com.unispark.ecommerce.tenant.Sites;
 import com.unispark.ecommerce.tenant.StoreLookup;
 import com.unispark.ecommerce.tenant.StoreStatus;
 import com.unispark.ecommerce.tenant.StoreSummary;
@@ -29,12 +33,51 @@ class AdminModelAdvice {
 
     private final StoreLookup stores;
     private final Subscriptions subscriptions;
+    private final Orders orders;
+    private final Sites sites;
     private final Clock clock;
 
-    AdminModelAdvice(StoreLookup stores, Subscriptions subscriptions, Clock clock) {
+    AdminModelAdvice(StoreLookup stores, Subscriptions subscriptions, Orders orders, Sites sites, Clock clock) {
         this.stores = stores;
         this.subscriptions = subscriptions;
+        this.orders = orders;
+        this.sites = sites;
         this.clock = clock;
+    }
+
+    /**
+     * Which part of the admin the request is in, for the navigation: the first path segment after {@code /admin}
+     * ({@code orders} for {@code /admin/orders/1008}), {@code dashboard} for {@code /admin} itself.
+     */
+    @ModelAttribute("adminSection")
+    String adminSection(HttpServletRequest request) {
+        var path = request.getRequestURI().substring(request.getContextPath().length());
+        if (!path.startsWith("/admin")) {
+            return null;
+        }
+        var rest = path.substring("/admin".length());
+        var segments = rest.split("/");
+        return segments.length < 2 || segments[1].isEmpty() ? "dashboard" : segments[1];
+    }
+
+    /** The store's address, shown on the sign at the top of the navigation. */
+    @ModelAttribute("storeHost")
+    String storeHost() {
+        var staff = currentStaff();
+        return staff == null ? null : sites.storeHost(staff.storeSlug());
+    }
+
+    /**
+     * Orders waiting for the merchant's confirmation, for the badge on "Orders": on full pages only, so HTMX
+     * fragments and form posts don't pay for the count.
+     */
+    @ModelAttribute("ordersToConfirm")
+    Long ordersToConfirm(HttpServletRequest request) {
+        if (currentStaff() == null || adminSection(request) == null || !"GET".equals(request.getMethod())
+                || request.getHeader("HX-Request") != null) {
+            return null;
+        }
+        return orders.counts(clock.instant()).toConfirm();
     }
 
     @ModelAttribute("currentStaff")

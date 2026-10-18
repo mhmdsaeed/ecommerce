@@ -91,6 +91,13 @@
   margin-top: 0.25rem;
   font-size: 1.125rem;
 }
+/* The admin sidebar's sign (layouts/admin.html): the store's name and address under a slim rolled-up shutter. */
+.shop-sign--compact {
+  padding: 1.25rem 1rem 1rem;
+}
+.shop-sign--compact .shop-sign__shutter {
+  height: 0.5rem;
+}
 /* Setup (merchantadmin/setup.html): the shopfront. The sign stays readable on top; the shutter closes the doorway
    under it by the share of steps still to do (inline height), and rolls up once when the store goes live. */
 .shop-front {

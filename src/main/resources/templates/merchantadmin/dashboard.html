@@ -1,4 +1,7 @@
 <!DOCTYPE html>
+<!--/* The dashboard: notices that need the owner (setup, exchange rate), then today's ledger: label, dotted leader,
+       figure, one row per thing to look at, each linking to its list. Rows that need action get an amber edge. The
+       store's address and status are on the sign in the navigation (layouts/admin.html). */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/admin}">
@@ -6,55 +9,57 @@
     <title th:text="#{dashboard.title}">Dashboard</title>
 </head>
 <body>
-<main layout:fragment="content">
+<main layout:fragment="content" class="max-w-2xl space-y-8">
     <h1 class="text-2xl font-bold" th:text="#{dashboard.welcome(${currentStaff.name()})}">Welcome</h1>
-    <p class="mt-2 text-gray-600">
-        <span th:text="#{dashboard.store-address}">Your store address:</span>
-        <a th:href="${storefrontUrl}" class="font-medium text-brand-700 hover:underline" dir="ltr"
-           th:text="${storefrontHost}">demo1.example.com</a>
-        <span class="ms-2 rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700"
-              th:text="#{store.status.__${currentStore.status()}__}">Trial</span>
-    </p>
 
-    <div th:if="${setup != null}" class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+    <div th:if="${setup != null}" class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
         <span th:text="#{dashboard.setup(${setup.done()}, ${setup.steps().size()})}">Your store is not open yet.</span>
         <a th:href="@{/admin/setup}" class="font-medium underline" th:text="#{dashboard.setup.link}">Continue setup</a>
     </div>
 
-    <div th:if="${rateMissing}" class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+    <div th:if="${rateMissing}" class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
         <span th:text="#{dashboard.rate-missing}">Set your exchange rate.</span>
         <a th:href="@{/admin/settings/pricing}" class="font-medium underline" th:text="#{dashboard.rate-missing.link}">Set rate</a>
     </div>
 
-    <div th:if="${staleRate}" class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+    <div th:if="${staleRate}" class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
         <span th:text="#{dashboard.rate-stale(1, ${staleRate.sypPerUsd()}, ${staleRate.days()})}">Your rate is old.</span>
         <a th:href="@{/admin/settings/pricing}" class="font-medium underline" th:text="#{dashboard.rate-stale.link}">Update the rate</a>
     </div>
 
-    <section class="mt-8 grid gap-4 sm:grid-cols-3" th:attr="aria-label=#{dashboard.orders}">
-        <a th:href="@{/admin/orders(view='all')}" class="rounded-lg border border-gray-200 bg-white p-5 hover:border-brand-600">
-            <span class="block text-sm text-gray-600" th:text="#{dashboard.orders.today}">Orders today</span>
-            <span class="mt-1 block text-3xl font-bold" th:text="${#numbers.formatInteger(counts.placedSince(), 1)}">0</span>
-        </a>
-        <a th:href="@{/admin/orders(view='PENDING_CONFIRMATION')}" class="rounded-lg border bg-white p-5 hover:border-brand-600"
-           th:classappend="${counts.toConfirm() > 0} ? 'border-amber-300' : 'border-gray-200'">
-            <span class="block text-sm text-gray-600" th:text="#{dashboard.orders.to-confirm}">To confirm</span>
-            <span class="mt-1 block text-3xl font-bold" th:text="${#numbers.formatInteger(counts.toConfirm(), 1)}">0</span>
-        </a>
-        <a th:href="@{/admin/orders(view='all', payment='AWAITING_VERIFICATION')}" class="rounded-lg border bg-white p-5 hover:border-brand-600"
-           th:classappend="${counts.toVerify() > 0} ? 'border-amber-300' : 'border-gray-200'">
-            <span class="block text-sm text-gray-600" th:text="#{dashboard.orders.to-verify}">Payments to check</span>
-            <span class="mt-1 block text-3xl font-bold" th:text="${#numbers.formatInteger(counts.toVerify(), 1)}">0</span>
-        </a>
+    <section aria-labelledby="today-heading">
+        <h2 id="today-heading" class="text-lg font-semibold" th:text="#{dashboard.today}">Today</h2>
+        <ul class="mt-3 divide-y divide-gray-200 overflow-hidden rounded-lg border border-gray-200 bg-white">
+            <li th:replace="~{:: row(label=#{dashboard.orders.to-confirm}, count=${counts.toConfirm()}, urgent=true,
+                    href=@{/admin/orders(view='PENDING_CONFIRMATION')})}"></li>
+            <li th:replace="~{:: row(label=#{dashboard.orders.to-verify}, count=${counts.toVerify()}, urgent=true,
+                    href=@{/admin/orders(view='all', payment='AWAITING_VERIFICATION')})}"></li>
+            <li th:replace="~{:: row(label=#{dashboard.orders.today}, count=${counts.placedSince()}, urgent=false,
+                    href=@{/admin/orders(view='all')})}"></li>
+            <li th:if="${outstanding != null}" class="border-s-4"
+                th:classappend="${outstanding.isEmpty()} ? 'border-transparent' : 'border-amber-400'">
+                <a th:href="@{/admin/settlement}" class="flex items-baseline gap-3 px-4 py-4 hover:bg-gray-50">
+                    <span th:text="#{dashboard.cod.outstanding}">Cash held by drivers</span>
+                    <span aria-hidden="true" class="min-w-6 flex-1 border-b-2 border-dotted border-gray-300"></span>
+                    <span th:if="${outstanding.isEmpty()}" class="text-gray-500" th:text="#{dashboard.cod.none}">None</span>
+                    <span th:unless="${outstanding.isEmpty()}" class="flex flex-col items-end text-xl font-bold tabular-nums">
+                        <bdi th:each="amount : ${outstanding}" th:text="${@money.format(amount)}">5,000</bdi>
+                    </span>
+                </a>
+            </li>
+        </ul>
     </section>
-
-    <a th:if="${outstanding != null}" th:href="@{/admin/settlement}"
-       class="mt-4 block rounded-lg border bg-white p-5 hover:border-brand-600"
-       th:classappend="${outstanding.isEmpty()} ? 'border-gray-200' : 'border-amber-300'">
-        <span class="block text-sm text-gray-600" th:text="#{dashboard.cod.outstanding}">Cash held by drivers</span>
-        <span th:if="${outstanding.isEmpty()}" class="mt-1 block text-xl font-semibold text-gray-500" th:text="#{dashboard.cod.none}">None</span>
-        <bdi th:each="amount : ${outstanding}" class="mt-1 block text-2xl font-bold" th:text="${@money.format(amount)}">5,000</bdi>
-    </a>
 </main>
+
+<!--/* One ledger row. urgent: a non-zero count needs the merchant (amber edge); otherwise it is information. */-->
+<li th:fragment="row(label, count, urgent, href)" class="border-s-4"
+    th:classappend="${urgent and count > 0} ? 'border-s-amber-400' : 'border-s-transparent'">
+    <a th:href="${href}" class="flex items-baseline gap-3 px-4 py-4 hover:bg-gray-50">
+        <span th:text="${label}">Label</span>
+        <span aria-hidden="true" class="min-w-6 flex-1 border-b-2 border-dotted border-gray-300"></span>
+        <span class="text-2xl font-bold tabular-nums" th:classappend="${count == 0} ? 'text-gray-400'"
+              th:text="${#numbers.formatInteger(count, 1)}">0</span>
+    </a>
+</li>
 </body>
 </html>

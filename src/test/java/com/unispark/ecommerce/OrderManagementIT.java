@@ -5,6 +5,7 @@ import static com.unispark.ecommerce.TestAccounts.storefront;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -26,6 +27,7 @@ import java.util.regex.Pattern;
 
 import jakarta.servlet.http.Cookie;
 
+import org.hamcrest.Matcher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -138,6 +140,28 @@ class OrderManagementIT {
             methods.save(PaymentMethod.SHAM_CASH, new MethodDraft(true, null, null, "0944 123 456", "Jasmine", null,
                     null));
         });
+    }
+
+    @Test
+    void theNavigationCountsOrdersToConfirmAndMarksTheCurrentPage() throws Exception {
+        place("0933 111 010", "سارة", PaymentMethod.COD, 1);
+        place("0933 111 011", "سارة", PaymentMethod.COD, 1);
+
+        // On every full admin page, for staff too: the badge, with its words for screen readers.
+        mvc.perform(get(MAIN + "/admin/products").session(staff))
+                .andExpect(content().string(allOf(containsString("2 بانتظار التأكيد"),
+                        current("/admin/products"),
+                        not(current("/admin/orders")),
+                        // Staff don't see the managers' links.
+                        not(containsString("href=\"/admin/settlement\"")))));
+        // The dashboard's ledger: two orders waiting, marked as needing the merchant.
+        mvc.perform(get(MAIN + "/admin").session(owner))
+                .andExpect(content().string(allOf(current("/admin"),
+                        containsString("href=\"/admin/settlement\""), containsString("اليوم"),
+                        containsString("border-s-4 border-s-amber-400"))));
+        // HTMX fragments don't count.
+        mvc.perform(get(MAIN + "/admin/products").session(staff).header("HX-Request", "true"))
+                .andExpect(content().string(not(containsString("بانتظار التأكيد"))));
     }
 
     @Test
@@ -412,6 +436,12 @@ class OrderManagementIT {
 
     private Level level() {
         return as(() -> inventory.levels(List.of(scarf)).of(scarf).orElseThrow());
+    }
+
+
+    /** The navigation link to this path, marked as the current page. */
+    private static Matcher<String> current(String path) {
+        return matchesPattern("(?s).*<a href=\"" + path + "\"[^>]*aria-current=\"page\".*");
     }
 
     private <T> T as(Supplier<T> action) {

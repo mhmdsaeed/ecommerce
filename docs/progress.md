@@ -1312,3 +1312,25 @@ Signup and the setup wizard continue the shop sign from the sign-in and landing 
 | `LandingPageIT` (changed) | The signup sign follows the name and address fields and starts from the chosen address |
 
 **Live check (local profile):** headless Edge screenshots of signup (filled in, with an error), a fresh store's setup (60%) and demo1's live setup, at desktop and ~500 px width; demo1's storefront home at ~500 px after the layout fix. Logged-in pages were saved with curl (with a `<base>` to the app) and screenshotted, since headless Edge cannot log in. The roll-up and typing into signup were not exercised in a browser; driver and platform pages were not looked at after the layout fix. A test store `ward2649` was signed up in the local database.
+
+## After M15: Merchant admin shell and dashboard ledger (2026-10-18)
+
+The admin header listed up to 13 links in a row; on a phone it wrapped to three lines. The dashboard was three big-number cards.
+
+### What was built
+
+- **Sidebar (lg and up)** on the start side: the store's sign at the top (name, address, plan status, under a slim rolled-up shutter; `.shop-sign--compact`), the navigation, then the account (name linking to `/admin/account`, log out, language).
+- **Phone bar (below lg):** the store's name and a "Menu" `<details>` (no script) holding the same navigation and account.
+- **Navigation** (`fragments/admin-nav.html`, shared by both) in four groups separated by rules: the day's work (home, orders, customers), the catalog (products, categories, inventory), money and delivery (cash collection, delivery; owners and managers), running the store (settings, staff, billing; owners and managers). "Set up your store" leads, filled, until the store is live. The current page has `aria-current="page"` and a start-edge bar (`adminSection` from `AdminModelAdvice`: the first path segment after `/admin`).
+- **Badge:** "Orders" (and "Menu" on phones) shows how many orders await confirmation, with "N awaiting confirmation" for screen readers. `AdminModelAdvice.ordersToConfirm` counts on full admin GET pages only, not for HTMX fragments, form posts or the driver area.
+- **Dashboard ledger:** "Today" as rows of label, dotted leader and figure: awaiting confirmation, payments to check, orders today, cash held by drivers (owners and managers). Non-zero rows that need action get an amber start edge; zeros are grey; each row links to its list. The store's address moved to the sign, so `DashboardController` no longer needs `Sites`.
+- **Messages:** `admin.nav.menu`, `admin.nav.label`, `admin.nav.orders.to-confirm`, `dashboard.today` added; `dashboard.store-address` and `dashboard.orders` removed.
+- Public pages using the admin layout (login, signup, password reset) keep the plain header.
+
+### Tests (569, all green: 272 unit, 297 integration)
+
+| Test | Checks |
+|---|---|
+| `OrderManagementIT` (+1, now 11) | With two orders awaiting confirmation: the badge on a non-dashboard page for staff, the current page marked, managers' links hidden from staff; the dashboard marks home as current, shows managers' links to the owner and the amber ledger rows; HTMX requests carry no count |
+
+**Live check (local profile):** demo1 (five orders awaiting confirmation), pages saved with curl and screenshotted in headless Edge: dashboard and orders at 1280 px, dashboard at 900 and 500 px, the phone menu forced open. The first ledger had `border-amber-400` colouring every side of a row, which hid the dividers; it now colours the start edge only (`border-s-amber-400`). Opening the menu by tapping was not exercised. On phones the store's address and status are not shown (they are on the desktop sign only).

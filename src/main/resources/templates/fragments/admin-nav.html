@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<!--/* The merchant admin's navigation, used by the desktop sidebar and the phone menu (layouts/admin.html).
+       Grouped by what the links are for: the day's work, the catalog, money and delivery, running the store.
+       adminSection (AdminModelAdvice) marks the current page; ordersToConfirm puts a badge on "Orders". */-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<nav th:fragment="links" th:attr="aria-label=#{admin.nav.label}" class="space-y-3"
+     th:with="manager=${currentStaff.role().managesStaff()}">
+    <a th:if="${manager and currentStore != null and !currentStore.launched()}" th:href="@{/admin/setup}"
+       th:attr="aria-current=${adminSection == 'setup'} ? 'page'"
+       class="block rounded-md bg-brand-600 px-3 py-2 font-semibold text-white hover:bg-brand-700"
+       th:text="#{admin.nav.setup}">Set up your store</a>
+    <ul>
+        <li th:replace="~{fragments/admin-nav :: item(key='admin.nav.dashboard', href='/admin', section='dashboard')}"></li>
+        <li>
+            <a th:href="@{/admin/orders}" th:attr="aria-current=${adminSection == 'orders'} ? 'page'"
+               class="flex items-center gap-2 rounded-e-md border-s-[3px] px-3 py-2"
+               th:classappend="${adminSection == 'orders'} ? 'border-brand-600 bg-brand-50 font-semibold text-brand-800' : 'border-transparent text-gray-700 hover:bg-gray-100'">
+                <span th:text="#{admin.nav.orders}">Orders</span>
+                <th:block th:if="${ordersToConfirm != null and ordersToConfirm > 0}">
+                    <span aria-hidden="true" class="ms-auto rounded-full bg-amber-100 px-2 text-sm font-semibold tabular-nums text-amber-900"
+                          th:text="${ordersToConfirm}">3</span>
+                    <span class="sr-only" th:text="#{admin.nav.orders.to-confirm(${ordersToConfirm})}">3 awaiting confirmation</span>
+                </th:block>
+            </a>
+        </li>
+        <li th:replace="~{fragments/admin-nav :: item(key='admin.nav.customers', href='/admin/customers', section='customers')}"></li>
+    </ul>
+    <ul class="border-t border-gray-200 pt-3">
+        <li th:replace="~{fragments/admin-nav :: item(key='admin.nav.products', href='/admin/products', section='products')}"></li>
+        <li th:replace="~{fragments/admin-nav :: item(key='admin.nav.categories', href='/admin/categories', section='categories')}"></li>
+        <li th:replace="~{fragments/admin-nav :: item(key='admin.nav.inventory', href='/admin/inventory', section='inventory')}"></li>
+    </ul>
+    <ul th:if="${manager}" class="border-t border-gray-200 pt-3">
+        <li th:replace="~{fragments/admin-nav :: item(key='admin.nav.settlement', href='/admin/settlement', section='settlement')}"></li>
+        <li th:replace="~{fragments/admin-nav :: item(key='admin.nav.delivery', href='/admin/delivery', section='delivery')}"></li>
+    </ul>
+    <ul th:if="${manager}" class="border-t border-gray-200 pt-3">
+        <li th:replace="~{fragments/admin-nav :: item(key='admin.nav.settings', href='/admin/settings', section='settings')}"></li>
+        <li th:replace="~{fragments/admin-nav :: item(key='admin.nav.staff', href='/admin/staff', section='staff')}"></li>
+        <li th:replace="~{fragments/admin-nav :: item(key='admin.nav.billing', href='/admin/billing', section='billing')}"></li>
+    </ul>
+</nav>
+
+<li th:fragment="item(key, href, section)">
+    <a th:href="@{${href}}" th:attr="aria-current=${adminSection == section} ? 'page'"
+       class="block rounded-e-md border-s-[3px] px-3 py-2"
+       th:classappend="${adminSection == section} ? 'border-brand-600 bg-brand-50 font-semibold text-brand-800' : 'border-transparent text-gray-700 hover:bg-gray-100'"
+       th:text="#{__${key}__}">Link</a>
+</li>
+
+<!--/* Who is logged in, logging out and the language: the bottom of the sidebar and of the phone menu. */-->
+<div th:fragment="account" class="space-y-3 text-sm">
+    <a th:href="@{/admin/account}" class="block font-medium text-gray-900 hover:underline"
+       th:attr="aria-current=${adminSection == 'account'} ? 'page'" th:title="#{admin.nav.account}"
+       th:text="${currentStaff.name()}">Name</a>
+    <div class="flex flex-wrap items-center gap-4">
+        <form th:action="@{/admin/logout}" method="post">
+            <button type="submit" class="text-brand-700 hover:underline" th:text="#{auth.logout}">Log out</button>
+        </form>
+        <a th:href="@{''(lang='ar')}" lang="ar" class="text-gray-700 hover:underline" th:text="#{lang.ar}">العربية</a>
+        <a th:href="@{''(lang='en')}" lang="en" class="text-gray-700 hover:underline" th:text="#{lang.en}">English</a>
+    </div>
+</div>
+
+</body>
+</html>

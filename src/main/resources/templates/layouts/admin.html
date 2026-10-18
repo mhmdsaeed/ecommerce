@@ -1,65 +1,83 @@
 <!DOCTYPE html>
 <!--/* Layout for the merchant admin (and signup/login on the main site). Pages fill the "content" fragment.
-       currentStaff and currentStore come from AdminModelAdvice and are null on public pages. */-->
+       currentStaff and currentStore come from AdminModelAdvice and are null on public pages.
+       Logged in: a sidebar on the start side from lg up (the store's sign, the grouped navigation, the account),
+       and below lg a bar with the store's name and a menu holding the same navigation (a <details>, no script).
+       Public pages keep a plain header. */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/base}">
 <body>
-<div layout:fragment="body" class="flex min-h-screen flex-col bg-gray-50" data-area="admin">
-    <header class="border-b border-gray-200 bg-white">
-        <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-            <a th:href="${currentStaff != null} ? @{/admin} : @{/}" class="text-lg font-semibold"
-               th:text="${currentStore != null} ? ${currentStore.name().in(#locale)} : #{app.name}">App</a>
-            <nav class="flex flex-wrap items-center gap-4 text-sm">
-                <th:block th:if="${currentStaff != null}">
-                    <a th:href="@{/admin}" th:text="#{admin.nav.dashboard}">Dashboard</a>
-                    <a th:if="${currentStaff.role().managesStaff() and currentStore != null and !currentStore.launched()}"
-                       th:href="@{/admin/setup}" class="font-semibold text-brand-700" th:text="#{admin.nav.setup}">Setup</a>
-                    <a th:href="@{/admin/orders}" th:text="#{admin.nav.orders}">Orders</a>
-                    <a th:href="@{/admin/customers}" th:text="#{admin.nav.customers}">Customers</a>
-                    <a th:href="@{/admin/products}" th:text="#{admin.nav.products}">Products</a>
-                    <a th:href="@{/admin/categories}" th:text="#{admin.nav.categories}">Categories</a>
-                    <a th:href="@{/admin/inventory}" th:text="#{admin.nav.inventory}">Inventory</a>
-                    <a th:if="${currentStaff.role().managesStaff()}" th:href="@{/admin/settlement}"
-                       th:text="#{admin.nav.settlement}">Cash settlement</a>
-                    <a th:if="${currentStaff.role().managesStaff()}" th:href="@{/admin/delivery}"
-                       th:text="#{admin.nav.delivery}">Delivery</a>
-                    <a th:if="${currentStaff.role().managesStaff()}" th:href="@{/admin/settings}"
-                       th:text="#{admin.nav.settings}">Settings</a>
-                    <a th:if="${currentStaff.role().managesStaff()}" th:href="@{/admin/staff}"
-                       th:text="#{admin.nav.staff}">Staff</a>
-                    <a th:if="${currentStaff.role().managesStaff()}" th:href="@{/admin/billing}"
-                       th:text="#{admin.nav.billing}">Billing</a>
-                    <a th:href="@{/admin/account}" class="text-gray-500 hover:underline" th:title="#{admin.nav.account}"
-                       th:text="${currentStaff.name()}">Name</a>
-                    <form th:action="@{/admin/logout}" method="post">
-                        <button type="submit" class="text-brand-700 hover:underline"
-                                th:text="#{auth.logout}">Log out</button>
-                    </form>
-                </th:block>
-                <a th:href="@{''(lang='ar')}" lang="ar" th:text="#{lang.ar}">العربية</a>
-                <a th:href="@{''(lang='en')}" lang="en" th:text="#{lang.en}">English</a>
-            </nav>
+<div layout:fragment="body" class="min-h-screen bg-gray-50 lg:flex" data-area="admin">
+    <aside th:if="${currentStaff != null}"
+           class="hidden border-e border-gray-200 bg-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:shrink-0 lg:flex-col">
+        <a th:href="@{/admin}" class="shop-sign shop-sign--compact block">
+            <span class="shop-sign__shutter" aria-hidden="true"></span>
+            <span class="block text-lg font-bold leading-snug" dir="auto"
+                  th:text="${currentStore != null} ? ${currentStore.name().in(#locale)} : #{app.name}">Store</span>
+            <bdi th:if="${storeHost != null}" dir="ltr" class="block text-sm text-brand-100" th:text="${storeHost}">store.example.com</bdi>
+            <span th:if="${currentStore != null}" class="mt-1 block text-xs text-brand-100"
+                  th:text="#{store.status.__${currentStore.status()}__}">Trial</span>
+        </a>
+        <div class="flex-1 overflow-y-auto px-3 py-4">
+            <nav th:replace="~{fragments/admin-nav :: links}"></nav>
         </div>
-    </header>
-    <div th:if="${billingNotice != null}" role="status"
-         class="mx-auto mt-4 w-full max-w-5xl rounded-md border px-4 py-3 text-sm"
-         th:classappend="${billingNotice.kind() == 'trial'} ? 'border-blue-200 bg-blue-50 text-blue-900' : (${billingNotice.kind() == 'due'} ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-red-200 bg-red-50 text-red-800')">
-        <span th:text="#{admin.billing.notice.__${billingNotice.kind()}__(${@dates.day(billingNotice.date())})}">Notice</span>
-        <a th:if="${currentStaff.role().managesStaff()}" th:href="@{/admin/billing}" class="ms-2 font-medium underline"
-           th:text="#{admin.billing.notice.open}">Billing</a>
+        <div class="border-t border-gray-200 px-4 py-4">
+            <div th:replace="~{fragments/admin-nav :: account}"></div>
+        </div>
+    </aside>
+
+    <div class="flex min-h-screen min-w-0 flex-1 flex-col">
+        <header th:if="${currentStaff != null}" class="relative bg-brand-700 text-white lg:hidden">
+            <div class="flex items-center justify-between gap-3 px-4 py-3">
+                <a th:href="@{/admin}" class="min-w-0 truncate text-lg font-bold" dir="auto"
+                   th:text="${currentStore != null} ? ${currentStore.name().in(#locale)} : #{app.name}">Store</a>
+                <details class="group">
+                    <summary class="flex cursor-pointer list-none items-center gap-2 rounded-md border border-white/50 px-3 py-1.5 text-sm font-medium hover:bg-brand-800 [&::-webkit-details-marker]:hidden">
+                        <span th:text="#{admin.nav.menu}">Menu</span>
+                        <span th:if="${ordersToConfirm != null and ordersToConfirm > 0}" aria-hidden="true"
+                              class="rounded-full bg-amber-100 px-1.5 text-xs font-semibold tabular-nums text-amber-900"
+                              th:text="${ordersToConfirm}">3</span>
+                    </summary>
+                    <div class="absolute inset-x-0 top-full z-20 space-y-4 border-b border-gray-200 bg-white px-4 py-4 text-gray-900 shadow-lg">
+                        <nav th:replace="~{fragments/admin-nav :: links}"></nav>
+                        <div class="border-t border-gray-200 pt-4">
+                            <div th:replace="~{fragments/admin-nav :: account}"></div>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </header>
+
+        <header th:if="${currentStaff == null}" class="border-b border-gray-200 bg-white">
+            <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+                <a th:href="@{/}" class="text-lg font-semibold"
+                   th:text="${currentStore != null} ? ${currentStore.name().in(#locale)} : #{app.name}">App</a>
+                <nav class="flex flex-wrap items-center gap-4 text-sm">
+                    <a th:href="@{''(lang='ar')}" lang="ar" th:text="#{lang.ar}">العربية</a>
+                    <a th:href="@{''(lang='en')}" lang="en" th:text="#{lang.en}">English</a>
+                </nav>
+            </div>
+        </header>
+
+        <!--/* Width and padding live on a wrapper: a page's own class on its <main> replaces the layout's. */-->
+        <div class="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
+            <div th:if="${billingNotice != null}" role="status" class="mb-6 rounded-md border px-4 py-3 text-sm"
+                 th:classappend="${billingNotice.kind() == 'trial'} ? 'border-blue-200 bg-blue-50 text-blue-900' : (${billingNotice.kind() == 'due'} ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-red-200 bg-red-50 text-red-800')">
+                <span th:text="#{admin.billing.notice.__${billingNotice.kind()}__(${@dates.day(billingNotice.date())})}">Notice</span>
+                <a th:if="${currentStaff.role().managesStaff()}" th:href="@{/admin/billing}" class="ms-2 font-medium underline"
+                   th:text="#{admin.billing.notice.open}">Billing</a>
+            </div>
+            <!--/* Shown by app.js when an HTMX request fails: htmx does not swap error responses, so say something. */-->
+            <div id="htmx-error" role="alert" hidden
+                 class="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+                 th:text="#{admin.htmx-error}">Something went wrong.</div>
+            <main id="content" layout:fragment="content"></main>
+        </div>
+        <footer class="border-t border-gray-200 py-4 text-center text-xs text-gray-500" th:text="#{layout.footer}">
+            All rights reserved
+        </footer>
     </div>
-    <!--/* Shown by app.js when an HTMX request fails: htmx does not swap error responses, so say something. */-->
-    <div id="htmx-error" role="alert" hidden
-         class="mx-auto mt-4 w-full max-w-5xl rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
-         th:text="#{admin.htmx-error}">Something went wrong.</div>
-    <!--/* Width and padding live on a wrapper: a page's own class on its <main> replaces the layout's. */-->
-    <div class="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
-        <main id="content" layout:fragment="content"></main>
-    </div>
-    <footer class="border-t border-gray-200 py-4 text-center text-xs text-gray-500" th:text="#{layout.footer}">
-        All rights reserved
-    </footer>
 </div>
 </body>
 </html>

@@ -6,8 +6,6 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Optional;
 
-import jakarta.servlet.http.HttpServletRequest;
-
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,7 +16,6 @@ import com.unispark.ecommerce.order.CodSettlement;
 import com.unispark.ecommerce.order.Orders;
 import com.unispark.ecommerce.pricing.ExchangeRates;
 import com.unispark.ecommerce.pricing.ExchangeRates.ExchangeRate;
-import com.unispark.ecommerce.tenant.Sites;
 import com.unispark.ecommerce.tenant.StoreSettings;
 
 /** Merchant admin home (SPEC 9.3): today's orders and what waits for the merchant. COD totals arrive with M10. */
@@ -27,7 +24,6 @@ class DashboardController {
 
     static final ZoneId STORE_ZONE = ZoneId.of("Asia/Damascus");
 
-    private final Sites sites;
     private final ExchangeRates rates;
     private final Orders orders;
     private final CodSettlement settlement;
@@ -35,9 +31,8 @@ class DashboardController {
     private final SetupChecklist setup;
     private final StoreSettings settings;
 
-    DashboardController(Sites sites, ExchangeRates rates, Orders orders, CodSettlement settlement, Clock clock,
+    DashboardController(ExchangeRates rates, Orders orders, CodSettlement settlement, Clock clock,
             SetupChecklist setup, StoreSettings settings) {
-        this.sites = sites;
         this.rates = rates;
         this.orders = orders;
         this.settlement = settlement;
@@ -47,10 +42,7 @@ class DashboardController {
     }
 
     @GetMapping("/admin")
-    String dashboard(@AuthenticationPrincipal StaffPrincipal staff, HttpServletRequest request, Model model) {
-        var storefrontHost = sites.storeHost(staff.storeSlug());
-        model.addAttribute("storefrontHost", storefrontHost);
-        model.addAttribute("storefrontUrl", request.getScheme() + "://" + storefrontHost + "/");
+    String dashboard(@AuthenticationPrincipal StaffPrincipal staff, Model model) {
         // Until the store is live, owners and managers are pointed back to the setup wizard.
         model.addAttribute("setup", staff.role().managesStaff() && !settings.current().launched()
                 ? setup.current() : null);
