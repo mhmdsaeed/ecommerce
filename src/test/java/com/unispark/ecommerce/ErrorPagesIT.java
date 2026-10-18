@@ -41,6 +41,8 @@ class ErrorPagesIT {
         assertThat(response).startsWith("HTTP/1.1 404")
                 .contains("dir=\"rtl\"")
                 .contains("لم نجد ما تبحث عنه")
+                // The door sign says it in two words; the way back is a button home.
+                .contains(">ليس هنا</p>").contains("<a href=\"/\" class=\"mt-8")
                 .contains("<meta name=\"robots\" content=\"noindex\">")
                 .doesNotContain("??");
     }
@@ -99,6 +101,7 @@ class ErrorPagesIT {
 
         assertThat(response).startsWith("HTTP/1.1 500")
                 .contains("حدث خطأ من جهتنا")
+                .contains(">معطّل مؤقتاً</p>").contains(">500</p>")
                 .contains("<meta name=\"robots\" content=\"noindex\">")
                 .doesNotContain("secret detail")
                 .doesNotContain("IllegalStateException")
@@ -111,6 +114,7 @@ class ErrorPagesIT {
 
         assertThat(response).startsWith("HTTP/1.1 400")
                 .contains("لم نتمكن من تنفيذ هذا الطلب")
+                .contains(">لم نفهم</p>").contains(">400</p>")
                 .contains("<meta name=\"robots\" content=\"noindex\">");
     }
 

@@ -9,11 +9,7 @@
 </head>
 <body>
 <main layout:fragment="content">
-    <section class="mx-auto max-w-2xl py-16 text-center">
-        <p class="text-sm font-medium text-brand-600">403</p>
-        <h1 class="mt-3 text-3xl font-bold tracking-tight" th:text="#{error.forbidden.heading}">Access denied</h1>
-        <p class="mt-4 text-gray-600" th:text="#{error.forbidden.body}">Body</p>
-    </section>
+    <section th:replace="~{fragments/error :: page(code='403', sign=#{error.forbidden.sign}, heading=#{error.forbidden.heading}, body=#{error.forbidden.body})}"></section>
 </main>
 </body>
 </html>

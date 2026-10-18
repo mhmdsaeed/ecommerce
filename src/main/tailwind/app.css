@@ -206,6 +206,51 @@
   box-shadow: 0 7px 6px -5px rgb(0 0 0 / 0.3);
 }
 
+/* Storefront product page (storefront/product.html): the price on a swing tag in the store's colour, its end cut to
+   a point and punched with a hole, on the side where the tag would be tied (the start). */
+.swing-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding-block: 0.25rem;
+  padding-inline: 2rem 1rem;
+  background: var(--color-brand-600);
+  color: #fff;
+  border-radius: 4px;
+  clip-path: polygon(1rem 0, 100% 0, 100% 100%, 1rem 100%, 0 50%);
+  -webkit-mask: radial-gradient(circle at 1.125rem 50%, transparent 0.25rem, #000 0.3rem);
+  mask: radial-gradient(circle at 1.125rem 50%, transparent 0.25rem, #000 0.3rem);
+}
+[dir="rtl"] .swing-tag {
+  clip-path: polygon(0 0, calc(100% - 1rem) 0, 100% 50%, calc(100% - 1rem) 100%, 0 100%);
+  -webkit-mask: radial-gradient(circle at calc(100% - 1.125rem) 50%, transparent 0.25rem, #000 0.3rem);
+  mask: radial-gradient(circle at calc(100% - 1.125rem) 50%, transparent 0.25rem, #000 0.3rem);
+}
+
+/* Storefront look settings (merchantadmin/settings/theme.html): the preview's colours, set inline by app.js
+   (themePreview) from the colour being picked; the platform's own colours until then. */
+.theme-preview {
+  --p-50: var(--color-brand-50);
+  --p-600: var(--color-brand-600);
+  --p-700: var(--color-brand-700);
+}
+.theme-preview__sign {
+  background: var(--p-700);
+}
+.theme-preview__cart {
+  color: var(--p-700);
+}
+.theme-preview__tagline {
+  color: var(--p-50);
+}
+.theme-preview__tag {
+  background: var(--p-50);
+  color: var(--p-700);
+}
+.theme-preview__button {
+  background: var(--p-600);
+}
+
 /* Alpine hides x-cloak elements until it has started. */
 [x-cloak] {
   display: none !important;

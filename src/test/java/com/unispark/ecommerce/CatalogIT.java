@@ -401,7 +401,12 @@ class CatalogIT {
         mvc.perform(htmx(post(MAIN + "/admin/categories/{id}/delete", child)))
                 .andExpect(content().string(containsString("لا يمكن حذف قسم فيه منتجات أو أقسام فرعية")));
         mvc.perform(htmx(post(MAIN + "/admin/categories/{id}/active", child)).param("active", "false"))
-                .andExpect(content().string(containsString("أصبح القسم مخفياً من المتجر")));
+                .andExpect(content().string(allOf(containsString("أصبح القسم مخفياً من المتجر"),
+                        // The tree: the parent links to its page in the shop; the hidden child hangs off its line,
+                        // greyed, with its address as plain text and its product counted.
+                        matchesPattern("(?s).*<a href=\"//" + slug + "\\.[^\"]*/c/ملابس\".*"),
+                        matchesPattern("(?s).*border-s-2[^\"]*\">\\s*<div class=\"opacity-60\">\\s*<div class=\"font-medium\">قمصان</div>"
+                                + "\\s*<span dir=\"ltr\"[^>]*>/c/قمصان</span>.*منتج واحد.*"))));
         mvc.perform(htmx(post(MAIN + "/admin/categories")).param("nameAr", "أحذية").param("parentId", child.toString()))
                 .andExpect(content().string(containsString("يمكن أن يكون القسم الفرعي داخل قسم رئيسي فقط")));
     }

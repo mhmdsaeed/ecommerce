@@ -115,6 +115,7 @@ document.addEventListener("alpine:init", function () {
       variantId: null,
       unavailable: false,
       soldOut: false,
+      quantity: 1,
       init: function () {
         this.variants = JSON.parse(this.$el.dataset.variants || "[]");
         var first = this.variants.find(function (variant) { return variant.inStock; }) || this.variants[0];
@@ -136,6 +137,118 @@ document.addEventListener("alpine:init", function () {
           this.price = match.price;
           this.compareAt = match.compareAt || "";
         }
+      },
+      // Whether a choice (its radio input) can be bought with the other options as chosen: a variant in stock has it.
+      buyable: function (input) {
+        var index = parseInt(input.dataset.index, 10);
+        var chosen = this.chosen;
+        return this.variants.some(function (variant) {
+          return variant.inStock && variant.values.every(function (value, i) {
+            return i === index ? value === input.value : value === chosen[i];
+          });
+        });
+      }
+    };
+  });
+});
+
+// Storefront look settings: a small copy of the shop that follows the form (data-form) as the merchant types. The
+// colour shades are the storefront's (ThemeStyle.java): 50 is the colour mixed with white, 600 the colour darkened
+// until white text on it is readable (4.5:1), 700 the 600 a fifth darker.
+document.addEventListener("alpine:init", function () {
+  var CLASSIC_FONTS = "\"Traditional Arabic\", \"Noto Naskh Arabic\", \"Times New Roman\", Georgia, serif";
+
+  function channels(hex) {
+    return [1, 3, 5].map(function (i) { return parseInt(hex.substr(i, 2), 16); });
+  }
+  function toHex(color) {
+    return "#" + color.map(function (c) { return ("0" + Math.round(c).toString(16)).slice(-2); }).join("");
+  }
+  function mix(color, other, amount) {
+    return color.map(function (c, i) { return Math.round(c + (other[i] - c) * amount); });
+  }
+  function contrastWithWhite(color) {
+    var linear = color.map(function (c) {
+      var v = c / 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 1.05 / (0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2] + 0.05);
+  }
+  function readableOnWhite(color) {
+    for (var step = 0; step < 40 && contrastWithWhite(color) < 4.5; step++) {
+      color = mix(color, [0, 0, 0], 0.06);
+    }
+    return color;
+  }
+
+  window.Alpine.data("themePreview", function () {
+    return {
+      style: "",
+      title: "",
+      text: "",
+      init: function () {
+        var self = this;
+        var form = document.getElementById(this.$el.dataset.form);
+        if (!form) {
+          return;
+        }
+        var english = this.$el.dataset.lang === "en";
+        var value = function (name) {
+          var field = form.elements[name];
+          return field ? field.value.trim() : "";
+        };
+        var either = function (ar, en) { return english ? (value(en) || value(ar)) : (value(ar) || value(en)); };
+        var update = function () {
+          self.title = either("heroTitleAr", "heroTitleEn");
+          self.text = either("heroTextAr", "heroTextEn");
+          var style = "";
+          var color = value("primaryColor");
+          if (/^#[0-9a-fA-F]{6}$/.test(color)) {
+            var base = channels(color);
+            var button = readableOnWhite(base);
+            style += "--p-50:" + toHex(mix(base, [255, 255, 255], 0.92)) + ";--p-600:" + toHex(button)
+              + ";--p-700:" + toHex(mix(button, [0, 0, 0], 0.2)) + ";";
+          }
+          var font = form.querySelector("input[name=font]:checked");
+          if (font && font.value === "CLASSIC") {
+            style += "font-family:" + CLASSIC_FONTS + ";";
+          }
+          self.style = style;
+        };
+        form.addEventListener("input", update);
+        form.addEventListener("change", update);
+        update();
+      }
+    };
+  });
+});
+
+// Product page photos: a strip that scrolls one photo at a time, and thumbnails that bring a photo into view. The
+// current photo is the one mostly in view, so swiping updates the thumbnails too.
+document.addEventListener("alpine:init", function () {
+  window.Alpine.data("gallery", function () {
+    return {
+      current: 0,
+      init: function () {
+        var self = this;
+        var slides = Array.prototype.slice.call(this.$refs.strip.children);
+        if (slides.length < 2 || !("IntersectionObserver" in window)) {
+          return;
+        }
+        var observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              self.current = slides.indexOf(entry.target);
+            }
+          });
+        }, { root: this.$refs.strip, threshold: 0.6 });
+        slides.forEach(function (slide) { observer.observe(slide); });
+      },
+      show: function (index) {
+        var slide = this.$refs.strip.children[index];
+        var smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        slide.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "nearest", inline: "start" });
+        this.current = index;
       }
     };
   });

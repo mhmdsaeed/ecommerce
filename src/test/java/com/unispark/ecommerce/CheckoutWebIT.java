@@ -301,7 +301,10 @@ class CheckoutWebIT {
 
         mvc.perform(get(MAIN + "/admin/settings/payments").session(owner))
                 .andExpect(content().string(allOf(containsString("سيريتل كاش"), containsString("تحويل مصرفي"),
-                        containsString("0944 123 456"))));
+                        containsString("0944 123 456"),
+                        // Methods shoppers can use have the brand edge; the others a grey one.
+                        matchesPattern("(?s).*id=\"method-SHAM_CASH\"[^>]*border-s-brand-600.*"),
+                        matchesPattern("(?s).*id=\"method-BANK_TRANSFER\"[^>]*border-s-gray-300.*"))));
         mvc.perform(post(MAIN + "/admin/settings/payments/BANK_TRANSFER").session(owner).with(csrf())
                         .param("enabled", "true").param("accountName", "Jasmine"))
                 .andExpect(status().isOk())

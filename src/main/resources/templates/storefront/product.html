@@ -1,7 +1,10 @@
 <!DOCTYPE html>
-<!--/* Product page. The variant picker (app.js: variantPicker) reads the available variants from data-variants and
-       shows the price of the chosen combination. The first image is the largest contentful paint: eager, high
-       priority. Adding to the cart posts the chosen variant over HTMX and shows the answer in #cart-status. */-->
+<!--/* Product page (model: product, variantsJson, coverage, methods). Photos are a strip that swipes on phones, with
+       thumbnails to jump (app.js: gallery); without JavaScript the strip still scrolls. The first photo is the
+       largest contentful paint: eager, high priority. The price hangs on a swing tag in the store's colour. The
+       variant picker (app.js: variantPicker) reads the variants from data-variants, shows the chosen one's price and
+       crosses out choices that cannot be bought with the others. Adding to the cart posts the chosen variant over
+       HTMX and shows the answer in #cart-status. Below: where the store delivers and how it can be paid. */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/storefront}">
@@ -17,39 +20,58 @@
         </th:block>
     </nav>
 
-    <div class="mt-4 grid gap-8 md:grid-cols-2">
-        <div>
-            <div th:if="${product.images().isEmpty()}" class="aspect-square rounded-lg bg-gray-100"></div>
-            <ul th:unless="${product.images().isEmpty()}" class="space-y-3">
-                <li th:each="image, state : ${product.images()}"
+    <div class="mt-4 grid gap-8 md:grid-cols-2 md:items-start">
+        <div th:if="${product.images().isEmpty()}" class="aspect-square rounded-lg bg-gray-100"></div>
+        <div th:unless="${product.images().isEmpty()}" x-data="gallery" class="min-w-0 space-y-3 md:sticky md:top-4"
+             th:with="count=${product.images().size()}">
+            <ul x-ref="strip" class="flex snap-x snap-mandatory overflow-x-auto rounded-lg bg-gray-100 [scrollbar-width:none]"
+                th:attr="aria-label=${product.name().in(#locale)}">
+                <li th:each="image, state : ${product.images()}" class="w-full shrink-0 snap-center"
                     th:with="key=${image.storageKey()}, small=${@shopImages.small(key)}, medium=${@shopImages.medium(key)}, large=${@shopImages.large(key)}">
                     <img th:src="${medium}" th:srcset="|${small} 320w, ${medium} 640w, ${large} 1024w|"
                          sizes="(min-width: 768px) 50vw, 100vw"
-                         th:width="${image.width()}" th:height="${image.height()}" th:alt="${product.name().in(#locale)}"
+                         th:width="${image.width()}" th:height="${image.height()}"
+                         th:alt="${count > 1} ? #{shop.product.photo(${product.name().in(#locale)}, ${state.count}, ${count})} : ${product.name().in(#locale)}"
                          th:attr="loading=${state.first} ? 'eager' : 'lazy', fetchpriority=${state.first} ? 'high' : null"
-                         class="h-auto w-full rounded-lg bg-gray-100">
+                         class="aspect-square h-auto w-full object-contain">
+                </li>
+            </ul>
+            <ul th:if="${count > 1}" class="flex gap-2 overflow-x-auto pb-1">
+                <li th:each="image, state : ${product.images()}" class="shrink-0"
+                    th:with="small=${@shopImages.small(image.storageKey())}">
+                    <button type="button" th:data-index="${state.index}"
+                            x-on:click="show(+$el.dataset.index)" x-bind:aria-current="current === +$el.dataset.index ? 'true' : null"
+                            th:attr="aria-label=#{shop.product.photo(${product.name().in(#locale)}, ${state.count}, ${count})}"
+                            class="block overflow-hidden rounded-md border-2 border-transparent focus-visible:outline-2 focus-visible:outline-brand-600 aria-[current=true]:border-brand-600">
+                        <img th:src="${small}" alt="" width="64" height="64" loading="lazy" class="h-16 w-16 object-cover">
+                    </button>
                 </li>
             </ul>
         </div>
 
-        <div x-data="variantPicker" th:data-variants="${variantsJson}" class="space-y-5">
-            <h1 class="text-2xl font-bold" th:text="${product.name().in(#locale)}">Product</h1>
-            <p class="flex flex-wrap items-baseline gap-2 text-xl" aria-live="polite">
-                <bdi class="rounded-md bg-brand-50 px-2 py-0.5 font-bold tabular-nums text-brand-700" x-text="price"
-                     th:text="${@shopPrices.show(product.variants()[0].price())}">150,000</bdi>
-                <del class="text-base text-gray-400" x-show="compareAt" x-text="compareAt"
-                     th:text="${@shopPrices.show(product.variants()[0].compareAtPrice())}"
-                     th:style="${product.variants()[0].compareAtPrice() == null} ? 'display: none' : null"></del>
-            </p>
+        <div x-data="variantPicker" th:data-variants="${variantsJson}" class="space-y-6">
+            <div class="space-y-4">
+                <h1 class="text-2xl font-bold leading-snug sm:text-3xl" th:text="${product.name().in(#locale)}">Product</h1>
+                <p class="flex flex-wrap items-center gap-3" aria-live="polite">
+                    <span class="swing-tag">
+                        <bdi class="text-2xl font-bold tabular-nums" x-text="price"
+                             th:text="${@shopPrices.show(product.variants()[0].price())}">150,000</bdi>
+                    </span>
+                    <del class="text-gray-500" x-show="compareAt" x-text="compareAt"
+                         th:text="${@shopPrices.show(product.variants()[0].compareAtPrice())}"
+                         th:style="${product.variants()[0].compareAtPrice() == null} ? 'display: none' : null"></del>
+                </p>
+            </div>
 
             <fieldset th:each="option, state : ${product.options()}" class="space-y-2">
                 <legend class="text-sm font-medium text-gray-800" th:text="${option.name().in(#locale)}">Size</legend>
                 <div class="flex flex-wrap gap-2">
                     <label th:each="choice : ${option.values()}" class="cursor-pointer">
-                        <input type="radio" class="peer sr-only" th:name="|option-${state.index}|"
+                        <input type="radio" class="peer sr-only" th:name="|option-${state.index}|" th:data-index="${state.index}"
                                th:value="${choice.ar() != null ? choice.ar() : choice.en()}"
                                th:attr="x-model=|chosen[${state.index}]|">
-                        <span class="block rounded-md border border-gray-300 px-3 py-1.5 text-sm peer-checked:border-brand-600 peer-checked:bg-brand-50 peer-checked:text-brand-700 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-600"
+                        <span class="block min-w-11 rounded-md border border-gray-300 px-3 py-2 text-center text-sm peer-checked:border-brand-600 peer-checked:bg-brand-50 peer-checked:font-medium peer-checked:text-brand-700 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-600"
+                              x-bind:class="buyable($el.previousElementSibling) ? '' : 'text-gray-400 line-through decoration-gray-400'"
                               th:text="${choice.in(#locale)}">M</span>
                     </label>
                 </div>
@@ -58,22 +80,49 @@
             <p x-show="soldOut" x-cloak class="text-sm text-red-700" th:text="#{shop.product.sold-out}">Sold out</p>
 
             <!--/* Needs JavaScript (the chosen variant comes from the picker), so the button starts disabled. */-->
-            <form th:hx-post="@{/cart/items}" hx-target="#cart-status" hx-swap="innerHTML"
-                  class="flex flex-wrap items-end gap-3">
+            <form th:hx-post="@{/cart/items}" hx-target="#cart-status" hx-swap="innerHTML" class="space-y-3">
                 <input type="hidden" name="variantId" x-bind:value="variantId">
-                <label class="block text-sm font-medium text-gray-800">
-                    <span th:text="#{shop.cart.quantity}">Quantity</span>
-                    <input type="number" name="quantity" value="1" min="1" max="99" inputmode="numeric" required
-                           class="mt-1 block w-20 rounded-md border border-gray-300 px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
-                </label>
-                <button type="submit" disabled x-bind:disabled="unavailable || soldOut"
-                        class="flex-1 rounded-md bg-brand-600 px-4 py-3 font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none"
-                        th:text="#{shop.cart.add}">Add to cart</button>
+                <div class="flex items-stretch gap-3">
+                    <div class="flex items-stretch rounded-md border border-gray-300" role="group" th:attr="aria-label=#{shop.cart.quantity}">
+                        <button type="button" x-on:click="quantity = Math.max(1, quantity - 1)" x-bind:disabled="quantity <= 1"
+                                class="w-11 text-xl text-gray-700 disabled:text-gray-300" th:attr="aria-label=#{shop.cart.quantity.less}">−</button>
+                        <label class="sr-only" for="quantity" th:text="#{shop.cart.quantity}">Quantity</label>
+                        <input id="quantity" type="number" name="quantity" value="1" min="1" max="99" inputmode="numeric" required
+                               x-model.number="quantity"
+                               class="w-12 border-x border-gray-300 text-center text-base tabular-nums [appearance:textfield] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-600 [&::-webkit-inner-spin-button]:appearance-none">
+                        <button type="button" x-on:click="quantity = Math.min(99, quantity + 1)" x-bind:disabled="quantity >= 99"
+                                class="w-11 text-xl text-gray-700 disabled:text-gray-300" th:attr="aria-label=#{shop.cart.quantity.more}">+</button>
+                    </div>
+                    <button type="submit" disabled x-bind:disabled="unavailable || soldOut"
+                            class="flex-1 rounded-md bg-brand-600 px-4 py-3 text-lg font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            th:text="#{shop.cart.add}">Add to cart</button>
+                </div>
             </form>
             <div id="cart-status" aria-live="polite"></div>
 
-            <div th:if="${product.description() != null}" class="whitespace-pre-line text-gray-700"
-                 th:text="${product.description().in(#locale)}">Description</div>
+            <!--/* How it reaches the shopper: where the store delivers (the fee depends on the area), how it is paid. */-->
+            <dl th:if="${!coverage.isEmpty() or !methods.isEmpty()}" class="divide-y divide-gray-200 border-y border-gray-200 text-sm">
+                <div th:unless="${coverage.isEmpty()}" class="grid gap-1 py-3 sm:grid-cols-[8rem_1fr] sm:gap-4">
+                    <dt class="font-medium text-gray-900" th:text="#{shop.product.delivery}">Delivery to</dt>
+                    <dd class="text-gray-700">
+                        <th:block th:each="covered, s : ${coverage.governorates()}"><span th:text="#{governorate.__${covered.governorate()}__}">Damascus</span><th:block th:unless="${s.last}" th:text="#{shop.list.separator}">,</th:block>
+                        </th:block>
+                        <span class="block text-gray-500" th:text="#{shop.product.delivery.fee}">The fee shows in your cart.</span>
+                    </dd>
+                </div>
+                <div th:unless="${methods.isEmpty()}" class="grid gap-1 py-3 sm:grid-cols-[8rem_1fr] sm:gap-4">
+                    <dt class="font-medium text-gray-900" th:text="#{shop.product.payment}">Payment</dt>
+                    <dd class="text-gray-700">
+                        <th:block th:each="method, s : ${methods}"><span th:text="${method.displayName() != null} ? ${method.displayName().in(#locale)} : #{payment.method.__${method.method()}__}">Cash on delivery</span><th:block th:unless="${s.last}" th:text="#{shop.list.separator}">,</th:block>
+                        </th:block>
+                    </dd>
+                </div>
+            </dl>
+
+            <section th:if="${product.description() != null}" class="space-y-2">
+                <h2 class="text-lg font-semibold" th:text="#{shop.product.about}">About this product</h2>
+                <div class="whitespace-pre-line leading-relaxed text-gray-700" th:text="${product.description().in(#locale)}">Description</div>
+            </section>
         </div>
     </div>
 </main>

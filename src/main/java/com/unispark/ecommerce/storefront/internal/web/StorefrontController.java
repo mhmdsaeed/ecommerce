@@ -26,7 +26,9 @@ import com.unispark.ecommerce.catalog.StorefrontCatalog.PriceScale;
 import com.unispark.ecommerce.catalog.StorefrontCatalog.ProductView;
 import com.unispark.ecommerce.catalog.StorefrontCatalog.Sort;
 import com.unispark.ecommerce.catalog.StorefrontCatalog.VariantOffer;
+import com.unispark.ecommerce.delivery.DeliveryZones;
 import com.unispark.ecommerce.inventory.Inventory;
+import com.unispark.ecommerce.payment.PaymentMethods;
 import com.unispark.ecommerce.pricing.ExchangeRates;
 import com.unispark.ecommerce.shared.ListParams;
 import com.unispark.ecommerce.shared.TenantContext;
@@ -51,11 +53,16 @@ class StorefrontController {
     private final ObjectMapper json;
     private final Inventory inventory;
     private final SeoTags seo;
+    private final DeliveryZones zones;
+    private final PaymentMethods methods;
 
     StorefrontController(StorefrontCatalog catalog, StoreSettings settings, ExchangeRates rates, ShopPrices shopPrices,
-            LocaleResolver locales, ObjectMapper json, Inventory inventory, SeoTags seo) {
+            LocaleResolver locales, ObjectMapper json, Inventory inventory, SeoTags seo, DeliveryZones zones,
+            PaymentMethods methods) {
         this.inventory = inventory;
         this.seo = seo;
+        this.zones = zones;
+        this.methods = methods;
         this.catalog = catalog;
         this.settings = settings;
         this.rates = rates;
@@ -98,6 +105,9 @@ class StorefrontController {
         model.addAttribute("product", product);
         model.addAttribute("seo", seo.product(product, settings.current()));
         model.addAttribute("variantsJson", variantsJson(product));
+        // How it reaches the shopper: where the store delivers and how it can be paid for.
+        model.addAttribute("coverage", zones.coverage());
+        model.addAttribute("methods", methods.enabled());
         return "storefront/product";
     }
 

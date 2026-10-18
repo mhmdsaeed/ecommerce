@@ -97,8 +97,13 @@ class InventoryAdminIT {
                         .session(staff).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(content().string(allOf(containsString("value=\"12\""), containsString("تم الحفظ"),
-                        containsString("محجوز 0 · متاح 12"))));
+                        containsString("محجوز 0 · متاح 12"), not(containsString("نفد من المخزن")))));
         assertThat(level()).isEqualTo(new Level(kettle, 12, 0));
+
+        // Nothing left to sell: the field and a label in amber, as shoppers see it sold out.
+        mvc.perform(post(MAIN + "/admin/inventory/" + kettle).param("onHand", "0").header("HX-Request", "true")
+                        .session(staff).with(csrf()))
+                .andExpect(content().string(allOf(containsString("نفد من المخزن"), containsString("border-amber-400"))));
 
         mvc.perform(post(MAIN + "/admin/inventory/" + kettle).param("onHand", "").header("HX-Request", "true")
                         .session(staff).with(csrf()))

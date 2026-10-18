@@ -22,60 +22,46 @@
             <p th:if="${zones.isEmpty()}" class="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-gray-600"
                th:text="#{zone.empty}">No zones yet.</p>
 
-            <div th:unless="${zones.isEmpty()}" class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50 text-gray-600">
-                    <tr>
-                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{zone.col.destination}">Destination</th>
-                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{zone.col.fee}">Fee</th>
-                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{zone.col.rules}">Rules</th>
-                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{zone.col.status}">Status</th>
-                        <th scope="col" class="px-4 py-3"><span class="sr-only" th:text="#{zone.col.actions}">Actions</span></th>
-                    </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                    <tr th:each="zone : ${zones}">
-                        <td class="px-4 py-3">
-                            <div class="font-medium">
-                                <span th:text="#{governorate.__${zone.governorate()}__}">Damascus</span><th:block th:if="${zone.city() != null}"> › <span th:text="${zone.city()}">City</span></th:block><th:block th:if="${zone.area() != null}"> › <span th:text="${zone.area()}">Area</span></th:block>
-                            </div>
-                            <div class="text-xs text-gray-500"
-                                 th:text="${zone.coversWholeGovernorate()} ? #{zone.scope.governorate} : (${zone.coversWholeCity()} ? #{zone.scope.city} : #{zone.scope.area})">Whole city</div>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <bdi th:if="${zone.fee().isPositive()}" th:text="${@money.format(zone.fee())}">2,000</bdi>
-                            <span th:unless="${zone.fee().isPositive()}" th:text="#{zone.free}">Free</span>
-                        </td>
-                        <td class="px-4 py-3 text-gray-600">
-                            <div th:if="${zone.minOrder() != null}" th:text="#{zone.rule.min(${@money.format(zone.minOrder())})}">Min order</div>
-                            <div th:if="${zone.freeOver() != null}" th:text="#{zone.rule.free-over(${@money.format(zone.freeOver())})}">Free over</div>
-                            <div th:if="${zone.eta() != null}" th:text="${zone.eta().in(#locale)}">ETA</div>
-                        </td>
-                        <td class="px-4 py-3">
-                            <span th:if="${zone.active()}" class="rounded-full bg-brand-50 px-2 py-0.5 text-xs text-brand-700" th:text="#{zone.status.active}">Active</span>
-                            <span th:unless="${zone.active()}" class="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600" th:text="#{zone.status.paused}">Paused</span>
-                        </td>
-                        <td class="px-4 py-3">
-                            <div class="flex flex-wrap items-center justify-end gap-3">
-                                <a th:href="@{/admin/delivery/{id}/edit(id=${zone.id()})}" class="text-brand-700 hover:underline"
-                                   th:text="#{zone.action.edit}">Edit</a>
-                                <form th:action="@{/admin/delivery/{id}/active(id=${zone.id()})}" method="post"
-                                      th:hx-post="@{/admin/delivery/{id}/active(id=${zone.id()})}" hx-target="#zones" hx-swap="outerHTML">
-                                    <input type="hidden" name="active" th:value="${!zone.active()}">
-                                    <button type="submit" class="text-brand-700 hover:underline"
-                                            th:text="${zone.active()} ? #{zone.action.pause} : #{zone.action.resume}">Pause</button>
-                                </form>
-                                <form th:action="@{/admin/delivery/{id}/delete(id=${zone.id()})}" method="post"
-                                      th:hx-post="@{/admin/delivery/{id}/delete(id=${zone.id()})}" hx-target="#zones" hx-swap="outerHTML"
-                                      th:hx-confirm="#{zone.delete.confirm}">
-                                    <button type="submit" class="text-red-700 hover:underline" th:text="#{zone.action.delete}">Delete</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
+            <!--/* One row per zone: where, the fee as the shop's price tag, the rules, then status and actions. Rows
+                   stack on phones; a paused zone is greyed. */-->
+            <ul th:unless="${zones.isEmpty()}" class="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white text-sm">
+                <li th:each="zone : ${zones}"
+                    class="grid gap-x-4 gap-y-2 px-4 py-3 md:grid-cols-[minmax(0,2fr)_auto_minmax(0,2fr)_auto] md:items-center">
+                    <div th:classappend="${zone.active()} ? '' : 'opacity-60'">
+                        <div class="font-medium">
+                            <span th:text="#{governorate.__${zone.governorate()}__}">Damascus</span><th:block th:if="${zone.city() != null}"> › <span th:text="${zone.city()}">City</span></th:block><th:block th:if="${zone.area() != null}"> › <span th:text="${zone.area()}">Area</span></th:block>
+                        </div>
+                        <div class="text-xs text-gray-500"
+                             th:text="${zone.coversWholeGovernorate()} ? #{zone.scope.governorate} : (${zone.coversWholeCity()} ? #{zone.scope.city} : #{zone.scope.area})">Whole city</div>
+                    </div>
+                    <div class="whitespace-nowrap" th:classappend="${zone.active()} ? '' : 'opacity-60'">
+                        <bdi class="rounded bg-brand-50 px-1.5 py-0.5 font-semibold tabular-nums text-brand-700"
+                             th:text="${zone.fee().isPositive()} ? ${@money.format(zone.fee())} : #{zone.free}">2,000</bdi>
+                    </div>
+                    <div class="text-gray-600" th:classappend="${zone.active()} ? '' : 'opacity-60'">
+                        <div th:if="${zone.minOrder() != null}" th:text="#{zone.rule.min(${@money.format(zone.minOrder())})}">Min order</div>
+                        <div th:if="${zone.freeOver() != null}" th:text="#{zone.rule.free-over(${@money.format(zone.freeOver())})}">Free over</div>
+                        <div th:if="${zone.eta() != null}" th:text="${zone.eta().in(#locale)}">ETA</div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3 md:justify-end">
+                        <span th:if="${zone.active()}" class="rounded-full bg-brand-50 px-2 py-0.5 text-xs text-brand-700" th:text="#{zone.status.active}">Active</span>
+                        <span th:unless="${zone.active()}" class="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600" th:text="#{zone.status.paused}">Paused</span>
+                        <a th:href="@{/admin/delivery/{id}/edit(id=${zone.id()})}" class="text-brand-700 hover:underline"
+                           th:text="#{zone.action.edit}">Edit</a>
+                        <form th:action="@{/admin/delivery/{id}/active(id=${zone.id()})}" method="post"
+                              th:hx-post="@{/admin/delivery/{id}/active(id=${zone.id()})}" hx-target="#zones" hx-swap="outerHTML">
+                            <input type="hidden" name="active" th:value="${!zone.active()}">
+                            <button type="submit" class="text-brand-700 hover:underline"
+                                    th:text="${zone.active()} ? #{zone.action.pause} : #{zone.action.resume}">Pause</button>
+                        </form>
+                        <form th:action="@{/admin/delivery/{id}/delete(id=${zone.id()})}" method="post"
+                              th:hx-post="@{/admin/delivery/{id}/delete(id=${zone.id()})}" hx-target="#zones" hx-swap="outerHTML"
+                              th:hx-confirm="#{zone.delete.confirm}">
+                            <button type="submit" class="text-red-700 hover:underline" th:text="#{zone.action.delete}">Delete</button>
+                        </form>
+                    </div>
+                </li>
+            </ul>
         </div>
 
         <div class="rounded-lg border border-gray-200 bg-white p-6">

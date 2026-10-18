@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<!--/* The error pages' body (error/*.html): a sign hung on a nail by two strings, as on a shop door, saying in two or
+       three words what happened, the status code small beneath; then the explanation and the way back home. The
+       sign repeats the heading's news for the eye only, so it is hidden from screen readers. */-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<section th:fragment="page(code, sign, heading, body)" class="mx-auto max-w-xl py-12 text-center sm:py-16">
+    <div class="flex flex-col items-center" aria-hidden="true">
+        <svg width="120" height="44" viewBox="0 0 120 44" class="text-gray-400">
+            <line x1="60" y1="7" x2="14" y2="42" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="60" y1="7" x2="106" y2="42" stroke="currentColor" stroke-width="1.5"/>
+            <circle cx="60" cy="7" r="5" class="fill-gray-600"/>
+        </svg>
+        <div class="-mt-1 min-w-48 origin-top -rotate-2 rounded-md border-2 border-brand-700 bg-white px-8 pb-3 pt-4 shadow-sm">
+            <p class="text-2xl font-bold text-brand-700" th:text="${sign}">Not here</p>
+            <p class="mt-1 text-sm tabular-nums text-gray-500" th:text="${code}">404</p>
+        </div>
+    </div>
+    <h1 class="mt-10 text-2xl font-bold tracking-tight sm:text-3xl" th:text="${heading}">We could not find that page</h1>
+    <p class="mx-auto mt-3 max-w-md text-gray-600" th:text="${body}">Body</p>
+    <a th:href="@{/}" class="mt-8 inline-block rounded-md bg-brand-600 px-5 py-2.5 font-medium text-white hover:bg-brand-700"
+       th:text="#{error.home}">Back to the home page</a>
+</section>
+
+</body>
+</html>

@@ -39,7 +39,13 @@ import com.unispark.ecommerce.catalog.Products;
 import com.unispark.ecommerce.catalog.Products.OptionDraft;
 import com.unispark.ecommerce.catalog.Products.ProductDraft;
 import com.unispark.ecommerce.catalog.Products.VariantDraft;
+import com.unispark.ecommerce.delivery.DeliveryZones;
+import com.unispark.ecommerce.delivery.DeliveryZones.ZoneDraft;
+import com.unispark.ecommerce.delivery.Governorate;
 import com.unispark.ecommerce.identity.StaffRole;
+import com.unispark.ecommerce.payment.PaymentMethod;
+import com.unispark.ecommerce.payment.PaymentMethods;
+import com.unispark.ecommerce.payment.PaymentMethods.MethodDraft;
 import com.unispark.ecommerce.identity.internal.persistence.StaffUserRepository;
 import com.unispark.ecommerce.pricing.ExchangeRates;
 import com.unispark.ecommerce.shared.Currency;
@@ -72,6 +78,12 @@ class StorefrontIT {
 
     @Autowired
     StoreSettings settings;
+
+    @Autowired
+    DeliveryZones zones;
+
+    @Autowired
+    PaymentMethods methods;
 
     @Autowired
     StaffUserRepository staffUsers;
@@ -138,7 +150,28 @@ class StorefrontIT {
                         containsString("قميص أحمر"), containsString("المقاس"), containsString("قطن"),
                         containsString("x-data=\"variantPicker\""),
                         containsString("&quot;price&quot;:&quot;1,200 ل.س&quot;"),
-                        containsString("&quot;compareAt&quot;:&quot;1,500 ل.س&quot;"))));
+                        containsString("&quot;compareAt&quot;:&quot;1,500 ل.س&quot;"),
+                        // The price on its swing tag, the photo strip's place, the description under its heading.
+                        containsString("class=\"swing-tag\""), containsString("عن المنتج"),
+                        containsString("x-model.number=\"quantity\""),
+                        // No delivery zones or payment methods yet: nothing to say about them.
+                        not(containsString("التوصيل إلى")))));
+    }
+
+    @Test
+    void productPageSaysWhereTheStoreDeliversAndHowToPay() throws Exception {
+        TenantContext.runAs(store, () -> {
+            zones.create(new ZoneDraft(Governorate.ALEPPO, null, null, "5000", Currency.SYP, null, null, null, null));
+            zones.create(new ZoneDraft(Governorate.DAMASCUS, null, null, "2000", Currency.SYP, null, null, null, null));
+            methods.save(PaymentMethod.SHAM_CASH, new MethodDraft(true, null, null, "0944 123 456", "متجر الورد",
+                    null, null));
+        });
+
+        mvc.perform(get(shop + "/p/red-shirt"))
+                .andExpect(content().string(allOf(
+                        matchesPattern("(?s).*<dt[^>]*>التوصيل إلى</dt>.*<span>دمشق</span>،\\s*<span>حلب</span>.*"),
+                        containsString("تظهر أجرة التوصيل في السلة"),
+                        matchesPattern("(?s).*<dt[^>]*>الدفع</dt>.*شام كاش.*"))));
     }
 
     @Test
@@ -244,6 +277,11 @@ class StorefrontIT {
                         .param("primaryColor", "#8e24aa").param("heroTitleAr", "أهلاً بالجميع")
                         .param("font", "MODERN").param("showCategories", "true").param("showNewProducts", "true"))
                 .andExpect(redirectedUrl("/admin/settings/theme?saved"));
+        // The preview beside the form: the store's sign with its name and the saved title; the tab marks the page.
+        mvc.perform(get(MAIN + "/admin/settings/theme").session(owner))
+                .andExpect(content().string(allOf(containsString("x-data=\"themePreview\""),
+                        matchesPattern("(?s).*theme-preview__sign.*متجر الورد.*أهلاً بالجميع.*"),
+                        matchesPattern("(?s).*<a href=\"/admin/settings/theme\"[^>]*aria-current=\"page\".*"))));
         mvc.perform(post(MAIN + "/admin/settings/theme").session(owner).with(csrf())
                         .param("primaryColor", "red; background:url(x)").param("font", "MODERN"))
                 .andExpect(status().isOk());

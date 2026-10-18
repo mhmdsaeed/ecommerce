@@ -1479,3 +1479,34 @@ The product page opened on a row of status buttons. It now opens on the product 
 **Live check (local profile):** headless Edge screenshots as demo1's owner: the list at 1280 and 520 px, a draft without photo or price (1280 px), the published shirt (1280 px), and a draft with a photo and an old price (520 px), created for the check and deleted after.
 
 **Noticed, not changed:** the list says "from" whenever a product has several variants, even at one price; the shelf uses the admin's colour, not the store's theme colour; an empty status tab says "No products match your search" without a search.
+
+## After M15: Product page, error pages, settings, categories and inventory (2026-10-18)
+
+Four design passes in one go: the storefront product page, the error pages, the merchant settings, and the rest of the catalog admin.
+
+### What was built
+
+- **Storefront product page** (`storefront/product.html`, app.js `gallery`, `variantPicker`): photos in a strip that swipes one at a time, with thumbnails that bring a photo into view and mark the current one (the strip still scrolls without JavaScript); the price on a swing tag in the store's colour (`.swing-tag`, pointed and punched on the start side, mirrored for RTL); option choices that cannot be bought with the others crossed out (`buyable`); a − / + quantity stepper; under the button, where the store delivers (the fee shows in the cart) and how to pay, from `DeliveryZones.coverage()` and `PaymentMethods.enabled()`, hidden when empty; the description under "About this product".
+- **Error pages** (`fragments/error.html`, `error/*.html`): a sign hung on a nail by two strings, as on a shop door ("Not here", "No entry", "Back in a moment", "Not understood", "Out of order"), the code beneath; then the heading, the explanation and a button home (404 and 403 had none). The 503 shopfront is unchanged.
+- **Merchant settings:**
+  - **Theme** (`settings/theme.html`, app.js `themePreview`): a live copy of the shop beside the form (sign with name and logo, home title and text, two price tags, the add-to-cart button) following the colour, title, text and font as they are typed; shades computed as `ThemeStyle` does.
+  - **Tabs:** the settings tabs match the order and product tabs, mark the current page and scroll on phones.
+  - **Payments:** cards have a brand edge when enabled, grey when off.
+  - **Delivery zones and staff:** lists that stack on phones; zone fees as price tags; paused zones and disabled members greyed.
+- **Categories** (`catalog/categories.html`): a tree, subcategories hanging off a line under their parent, hidden ones greyed; a visible category's address links to its page in the shop; product counts in words (`category.product-count`, Arabic plurals).
+- **Inventory** (`inventory.html`): a list that stacks on phones; a tracked variant with nothing available shows an amber field and "Out of stock".
+- Messages: `shop.product.*` (photo, delivery, payment, about), `shop.list.separator`, `shop.cart.quantity.less/more`, `error.*.sign`, `settings.theme.preview*`, `category.product-count`, `inventory.sold-out`; table header keys (`zone.col.*`, `staff.col.*`, `category.col.*`, `inventory.col.product/variant/sku`) removed.
+
+### Tests (575, all green: 276 unit, 299 integration)
+
+| Test | Checks |
+|---|---|
+| `StorefrontIT` (changed) | The product page's swing tag and quantity stepper, no delivery block without zones; new `productPageSaysWhereTheStoreDeliversAndHowToPay`; the theme page's preview and current tab |
+| `ErrorPagesIT` (changed) | The door sign's words and code on 404, 500 and 400, and the button home |
+| `CheckoutWebIT` (changed) | Enabled payment methods have the brand edge, others grey |
+| `CatalogIT` (changed) | The category tree: the shop link, the hidden child on its line with its product counted |
+| `InventoryAdminIT` (changed) | A variant set to 0 shows "Out of stock" in amber |
+
+**Live check (local profile):** headless Edge screenshots on demo1 at 1280 and ~500 px: the product page (with a second photo added to the shirt for the gallery, removed after), a 404, the theme page with a colour and title typed in, payments, zones, staff, categories and inventory.
+
+**Noticed, not changed:** a 404 on a real store shows the platform header, not the store's sign (the error dispatch does not know the store), so it cannot offer the store's search; the theme preview shows the title in the admin's language only.

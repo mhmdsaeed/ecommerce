@@ -10,12 +10,7 @@
 </head>
 <body>
 <main layout:fragment="content">
-    <section class="mx-auto max-w-2xl py-16 text-center">
-        <p class="text-sm font-medium text-brand-600" th:text="${status}">5xx</p>
-        <h1 class="mt-3 text-3xl font-bold tracking-tight" th:text="#{error.server.heading}">Something went wrong</h1>
-        <p class="mt-4 text-gray-600" th:text="#{error.server.body}">Body</p>
-        <a th:href="@{/}" class="mt-6 inline-block font-medium text-brand-700 hover:underline" th:text="#{error.home}">Home</a>
-    </section>
+    <section th:replace="~{fragments/error :: page(code=${status}, sign=#{error.server.sign}, heading=#{error.server.heading}, body=#{error.server.body})}"></section>
 </main>
 </body>
 </html>

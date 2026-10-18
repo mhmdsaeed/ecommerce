@@ -1,4 +1,9 @@
 <!DOCTYPE html>
+<!--/* Storefront look (model: form, logoUrl, fonts, currentStore). Beside the form, a small copy of the shop in the
+       colour being picked (app.js: themePreview): its sign with the name and the home page's title and text, two
+       products with their price tags, the add-to-cart button. The colour shades follow the storefront's rules
+       (ThemeStyle): the button colour is darkened until white text is readable. Without JavaScript the preview shows
+       the saved look in the platform colours. The "tabs" fragment is the settings navigation. */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/admin}">
@@ -8,22 +13,17 @@
 <body>
 <main layout:fragment="content" class="space-y-8">
     <div>
-        <nav th:fragment="tabs(active)" th:with="active=${active ?: 'theme'}" class="flex gap-4 border-b border-gray-200 text-sm" th:attr="aria-label=#{admin.nav.settings}">
-            <a th:href="@{/admin/settings/store}" class="-mb-px border-b-2 px-1 pb-2"
-               th:classappend="${active == 'store'} ? 'border-brand-600 font-medium text-brand-700' : 'border-transparent text-gray-600'"
-               th:text="#{settings.store.title}">Store details</a>
-            <a th:href="@{/admin/settings/pricing}" class="-mb-px border-b-2 px-1 pb-2"
-               th:classappend="${active == 'pricing'} ? 'border-brand-600 font-medium text-brand-700' : 'border-transparent text-gray-600'"
-               th:text="#{settings.pricing.title}">Prices</a>
-            <a th:href="@{/admin/settings/theme}" class="-mb-px border-b-2 px-1 pb-2"
-               th:classappend="${active == 'theme'} ? 'border-brand-600 font-medium text-brand-700' : 'border-transparent text-gray-600'"
-               th:text="#{settings.theme.title}">Storefront</a>
-            <a th:href="@{/admin/settings/checkout}" class="-mb-px border-b-2 px-1 pb-2"
-               th:classappend="${active == 'checkout'} ? 'border-brand-600 font-medium text-brand-700' : 'border-transparent text-gray-600'"
-               th:text="#{settings.checkout.title}">Checkout</a>
-            <a th:href="@{/admin/settings/payments}" class="-mb-px border-b-2 px-1 pb-2"
-               th:classappend="${active == 'payments'} ? 'border-brand-600 font-medium text-brand-700' : 'border-transparent text-gray-600'"
-               th:text="#{settings.payments.title}">Payments</a>
+        <!--/* The settings pages, as tabs; scrolls sideways on narrow screens. */-->
+        <nav th:fragment="tabs(active)" th:with="active=${active ?: 'theme'}" class="-mx-4 overflow-x-auto px-4"
+             th:attr="aria-label=#{admin.nav.settings}">
+            <ul class="flex min-w-max gap-1 border-b border-gray-200 text-sm">
+                <li th:each="tab : ${ {'store', 'pricing', 'theme', 'checkout', 'payments'} }">
+                    <a th:href="@{/admin/settings/{tab}(tab=${tab})}" th:attr="aria-current=${active == tab} ? 'page'"
+                       class="-mb-px block border-b-2 px-3 py-2 whitespace-nowrap"
+                       th:classappend="${active == tab} ? 'border-brand-600 font-semibold text-gray-900' : 'border-transparent text-gray-600 hover:text-gray-900'"
+                       th:text="#{settings.__${tab}__.title}">Store details</a>
+                </li>
+            </ul>
         </nav>
         <h1 class="mt-6 text-2xl font-bold" th:text="#{settings.theme.title}">Storefront</h1>
         <div class="mt-4 space-y-2">
@@ -33,56 +33,92 @@
         </div>
     </div>
 
-    <section class="rounded-lg border border-gray-200 bg-white p-6">
-        <h2 class="text-lg font-semibold" th:text="#{settings.theme.logo}">Logo</h2>
-        <div class="mt-4 flex flex-wrap items-center gap-4">
-            <img th:if="${logoUrl != null}" th:src="${logoUrl}" alt="" width="64" height="64" class="h-16 w-16 rounded border border-gray-200 object-contain">
-            <form th:action="@{/admin/settings/theme/logo}" method="post" enctype="multipart/form-data" class="flex flex-wrap items-center gap-3">
-                <label for="logo" class="sr-only" th:text="#{settings.theme.logo}">Logo</label>
-                <input id="logo" name="logo" type="file" accept="image/jpeg,image/png,image/webp" class="text-sm">
-                <button th:replace="~{fragments/forms :: submit(label=#{settings.theme.logo.upload})}">Upload</button>
-            </form>
-            <form th:if="${logoUrl != null}" th:action="@{/admin/settings/theme/logo/delete}" method="post">
-                <button type="submit" class="text-sm text-red-700 hover:underline" th:text="#{settings.theme.logo.remove}">Remove</button>
-            </form>
-        </div>
-    </section>
-
-    <section class="rounded-lg border border-gray-200 bg-white p-6">
-        <form th:action="@{/admin/settings/theme}" th:object="${form}" method="post" class="max-w-lg space-y-4" novalidate>
-            <div class="space-y-1">
-                <label for="primaryColor" class="block text-sm font-medium text-gray-800" th:text="#{settings.theme.color}">Colour</label>
-                <div class="flex items-center gap-3" dir="ltr">
-                    <input type="color" th:field="*{primaryColor}" class="h-10 w-16 rounded border border-gray-300">
-                    <span class="text-xs text-gray-500" th:text="#{settings.theme.color.hint}">Hint</span>
+    <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+        <div class="space-y-8">
+            <section class="rounded-lg border border-gray-200 bg-white p-6">
+                <h2 class="text-lg font-semibold" th:text="#{settings.theme.logo}">Logo</h2>
+                <div class="mt-4 flex flex-wrap items-center gap-4">
+                    <img th:if="${logoUrl != null}" th:src="${logoUrl}" alt="" width="64" height="64" class="h-16 w-16 rounded border border-gray-200 object-contain">
+                    <form th:action="@{/admin/settings/theme/logo}" method="post" enctype="multipart/form-data" class="flex flex-wrap items-center gap-3">
+                        <label for="logo" class="sr-only" th:text="#{settings.theme.logo}">Logo</label>
+                        <input id="logo" name="logo" type="file" accept="image/jpeg,image/png,image/webp" class="text-sm">
+                        <button th:replace="~{fragments/forms :: submit(label=#{settings.theme.logo.upload})}">Upload</button>
+                    </form>
+                    <form th:if="${logoUrl != null}" th:action="@{/admin/settings/theme/logo/delete}" method="post">
+                        <button type="submit" class="text-sm text-red-700 hover:underline" th:text="#{settings.theme.logo.remove}">Remove</button>
+                    </form>
                 </div>
-                <p th:if="${#fields.hasErrors('primaryColor')}" th:errors="*{primaryColor}" class="text-sm text-red-600"></p>
+            </section>
+
+            <section class="rounded-lg border border-gray-200 bg-white p-6">
+                <form id="theme-form" th:action="@{/admin/settings/theme}" th:object="${form}" method="post" class="max-w-lg space-y-4" novalidate>
+                    <div class="space-y-1">
+                        <label for="primaryColor" class="block text-sm font-medium text-gray-800" th:text="#{settings.theme.color}">Colour</label>
+                        <div class="flex items-center gap-3">
+                            <input type="color" th:field="*{primaryColor}" class="h-10 w-16 shrink-0 rounded border border-gray-300">
+                            <span class="text-xs text-gray-500" th:text="#{settings.theme.color.hint}">Hint</span>
+                        </div>
+                        <p th:if="${#fields.hasErrors('primaryColor')}" th:errors="*{primaryColor}" class="text-sm text-red-600"></p>
+                    </div>
+                    <div th:replace="~{fragments/forms :: input(field='heroTitleAr', label=#{settings.theme.heroTitleAr}, hint=#{settings.theme.heroTitle.hint})}"></div>
+                    <div th:replace="~{fragments/forms :: input(field='heroTitleEn', label=#{settings.theme.heroTitleEn}, ltr=true)}"></div>
+                    <div th:replace="~{fragments/forms :: input(field='heroTextAr', label=#{settings.theme.heroTextAr})}"></div>
+                    <div th:replace="~{fragments/forms :: input(field='heroTextEn', label=#{settings.theme.heroTextEn}, ltr=true)}"></div>
+                    <fieldset class="space-y-2">
+                        <legend class="text-sm font-medium text-gray-800" th:text="#{settings.theme.font}">Font</legend>
+                        <label th:each="choice : ${fonts}" class="flex items-center gap-2 text-sm">
+                            <input type="radio" th:field="*{font}" th:value="${choice}" class="h-4 w-4">
+                            <span th:text="#{settings.theme.font.__${choice}__}">Modern</span>
+                        </label>
+                    </fieldset>
+                    <fieldset class="space-y-2">
+                        <legend class="text-sm font-medium text-gray-800" th:text="#{settings.theme.sections}">Home sections</legend>
+                        <label class="flex items-center gap-2 text-sm">
+                            <input type="checkbox" th:field="*{showCategories}" class="h-4 w-4">
+                            <span th:text="#{settings.theme.showCategories}">Categories</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-sm">
+                            <input type="checkbox" th:field="*{showNewProducts}" class="h-4 w-4">
+                            <span th:text="#{settings.theme.showNewProducts}">New arrivals</span>
+                        </label>
+                    </fieldset>
+                    <button th:replace="~{fragments/forms :: submit(label=#{settings.theme.save})}">Save</button>
+                </form>
+            </section>
+        </div>
+
+        <aside x-data="themePreview" data-form="theme-form" th:data-lang="${#locale.language}"
+               class="lg:sticky lg:top-4" aria-labelledby="preview-heading">
+            <h2 id="preview-heading" class="text-sm font-medium text-gray-700" th:text="#{settings.theme.preview}">Your shop</h2>
+            <p class="text-xs text-gray-500" th:text="#{settings.theme.preview.hint}">Changes show here before you save.</p>
+            <div class="theme-preview mt-3 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
+                 x-bind:style="style" aria-hidden="true">
+                <div class="theme-preview__sign px-4 pb-4 pt-3 text-white">
+                    <div class="flex items-center gap-2">
+                        <img th:if="${logoUrl != null}" th:src="${logoUrl}" alt="" width="28" height="28" class="h-7 w-7 rounded bg-white object-contain">
+                        <p class="min-w-0 flex-1 truncate text-lg font-bold" dir="auto"
+                           th:text="${currentStore != null} ? ${currentStore.name().in(#locale)} : ''">Store</p>
+                        <span class="theme-preview__cart rounded bg-white px-2 py-1 text-xs font-semibold" th:text="#{shop.cart}">Cart</span>
+                    </div>
+                    <p x-show="title" class="mt-3 font-semibold leading-snug" x-text="title"
+                       th:text="${form.heroTitleAr}" th:style="${#strings.isEmpty(form.heroTitleAr)} ? 'display: none' : null"></p>
+                    <p x-show="text" class="theme-preview__tagline mt-1 text-sm" x-text="text"
+                       th:text="${form.heroTextAr}" th:style="${#strings.isEmpty(form.heroTextAr)} ? 'display: none' : null"></p>
+                </div>
+                <div class="grid grid-cols-2 gap-3 p-4">
+                    <div th:each="n : ${ {1, 2} }">
+                        <div class="aspect-square rounded-md bg-gray-100"></div>
+                        <div class="mt-2 h-2 w-3/4 rounded bg-gray-200"></div>
+                        <span class="theme-preview__tag mt-2 inline-block rounded px-1.5 py-0.5 text-xs font-bold tabular-nums"
+                              th:text="${n == 1} ? '25,000' : '40,000'">25,000</span>
+                    </div>
+                </div>
+                <div class="px-4 pb-4">
+                    <span class="theme-preview__button block rounded-md py-2 text-center text-sm font-medium text-white" th:text="#{shop.cart.add}">Add to cart</span>
+                </div>
             </div>
-            <div th:replace="~{fragments/forms :: input(field='heroTitleAr', label=#{settings.theme.heroTitleAr}, hint=#{settings.theme.heroTitle.hint})}"></div>
-            <div th:replace="~{fragments/forms :: input(field='heroTitleEn', label=#{settings.theme.heroTitleEn}, ltr=true)}"></div>
-            <div th:replace="~{fragments/forms :: input(field='heroTextAr', label=#{settings.theme.heroTextAr})}"></div>
-            <div th:replace="~{fragments/forms :: input(field='heroTextEn', label=#{settings.theme.heroTextEn}, ltr=true)}"></div>
-            <fieldset class="space-y-2">
-                <legend class="text-sm font-medium text-gray-800" th:text="#{settings.theme.font}">Font</legend>
-                <label th:each="choice : ${fonts}" class="flex items-center gap-2 text-sm">
-                    <input type="radio" th:field="*{font}" th:value="${choice}" class="h-4 w-4">
-                    <span th:text="#{settings.theme.font.__${choice}__}">Modern</span>
-                </label>
-            </fieldset>
-            <fieldset class="space-y-2">
-                <legend class="text-sm font-medium text-gray-800" th:text="#{settings.theme.sections}">Home sections</legend>
-                <label class="flex items-center gap-2 text-sm">
-                    <input type="checkbox" th:field="*{showCategories}" class="h-4 w-4">
-                    <span th:text="#{settings.theme.showCategories}">Categories</span>
-                </label>
-                <label class="flex items-center gap-2 text-sm">
-                    <input type="checkbox" th:field="*{showNewProducts}" class="h-4 w-4">
-                    <span th:text="#{settings.theme.showNewProducts}">New arrivals</span>
-                </label>
-            </fieldset>
-            <button th:replace="~{fragments/forms :: submit(label=#{settings.theme.save})}">Save</button>
-        </form>
-    </section>
+        </aside>
+    </div>
 </main>
 </body>
 </html>
