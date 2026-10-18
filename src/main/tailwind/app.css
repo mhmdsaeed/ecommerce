@@ -196,6 +196,16 @@
   letter-spacing: -0.02em;
 }
 
+/* Product page (merchantadmin/catalog/product-edit.html): the product's card on a shop shelf. The photo stands on the
+   shelf board, which runs a little wider than it; the name and price tag hang below the board like a shelf label. */
+.shelf__board {
+  height: 0.625rem;
+  margin-inline: -0.75rem;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, var(--color-gray-200), var(--color-gray-400));
+  box-shadow: 0 7px 6px -5px rgb(0 0 0 / 0.3);
+}
+
 /* Alpine hides x-cloak elements until it has started. */
 [x-cloak] {
   display: none !important;

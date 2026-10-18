@@ -1,5 +1,8 @@
 <!DOCTYPE html>
-<!--/* Product list. Typing in the search box or changing the status filter swaps the "results" fragment. */-->
+<!--/* Product list (model: result, q, status, counts, totalCount, statuses). Tabs by status, each counted; typing in the
+       search box swaps the "results" fragment, tabs included. The status rides along with the search in a hidden
+       field tied to the form (form="product-filters"). Prices are the shop's price tags; a product without a price,
+       which cannot be published, says so in amber. */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/admin}">
@@ -15,23 +18,27 @@
     </div>
     <th:block th:if="${param.deleted}"><div class="mt-4" th:replace="~{fragments/forms :: alert(kind='info', message=#{product.deleted})}"></div></th:block>
 
-    <form method="get" th:action="@{/admin/products}" class="mt-6 flex flex-wrap gap-3" role="search"
+    <form id="product-filters" method="get" th:action="@{/admin/products}" class="mt-6 flex flex-wrap gap-3" role="search"
           th:hx-get="@{/admin/products}" hx-target="#product-results" hx-push-url="true"
-          hx-trigger="input delay:300ms from:#q, change from:#status, submit">
+          hx-trigger="input delay:300ms from:#q, submit">
         <label for="q" class="sr-only" th:text="#{product.search}">Search</label>
         <input id="q" name="q" type="search" th:value="${q}" th:placeholder="#{product.search}"
                class="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
-        <label for="status" class="sr-only" th:text="#{product.col.status}">Status</label>
-        <select id="status" name="status"
-                class="rounded-md border border-gray-300 bg-white px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
-            <option value="" th:text="#{product.status.all}">All</option>
-            <option th:each="value : ${statuses}" th:value="${value}" th:selected="${value == status}"
-                    th:text="#{product.status.__${value}__}">Status</option>
-        </select>
         <noscript><button type="submit" class="rounded-md border border-gray-300 px-4 py-2" th:text="#{product.search}">Search</button></noscript>
     </form>
 
-    <div id="product-results" th:fragment="results" class="mt-4">
+    <div id="product-results" th:fragment="results" class="mt-4 space-y-4">
+        <input th:if="${status != null}" type="hidden" name="status" form="product-filters" th:value="${status}">
+
+        <nav th:attr="aria-label=#{product.col.status}" class="-mx-4 overflow-x-auto px-4">
+            <ul class="flex min-w-max items-stretch gap-1 border-b border-gray-200 text-sm">
+                <li th:replace="~{:: tab(value=null, label=#{product.tab.all}, count=${totalCount})}"></li>
+                <th:block th:each="value : ${statuses}">
+                    <li th:replace="~{:: tab(value=${value.name()}, label=#{product.status.__${value}__}, count=${counts.get(value)})}"></li>
+                </th:block>
+            </ul>
+        </nav>
+
         <div th:if="${result.items().isEmpty()}" class="rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center text-gray-600">
             <p th:text="${q == null and status == null} ? #{product.empty} : #{product.no-match}">No products yet.</p>
             <a th:if="${q == null and status == null}" th:href="@{/admin/products/new}"
@@ -39,42 +46,53 @@
                th:text="#{product.empty.add}">Add your first product</a>
         </div>
 
-        <div th:unless="${result.items().isEmpty()}" class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50 text-gray-600">
-                <tr>
-                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{product.col.name}">Name</th>
-                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{product.col.status}">Status</th>
-                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{product.col.price}">Price</th>
-                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{product.col.variants}">Variants</th>
-                </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                <tr th:each="item : ${result.items()}">
-                    <td class="px-4 py-3">
-                        <a th:href="@{/admin/products/{id}(id=${item.id()})}" class="flex items-center gap-3 hover:underline">
-                            <img th:if="${item.imageKey() != null}" th:with="url=${@imageUrls.small(item.imageKey())}" th:src="${url}" alt=""
-                                 width="48" height="48" loading="lazy" class="h-12 w-12 rounded object-cover">
-                            <span th:if="${item.imageKey() == null}" class="h-12 w-12 rounded bg-gray-100" aria-hidden="true"></span>
-                            <span class="font-medium" th:text="${item.name().in(#locale)}">Name</span>
-                        </a>
-                    </td>
-                    <td class="px-4 py-3">
-                        <span th:replace="~{merchantadmin/fragments/catalog :: status-badge(status=${item.status()})}">Status</span>
-                    </td>
-                    <td class="px-4 py-3 whitespace-nowrap">
-                        <th:block th:if="${item.lowestPrice() != null}">
-                            <span th:if="${item.variantCount() > 1}" class="text-gray-500" th:text="#{product.price.from}">from</span>
-                            <bdi th:text="${@money.format(item.lowestPrice())}">150,000 SYP</bdi>
-                        </th:block>
-                    </td>
-                    <td class="px-4 py-3" th:text="${item.variantCount()}">1</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
+        <th:block th:unless="${result.items().isEmpty()}">
+            <!--/* Phones: one block per product. */-->
+            <ul class="divide-y divide-gray-200 overflow-hidden rounded-lg border border-gray-200 bg-white md:hidden">
+                <li th:each="item : ${result.items()}">
+                    <a th:href="@{/admin/products/{id}(id=${item.id()})}" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+                        <span th:replace="~{:: thumb(item=${item})}"></span>
+                        <span class="min-w-0 flex-1 space-y-1">
+                            <span class="flex items-start justify-between gap-3">
+                                <span class="line-clamp-2 font-medium" th:text="${item.name().in(#locale)}">Name</span>
+                                <span th:replace="~{merchantadmin/fragments/catalog :: status-badge(status=${item.status()})}">Status</span>
+                            </span>
+                            <span class="block text-sm"><span th:replace="~{:: price(item=${item})}"></span></span>
+                        </span>
+                    </a>
+                </li>
+            </ul>
 
-        <nav th:if="${result.totalPages() > 1}" class="mt-4 flex items-center justify-between text-sm" th:attr="aria-label=#{product.pages}">
+            <div class="hidden overflow-x-auto rounded-lg border border-gray-200 bg-white md:block">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 text-gray-600">
+                    <tr>
+                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{product.col.name}">Name</th>
+                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{product.col.status}">Status</th>
+                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{product.col.price}">Price</th>
+                        <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{product.col.variants}">Variants</th>
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                    <tr th:each="item : ${result.items()}">
+                        <td class="px-4 py-3">
+                            <a th:href="@{/admin/products/{id}(id=${item.id()})}" class="flex items-center gap-3 hover:underline">
+                                <span th:replace="~{:: thumb(item=${item})}"></span>
+                                <span class="font-medium" th:text="${item.name().in(#locale)}">Name</span>
+                            </a>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span th:replace="~{merchantadmin/fragments/catalog :: status-badge(status=${item.status()})}">Status</span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap"><span th:replace="~{:: price(item=${item})}"></span></td>
+                        <td class="px-4 py-3 tabular-nums" th:text="${item.variantCount()}">1</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </th:block>
+
+        <nav th:if="${result.totalPages() > 1}" class="flex items-center justify-between text-sm" th:attr="aria-label=#{product.pages}">
             <a th:if="${result.hasPrevious()}"
                th:href="@{/admin/products(q=${q}, status=${status}, page=${result.page() - 1})}"
                th:hx-get="@{/admin/products(q=${q}, status=${status}, page=${result.page() - 1})}" hx-target="#product-results" hx-push-url="true"
@@ -88,5 +106,38 @@
         </nav>
     </div>
 </main>
+
+<!--/* A status tab (value null: all products): a link that keeps the search, only when there is one (the link lands in
+       the address bar). */-->
+<li th:fragment="tab(value, label, count)"
+    th:with="search=${q != null and !q.isBlank() ? 'q=' + #uris.escapeQueryParam(q) : null},
+             link=${value == null} ? @{|/admin/products${search != null ? '?' + search : ''}|} : @{|/admin/products?status=${value}${search != null ? '&' + search : ''}|},
+             current=${value == null ? status == null : status != null and status.name() == value}">
+    <a th:href="${link}" th:hx-get="${link}" hx-target="#product-results" hx-push-url="true"
+       th:attr="aria-current=${current} ? 'page'"
+       class="-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 whitespace-nowrap"
+       th:classappend="${current} ? 'border-brand-600 font-semibold text-gray-900' : 'border-transparent text-gray-600 hover:text-gray-900'">
+        <span th:text="${label}">All products</span>
+        <span class="rounded-full bg-gray-100 px-1.5 text-xs tabular-nums text-gray-700" th:text="${count}">3</span>
+    </a>
+</li>
+
+<!--/* The product's main photo, or a dashed frame where it would go. */-->
+<span th:fragment="thumb(item)" class="contents">
+    <img th:if="${item.imageKey() != null}" th:with="url=${@imageUrls.small(item.imageKey())}" th:src="${url}" alt=""
+         width="48" height="48" loading="lazy" class="h-12 w-12 shrink-0 rounded object-cover">
+    <span th:unless="${item.imageKey() != null}" class="h-12 w-12 shrink-0 rounded border-2 border-dashed border-gray-300" aria-hidden="true"></span>
+</span>
+
+<!--/* The lowest price as the shop's price tag ("from" with several variants), or "No price" in amber. */-->
+<span th:fragment="price(item)" class="contents">
+    <th:block th:if="${item.lowestPrice() != null and item.lowestPrice().isPositive()}">
+        <span th:if="${item.variantCount() > 1}" class="text-gray-500" th:text="#{product.price.from}">from</span>
+        <bdi class="rounded bg-brand-50 px-1.5 py-0.5 font-semibold tabular-nums text-brand-700"
+             th:text="${@money.format(item.lowestPrice())}">150,000 SYP</bdi>
+    </th:block>
+    <span th:unless="${item.lowestPrice() != null and item.lowestPrice().isPositive()}" class="font-medium text-amber-800"
+          th:text="#{product.no-price}">No price</span>
+</span>
 </body>
 </html>

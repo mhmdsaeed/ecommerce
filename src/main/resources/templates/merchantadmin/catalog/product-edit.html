@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<!--/* Product edit page. The "images" and "variants" fragments are swapped over HTMX. */-->
+<!--/* Product edit page (model: product, shelf, the forms). It opens on the shelf: the product as the shop shows it and
+       what publishing needs, beside the status actions. The "images" and "variants" fragments are swapped over HTMX;
+       their responses also carry the shelf, swapped out of band, since a photo or a price changes it. */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/admin}">
@@ -10,34 +12,9 @@
 <main layout:fragment="content" class="space-y-8">
     <div>
         <a th:href="@{/admin/products}" class="text-sm text-brand-700 hover:underline" th:text="#{product.back}">Products</a>
-        <div class="mt-2 flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-                <h1 class="text-2xl font-bold" th:text="${product.name().in(#locale)}">Product</h1>
-                <span th:replace="~{merchantadmin/fragments/catalog :: status-badge(status=${product.status()})}">Draft</span>
-            </div>
-            <div class="flex flex-wrap gap-2">
-                <form th:if="${product.status().name() != 'ACTIVE'}" th:action="@{/admin/products/{id}/status(id=${product.id()})}" method="post">
-                    <input type="hidden" name="status" value="ACTIVE">
-                    <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-                            th:text="#{product.action.publish}">Publish</button>
-                </form>
-                <form th:if="${product.status().name() == 'ACTIVE'}" th:action="@{/admin/products/{id}/status(id=${product.id()})}" method="post">
-                    <input type="hidden" name="status" value="ARCHIVED">
-                    <button type="submit" class="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
-                            th:text="#{product.action.archive}">Archive</button>
-                </form>
-                <form th:if="${product.status().name() != 'DRAFT'}" th:action="@{/admin/products/{id}/status(id=${product.id()})}" method="post">
-                    <input type="hidden" name="status" value="DRAFT">
-                    <button type="submit" class="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
-                            th:text="#{product.action.unpublish}">Back to draft</button>
-                </form>
-                <form th:if="${product.status().name() == 'DRAFT'}" th:action="@{/admin/products/{id}/delete(id=${product.id()})}" method="post"
-                      th:data-confirm="#{product.delete.confirm}"
-                      x-data x-on:submit="if (!confirm($el.dataset.confirm)) $event.preventDefault()">
-                    <button type="submit" class="rounded-md border border-red-200 px-4 py-2 text-sm text-red-700 hover:bg-red-50"
-                            th:text="#{product.action.delete}">Delete</button>
-                </form>
-            </div>
+        <div class="mt-2 flex flex-wrap items-center gap-3">
+            <h1 class="text-2xl font-bold" th:text="${product.name().in(#locale)}">Product</h1>
+            <span th:replace="~{merchantadmin/fragments/catalog :: status-badge(status=${product.status()})}">Draft</span>
         </div>
         <div class="mt-4 space-y-2">
             <th:block th:if="${error != null}"><div th:replace="~{fragments/forms :: alert(kind='error', message=#{${error}})}"></div></th:block>
@@ -46,6 +23,8 @@
             <th:block th:if="${param.status}"><div th:replace="~{fragments/forms :: alert(kind='info', message=#{product.status.changed})}"></div></th:block>
         </div>
     </div>
+
+    <section th:replace="~{:: shelf(oob=false)}"></section>
 
     <!--/* Images */-->
     <section id="images" th:fragment="images" class="rounded-lg border border-gray-200 bg-white p-6">
@@ -95,6 +74,7 @@
             <!--/* Filled by UploadLimitAdvice when the whole request is over the size limit. */-->
             <p id="upload-error" role="alert" class="w-full text-sm text-red-700"></p>
         </form>
+        <th:block th:if="${refreshShelf}"><section th:replace="~{:: shelf(oob=true)}"></section></th:block>
     </section>
 
     <!--/* Options and variants */-->
@@ -181,10 +161,11 @@
                 <button th:replace="~{fragments/forms :: submit(label=#{product.variants.save})}">Save prices</button>
             </form>
         </div>
+        <th:block th:if="${refreshShelf}"><section th:replace="~{:: shelf(oob=true)}"></section></th:block>
     </section>
 
     <!--/* Details */-->
-    <section class="rounded-lg border border-gray-200 bg-white p-6">
+    <section id="details" class="rounded-lg border border-gray-200 bg-white p-6">
         <h2 class="text-lg font-semibold" th:text="#{product.details.heading}">Details</h2>
         <form th:action="@{/admin/products/{id}(id=${product.id()})}" th:object="${form}" method="post" novalidate class="mt-4 space-y-4">
             <th:block th:replace="~{merchantadmin/catalog/product-new :: fields}"></th:block>
@@ -192,5 +173,99 @@
         </form>
     </section>
 </main>
+
+<!--/* The shelf: the product's card as the shop shows it (main photo, name, price tag), standing on a shelf board, and
+       beside it the status in plain words, what publishing needs, and the status actions. Its edge is amber while a
+       draft, the brand colour while published, grey once archived. oob: rendered into an HTMX response, to replace
+       the page's copy out of band. */-->
+<section th:fragment="shelf(oob)" id="shelf" th:attr="hx-swap-oob=${oob} ? 'true'" aria-labelledby="shelf-heading"
+         th:with="status=${product.status().name()}"
+         class="rounded-lg border border-s-4 border-gray-200 bg-white p-4 sm:p-6"
+         th:classappend="${status == 'DRAFT'} ? 'border-s-amber-400' : (${status == 'ACTIVE'} ? 'border-s-brand-600' : 'border-s-gray-300')">
+    <div class="flex flex-col gap-6 sm:flex-row sm:items-start">
+        <figure class="w-44 shrink-0 self-center px-3 sm:self-start">
+            <div class="aspect-square overflow-hidden rounded-t-md bg-gray-100">
+                <img th:if="${shelf.hasPhoto()}" th:with="url=${@imageUrls.medium(shelf.imageKey())}" th:src="${url}" alt=""
+                     width="320" height="320" class="h-full w-full object-cover">
+                <span th:unless="${shelf.hasPhoto()}"
+                      class="flex h-full items-center justify-center rounded-t-md border-2 border-b-0 border-dashed border-gray-300 text-sm text-gray-500"
+                      th:text="#{product.shelf.no-photo}">No photo</span>
+            </div>
+            <div class="shelf__board" aria-hidden="true"></div>
+            <figcaption class="mt-3 space-y-1.5">
+                <p class="line-clamp-2 text-sm font-medium text-gray-900" th:text="${product.name().in(#locale)}">Product</p>
+                <p th:if="${shelf.sellable()}" class="flex flex-wrap items-baseline gap-x-1.5 gap-y-1 text-sm">
+                    <span th:if="${shelf.fromPrice()}" class="text-gray-500" th:text="#{product.price.from}">from</span>
+                    <bdi class="rounded bg-brand-50 px-1.5 py-0.5 font-bold tabular-nums text-brand-700"
+                         th:text="${@money.format(shelf.price())}">150,000 SYP</bdi>
+                    <del th:if="${shelf.compareAtPrice() != null}" class="text-gray-400">
+                        <bdi th:text="${@money.format(shelf.compareAtPrice())}">200,000 SYP</bdi>
+                    </del>
+                </p>
+                <p th:unless="${shelf.sellable()}" class="text-sm font-medium text-amber-800" th:text="#{product.no-price}">No price</p>
+                <p class="pt-1 text-xs text-gray-500" th:text="#{product.shelf.preview}">How shoppers see it</p>
+            </figcaption>
+        </figure>
+
+        <div class="min-w-0 flex-1 space-y-4">
+            <div>
+                <h2 id="shelf-heading" class="text-lg font-semibold" th:text="#{product.shelf.heading}">In your shop</h2>
+                <p class="mt-1 text-gray-700">
+                    <span th:text="#{product.shelf.__${status}__}">Draft: not in your shop yet.</span>
+                    <a th:if="${status == 'ACTIVE' and storeHost != null}" th:href="|//${storeHost}/p/${product.slug()}|"
+                       target="_blank" rel="noopener" class="ms-1 text-brand-700 underline hover:text-brand-800"
+                       th:text="#{product.shelf.view}">See it in your shop</a>
+                </p>
+            </div>
+
+            <!--/* What the shop shows, ticked when there: the price is needed to publish, the others help it sell. */-->
+            <ul class="space-y-2 text-sm">
+                <li th:replace="~{:: need(done=${shelf.sellable()}, required=true, label=#{product.shelf.price}, hint=#{product.shelf.price.missing}, target='#variants')}"></li>
+                <li th:replace="~{:: need(done=${shelf.hasPhoto()}, required=false, label=#{product.shelf.photo}, hint=#{product.shelf.photo.missing}, target='#images')}"></li>
+                <li th:replace="~{:: need(done=${shelf.hasDescription()}, required=false, label=#{product.shelf.description}, hint=#{product.shelf.description.missing}, target='#details')}"></li>
+            </ul>
+
+            <div class="flex flex-wrap gap-2 pt-1">
+                <form th:if="${status != 'ACTIVE'}" th:action="@{/admin/products/{id}/status(id=${product.id()})}" method="post">
+                    <input type="hidden" name="status" value="ACTIVE">
+                    <button type="submit" th:disabled="${!shelf.sellable()}"
+                            class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            th:text="#{product.action.publish}">Publish</button>
+                </form>
+                <form th:if="${status == 'ACTIVE'}" th:action="@{/admin/products/{id}/status(id=${product.id()})}" method="post">
+                    <input type="hidden" name="status" value="ARCHIVED">
+                    <button type="submit" class="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
+                            th:text="#{product.action.archive}">Archive</button>
+                </form>
+                <form th:if="${status != 'DRAFT'}" th:action="@{/admin/products/{id}/status(id=${product.id()})}" method="post">
+                    <input type="hidden" name="status" value="DRAFT">
+                    <button type="submit" class="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
+                            th:text="#{product.action.unpublish}">Back to draft</button>
+                </form>
+                <form th:if="${status == 'DRAFT'}" th:action="@{/admin/products/{id}/delete(id=${product.id()})}" method="post"
+                      th:data-confirm="#{product.delete.confirm}"
+                      x-data x-on:submit="if (!confirm($el.dataset.confirm)) $event.preventDefault()">
+                    <button type="submit" class="rounded-md border border-red-200 px-4 py-2 text-sm text-red-700 hover:bg-red-50"
+                            th:text="#{product.action.delete}">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!--/* One thing the shop shows: a tick when it is there; when missing, amber if publishing needs it, an empty ring
+       otherwise, with a hint. The label links to the section where it is set. */-->
+<li th:fragment="need(done, required, label, hint, target)" class="flex gap-2.5">
+    <span aria-hidden="true" class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+          th:classappend="${done} ? 'bg-brand-600 text-white' : (${required} ? 'bg-amber-100 text-amber-900 ring-2 ring-amber-400' : 'ring-2 ring-gray-300')"
+          th:text="${done} ? '✓' : (${required} ? '!' : '')"></span>
+    <span>
+        <span class="sr-only" th:text="${done} ? #{product.shelf.done} : #{product.shelf.missing}">Done:</span>
+        <a th:href="${target}" class="font-medium hover:underline" th:classappend="${done} ? 'text-gray-700' : 'text-gray-900'"
+           th:text="${label}">A photo</a>
+        <span th:unless="${done}" class="block" th:classappend="${required} ? 'text-amber-800' : 'text-gray-500'"
+              th:text="${hint}">Hint</span>
+    </span>
+</li>
 </body>
 </html>

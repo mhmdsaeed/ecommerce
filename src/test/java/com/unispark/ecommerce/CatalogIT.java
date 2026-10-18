@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -59,6 +60,9 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 @Import({TestcontainersConfig.class, IsolationProbeWeb.class})
 @ActiveProfiles("test")
 class CatalogIT {
+
+    /** The product page's shelf, sent out of band with a section's HTMX response (attributes in any order). */
+    static final String SHELF_OOB = "<section(?=[^>]*id=\"shelf\")(?=[^>]*hx-swap-oob=\"true\")[^>]*>";
 
     @Autowired
     MockMvc mvc;
@@ -121,7 +125,10 @@ class CatalogIT {
                         .param("variants[1].price", "١٧٥٬٠٠٠").param("variants[1].compareAtPrice", "200,000")
                         .param("variants[1].sku", "SHIRT-M").param("variants[1].active", "true"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("تم حفظ الأسعار")));
+                .andExpect(content().string(allOf(containsString("تم حفظ الأسعار"),
+                        // The shelf at the top of the page follows the prices: from the cheapest, no photo yet.
+                        matchesPattern("(?s).*" + SHELF_OOB + ".*من</span>\\s*<bdi[^>]*>150,000.*"),
+                        containsString("بلا صورة"))));
 
         mvc.perform(htmx(multipart(MAIN + "/admin/products/{id}/images", id)
                         .file(new MockMultipartFile("files", "front.jpg", "image/jpeg", TestImages.jpeg(1600, 1200)))
@@ -129,10 +136,15 @@ class CatalogIT {
                 .andExpect(status().isOk())
                 .andExpect(content().string(allOf(
                         not(containsString("<html")), containsString("front.jpg:"), containsString("back.png:"),
-                        containsString("تمت الإضافة"), containsString("/640.webp"))));
+                        containsString("تمت الإضافة"), containsString("/640.webp"),
+                        matchesPattern("(?s).*" + SHELF_OOB + ".*"), not(containsString("بلا صورة")))));
 
         mvc.perform(post(MAIN + "/admin/products/{id}/status", id).session(owner).with(csrf()).param("status", "ACTIVE"))
                 .andExpect(redirectedUrl("/admin/products/" + id + "?status"));
+        mvc.perform(get(MAIN + "/admin/products/{id}", id).session(owner))
+                .andExpect(content().string(allOf(containsString("border-s-brand-600"),
+                        containsString("href=\"//" + slug + "."), containsString("/p/قميص-قطني\""),
+                        containsString("شاهده في متجرك"), not(containsString("hx-swap-oob")))));
 
         var product = details(id);
         assertThat(product.status().name()).isEqualTo("ACTIVE");
@@ -290,6 +302,11 @@ class CatalogIT {
     void cannotPublishWithoutAPricedVariant() throws Exception {
         var id = createProduct(owner, "Free sample", "0");
 
+        // The shelf says why: no price, publishing needs one, and the button waits for it.
+        mvc.perform(get(MAIN + "/admin/products/{id}", id).session(owner))
+                .andExpect(content().string(allOf(containsString("border-s-amber-400"), containsString("بلا سعر"),
+                        containsString("مطلوب قبل النشر"),
+                        matchesPattern("(?s).*<button type=\"submit\"[^>]*disabled=\"disabled\">نشر</button>.*"))));
         mvc.perform(post(MAIN + "/admin/products/{id}/status", id).session(owner).with(csrf()).param("status", "ACTIVE"))
                 .andExpect(redirectedUrl("/admin/products/" + id))
                 .andExpect(flash().attribute("error", "product.status.needs-price"));
@@ -340,6 +357,30 @@ class CatalogIT {
                         not(containsString("<html")), containsString("Blue Teapot"), not(containsString("Red Kettle")))));
         mvc.perform(htmx(get(MAIN + "/admin/products").param("q", "100%_")))
                 .andExpect(content().string(containsString("لا توجد منتجات تطابق البحث")));
+    }
+
+    @Test
+    void listsProductsInStatusTabsWithCounts() throws Exception {
+        var published = createProduct(owner, "Blue Teapot", "1000");
+        createProduct(owner, "Blue Cup", "0");
+        createProduct(owner, "Red Kettle", "1000");
+        mvc.perform(post(MAIN + "/admin/products/{id}/status", published).session(owner).with(csrf()).param("status", "ACTIVE"));
+
+        mvc.perform(get(MAIN + "/admin/products").session(owner))
+                .andExpect(content().string(allOf(
+                        matchesPattern("(?s).*<a href=\"/admin/products\"[^>]*aria-current=\"page\"[^>]*>\\s*<span>كل المنتجات</span>\\s*<span[^>]*>3</span>.*"),
+                        matchesPattern("(?s).*status=ACTIVE\"[^>]*>\\s*<span>منشور</span>\\s*<span[^>]*>1</span>.*"),
+                        matchesPattern("(?s).*status=DRAFT\"[^>]*>\\s*<span>مسودة</span>\\s*<span[^>]*>2</span>.*"),
+                        matchesPattern("(?s).*status=ARCHIVED\"[^>]*>\\s*<span>مؤرشف</span>\\s*<span[^>]*>0</span>.*"),
+                        containsString("بلا سعر"), not(containsString("name=\"status\" form=")))));
+
+        // A tab keeps the search; the status rides along with the next search in the hidden field.
+        mvc.perform(htmx(get(MAIN + "/admin/products").param("status", "DRAFT").param("q", "blue")))
+                .andExpect(content().string(allOf(not(containsString("<html")),
+                        containsString("Blue Cup"), not(containsString("Blue Teapot")), not(containsString("Red Kettle")),
+                        containsString("<input type=\"hidden\" name=\"status\" form=\"product-filters\" value=\"DRAFT\">"),
+                        containsString("href=\"/admin/products?q=blue\""),
+                        matchesPattern("(?s).*<a href=\"/admin/products\\?status=DRAFT&amp;q=blue\"[^>]*aria-current=\"page\".*"))));
     }
 
     @Test

@@ -91,9 +91,10 @@ class ProductImageController {
         if (!Htmx.isHtmx(request)) {
             return "redirect:/admin/products/" + productId;
         }
-        model.addAttribute("product", products.find(productId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND)));
+        var product = products.find(productId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        model.addAttribute("product", product);
         model.addAttribute("maxImages", ProductImages.MAX_IMAGES);
+        ProductController.refreshShelf(product, model);
         return SECTION;
     }
 

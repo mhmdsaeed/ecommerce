@@ -1457,3 +1457,25 @@ The orders list filtered by a status dropdown. It now opens on the order's pipel
 | `OrderManagementIT` (changed) | With two orders awaiting confirmation, "In progress" is the current tab, the awaiting-confirmation tab shows 2 in amber, and the hidden field carries the view; an HTMX request for one status returns a fragment that keeps the view and marks its tab |
 
 **Live check (local profile):** headless Edge screenshots of demo1's orders list as the owner, at 1280 px and 500 px.
+
+## After M15: Catalog admin, the product on its shelf (2026-10-18)
+
+The product page opened on a row of status buttons. It now opens on the product as the shop shows it, beside what publishing it needs.
+
+### What was built
+
+- **Shelf** (`product-edit.html :: shelf`, `ShelfPreview`): the product's card (main photo, name, the shop's price tag with "from" when variants on sale differ in price, the old price struck through) standing on a shelf board (`.shelf__board`); a dashed frame without a photo, "No price" in amber without a price. Beside it, the status in plain words (with a link to the product in the shop once published) and three needs, each linking to its section: a price on a variant on sale (required: amber with a hint when missing, and Publish is disabled until there is one), a photo and a description (optional: an empty ring and a hint). The status actions moved into the panel. Its edge is amber while a draft, brand while published, grey once archived.
+- **Live:** the photo and prices sections, swapped over HTMX, also send the shelf out of band (`ProductController.refreshShelf`), so it follows an upload or a price change.
+- **Product list:** status tabs (all products, published, draft, archived), each counted (`Products.countsByStatus`, one grouped query), in place of the status dropdown; the status rides along with the search in a hidden field tied to the form, and tab links keep the search. Prices are the shop's price tags, "No price" in amber; phones get stacked rows; a product without a photo shows a dashed frame.
+- Messages: `product.shelf.*`, `product.no-price`, `product.tab.all`; `product.status.all` removed.
+
+### Tests (574, all green: 276 unit, 298 integration)
+
+| Test | Checks |
+|---|---|
+| `ShelfPreviewTest` (new) | The lowest price on sale with its old price; "from" only when prices differ; not sellable without a price above zero on sale; photo and description |
+| `CatalogIT` (changed) | Uploading a photo and saving prices send the shelf out of band; a published product's shelf links to the shop; a product without a price shows the amber needs and a disabled Publish; new `listsProductsInStatusTabsWithCounts`: tab counts, a status tab with a search, the hidden field and the tab links |
+
+**Live check (local profile):** headless Edge screenshots as demo1's owner: the list at 1280 and 520 px, a draft without photo or price (1280 px), the published shirt (1280 px), and a draft with a photo and an old price (520 px), created for the check and deleted after.
+
+**Noticed, not changed:** the list says "from" whenever a product has several variants, even at one price; the shelf uses the admin's colour, not the store's theme colour; an empty status tab says "No products match your search" without a search.

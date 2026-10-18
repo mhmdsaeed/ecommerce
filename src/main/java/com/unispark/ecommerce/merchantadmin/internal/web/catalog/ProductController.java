@@ -66,7 +66,11 @@ class ProductController {
         var page = ListParams.page(pageParam);
         model.addAttribute("q", q);
         model.addAttribute("status", status);
+        // The tabs: all products, then each status with its count.
+        var counts = products.countsByStatus();
         model.addAttribute("statuses", ProductStatus.values());
+        model.addAttribute("counts", counts);
+        model.addAttribute("totalCount", counts.values().stream().mapToLong(Long::longValue).sum());
         model.addAttribute("result", products.search(q, status, page));
         return Htmx.isHtmx(request) ? LIST_RESULTS : LIST_PAGE;
     }
@@ -176,6 +180,7 @@ class ProductController {
         model.addAttribute("variantsForm", VariantsForm.of(product));
         model.addAttribute("variantsNotice", notice);
         model.addAttribute("product", product);
+        refreshShelf(product, model);
         return VARIANTS_SECTION;
     }
 
@@ -212,8 +217,18 @@ class ProductController {
         return NEW_PAGE;
     }
 
+    /**
+     * A section swapped over HTMX changed what the shop shows (a photo, a price): its response also carries the
+     * shelf at the top of the page, swapped out of band.
+     */
+    static void refreshShelf(ProductDetails product, Model model) {
+        model.addAttribute("shelf", ShelfPreview.of(product));
+        model.addAttribute("refreshShelf", true);
+    }
+
     private String edit(ProductDetails product, Model model) {
         model.addAttribute("product", product);
+        model.addAttribute("shelf", ShelfPreview.of(product));
         model.addAttribute("categories", categories.list());
         model.addAttribute("currencies", Currency.values());
         model.addAttribute("maxImages", ProductImages.MAX_IMAGES);

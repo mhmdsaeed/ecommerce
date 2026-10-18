@@ -2,6 +2,7 @@ package com.unispark.ecommerce.catalog;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,6 +29,9 @@ public interface Products {
     int VARIANT_PAGE_SIZE = 50;
 
     ProductPage search(String query, ProductStatus status, int page);
+
+    /** How many products are in each status: every status, zero for none (the product list's tabs). */
+    Map<ProductStatus, Long> countsByStatus();
 
     Optional<ProductDetails> find(UUID id);
 

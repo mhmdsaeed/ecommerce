@@ -3,10 +3,12 @@ package com.unispark.ecommerce.catalog.internal;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -61,6 +63,19 @@ class ProductService implements Products {
                 PageRequest.of(Math.max(page, 0), PAGE_SIZE, Sort.by(Sort.Direction.DESC, "updatedAt")));
         return new ProductPage(result.getContent().stream().map(CatalogViews::summary).toList(),
                 result.getNumber(), result.getTotalPages(), result.getTotalElements());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<ProductStatus, Long> countsByStatus() {
+        var counts = new EnumMap<ProductStatus, Long>(ProductStatus.class);
+        for (var status : ProductStatus.values()) {
+            counts.put(status, 0L);
+        }
+        for (var row : products.countGroupedByStatus()) {
+            counts.put((ProductStatus) row[0], (Long) row[1]);
+        }
+        return counts;
     }
 
     @Override

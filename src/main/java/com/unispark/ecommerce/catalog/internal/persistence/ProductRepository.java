@@ -31,6 +31,10 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
             """)
     Page<Product> search(@Param("status") ProductStatus status, @Param("pattern") String pattern, Pageable pageable);
 
+    /** Each status present, with its number of products: rows of [ProductStatus, Long]. */
+    @Query("select p.status, count(p) from Product p group by p.status")
+    List<Object[]> countGroupedByStatus();
+
     @Query("select p.categoryId as categoryId, count(p) as products from Product p "
             + "where p.categoryId is not null group by p.categoryId")
     List<CategoryCount> countByCategory();
