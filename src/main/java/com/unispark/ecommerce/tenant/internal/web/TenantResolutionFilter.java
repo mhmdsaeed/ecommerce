@@ -102,8 +102,8 @@ class TenantResolutionFilter extends OncePerRequestFilter {
                     return;
                 }
                 if (!store.get().launched() && !previewing(store.get().id(), request, response)) {
-                    // error/503.html shows "opening soon" for this attribute.
-                    request.setAttribute(OPENING_SOON, true);
+                    // error/503.html shows "opening soon" for this attribute: the store's name, on its closed sign.
+                    request.setAttribute(OPENING_SOON, store.get().name());
                     response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
                     return;
                 }

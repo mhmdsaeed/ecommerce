@@ -1334,3 +1334,26 @@ The admin header listed up to 13 links in a row; on a phone it wrapped to three 
 | `OrderManagementIT` (+1, now 11) | With two orders awaiting confirmation: the badge on a non-dashboard page for staff, the current page marked, managers' links hidden from staff; the dashboard marks home as current, shows managers' links to the owner and the amber ledger rows; HTMX requests carry no count |
 
 **Live check (local profile):** demo1 (five orders awaiting confirmation), pages saved with curl and screenshotted in headless Edge: dashboard and orders at 1280 px, dashboard at 900 and 500 px, the phone menu forced open. The first ledger had `border-amber-400` colouring every side of a row, which hid the dividers; it now colours the start edge only (`border-s-amber-400`). Opening the menu by tapping was not exercised. On phones the store's address and status are not shown (they are on the desktop sign only).
+
+## After M15: Storefront sign and price tags (2026-10-18)
+
+The storefront is the merchant's shop, so the sign from the platform's pages becomes the store's own, in its colour.
+
+### What was built
+
+- **Header as the store's sign** (`layouts/storefront.html`): a full-width band in the store's colour (`brand-700`; `ThemeStyle` keeps white text readable on any merchant colour) with the logo on a white tile, the store's name, call and WhatsApp links (moved from the footer) and a white cart button. Search, language and categories sit on a white strip under it.
+  - Pages can replace the name (`sign-name`) and add a tagline (`sign-tagline`). Pages without a store (main-site error pages, a store opening soon) get a plain white header instead of a coloured band.
+- **Home:** the store's name on the sign is the page's `h1`, set larger. The merchant's headline and text, when set, are the sign's tagline. The default "Welcome to {store}" is gone (it repeated the name right above it); `shop.home.welcome` removed from both bundles. Categories on the home page are pills instead of bordered tiles.
+- **Price tags:** prices on product cards and the product page sit on a small tag in the store's colour (`brand-700` on `brand-50`). Product names on cards are clamped to two lines.
+- **Opening soon** (`error/503.html`): the store's sign with its shutter fully down, as the merchant sees it on the setup page. `TenantResolutionFilter` now sets `storeOpeningSoon` to the store's name instead of `true`.
+- CSS: 7.4 KB gzipped (budget 30 KB, SPEC 9.5). No JavaScript added.
+
+### Tests (569, all green: 272 unit, 297 integration)
+
+| Test | Checks |
+|---|---|
+| `StorefrontIT` (changed) | The home `h1` inside the header is the store's name (Arabic and English); a merchant's headline is the tagline under it |
+| `TenantResolutionIT` (changed) | A store's home greets with its name as the `h1`, in both languages |
+| `ErrorPagesIT` (changed) | Opening soon shows the store's name on a sign with the shutter at 100% |
+
+**Live check (local profile):** headless Edge screenshots of demo1's home (1280 and 500 px) and a product page, demo2 with a burgundy theme injected into a saved copy, and `ward2649`'s opening-soon page. No demo store has a phone, WhatsApp, logo or headline set, so those parts of the sign were not seen with data. Cart and checkout inherit the header but were not redesigned or looked at.

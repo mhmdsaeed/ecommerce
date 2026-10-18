@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <!--/* Storefront layout. Pages fill "content". On a store, StorefrontAdvice provides shop, navigation, logoUrl and
-       themeStyle; on the main site (no store) they are absent and the platform name shows instead. */-->
+       themeStyle; on the main site (no store) they are absent and the platform name shows instead.
+       The header is the store's sign: a band in the store's colour (brand-700, which ThemeStyle keeps readable with
+       white text) with its logo, name, phone, WhatsApp and the cart. Pages may replace the name ("sign-name"; the
+       home page makes it its h1) and add a tagline ("sign-tagline"; the home page's hero). Search, language and
+       categories sit under it. */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/base}">
@@ -29,42 +33,58 @@
 </head>
 <body>
 <div layout:fragment="body" class="flex min-h-screen flex-col" data-area="storefront">
-    <header class="border-b border-gray-200">
-        <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-            <a th:href="@{/}" class="flex items-center gap-2 text-lg font-semibold">
-                <img th:if="${logoUrl != null}" th:src="${logoUrl}" alt="" width="40" height="40"
-                     class="h-10 w-10 rounded object-contain">
-                <span th:text="${shop != null} ? ${shop.name().in(#locale)} : #{app.name}">Store</span>
-            </a>
-            <form th:if="${shop != null}" th:action="@{/search}" method="get" role="search" class="order-last flex w-full gap-2 sm:order-none sm:w-auto">
-                <label for="site-search" class="sr-only" th:text="#{shop.search}">Search</label>
-                <input id="site-search" name="q" type="search" th:value="${q}" th:placeholder="#{shop.search}"
-                       class="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 sm:w-64">
-                <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-                        th:text="#{shop.search.submit}">Search</button>
-            </form>
-            <div class="flex items-center gap-4 text-sm">
-                <nav class="flex gap-3" th:attr="aria-label=#{shop.language}">
-                    <a th:href="@{/lang/ar}" lang="ar" hreflang="ar" th:text="#{lang.ar}" rel="nofollow">العربية</a>
-                    <a th:href="@{/lang/en}" lang="en" hreflang="en" th:text="#{lang.en}" rel="nofollow">English</a>
-                </nav>
+    <header>
+        <!--/* Without a store (error pages on the main site, or a store opening soon) the band is plain: the only
+               sign on the page is then the store's own, if any. */-->
+        <div th:class="${shop != null} ? 'bg-brand-700 text-white' : 'border-b border-gray-200 bg-white text-gray-900'">
+            <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4">
+                <a th:href="@{/}" class="flex min-w-0 flex-1 items-center gap-3">
+                    <img th:if="${logoUrl != null}" th:src="${logoUrl}" alt="" width="48" height="48"
+                         class="h-12 w-12 shrink-0 rounded-md bg-white object-contain p-1">
+                    <span layout:fragment="sign-name" class="truncate text-xl font-bold sm:text-2xl" dir="auto"
+                          th:text="${shop != null} ? ${shop.name().in(#locale)} : #{app.name}">Store</span>
+                </a>
                 <!--/* The count comes from the cart_count cookie (app.js: cartBadge), so the page is the same for everyone. */-->
                 <a th:if="${shop != null}" th:href="@{/cart}" x-data="cartBadge"
                    x-on:cart-changed.window="refresh()" x-on:pageshow.window="refresh()"
-                   class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 font-medium hover:border-brand-600">
+                   class="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-white px-3 py-2 font-semibold text-brand-700 hover:bg-brand-50 sm:order-last">
                     <span th:text="#{shop.cart}">Cart</span>
                     <span x-show="count > 0" x-text="count" x-cloak
-                          class="min-w-5 rounded-full bg-brand-600 px-1.5 text-center text-xs leading-5 text-white"></span>
+                          class="min-w-5 rounded-full bg-brand-700 px-1.5 text-center text-xs leading-5 text-white"></span>
                 </a>
+                <p th:if="${shop != null and (shop.contactPhone() != null or shop.whatsapp() != null)}"
+                   class="flex w-full gap-4 text-sm sm:w-auto">
+                    <a th:if="${shop.contactPhone() != null}" th:href="|tel:${shop.contactPhone()}|" class="underline-offset-4 hover:underline">
+                        <span th:text="#{shop.contact.phone}">Call</span> <bdi dir="ltr" th:text="${shop.contactPhone()}">+963</bdi>
+                    </a>
+                    <a th:if="${shop.whatsapp() != null}" th:href="|https://wa.me/${#strings.substringAfter(shop.whatsapp(), '+')}|"
+                       rel="noopener" class="font-semibold underline-offset-4 hover:underline" th:text="#{shop.contact.whatsapp}">WhatsApp</a>
+                </p>
             </div>
+            <div layout:fragment="sign-tagline"></div>
         </div>
-        <nav th:if="${navigation != null and !navigation.isEmpty()}" class="border-t border-gray-100" th:attr="aria-label=#{shop.categories}">
-            <ul class="mx-auto flex max-w-6xl gap-4 overflow-x-auto px-4 py-2 text-sm">
-                <li th:each="link : ${navigation}" class="shrink-0">
-                    <a th:href="@{/c/{slug}(slug=${link.slug()})}" class="hover:text-brand-700" th:text="${link.name().in(#locale)}">Category</a>
-                </li>
-            </ul>
-        </nav>
+        <div class="border-b border-gray-200 bg-white">
+            <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-3">
+                <form th:if="${shop != null}" th:action="@{/search}" method="get" role="search" class="flex min-w-0 flex-1 gap-2">
+                    <label for="site-search" class="sr-only" th:text="#{shop.search}">Search</label>
+                    <input id="site-search" name="q" type="search" th:value="${q}" th:placeholder="#{shop.search}"
+                           class="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-base focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 sm:max-w-md">
+                    <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+                            th:text="#{shop.search.submit}">Search</button>
+                </form>
+                <nav class="ms-auto flex gap-3 text-sm" th:attr="aria-label=#{shop.language}">
+                    <a th:href="@{/lang/ar}" lang="ar" hreflang="ar" th:text="#{lang.ar}" rel="nofollow">العربية</a>
+                    <a th:href="@{/lang/en}" lang="en" hreflang="en" th:text="#{lang.en}" rel="nofollow">English</a>
+                </nav>
+            </div>
+            <nav th:if="${navigation != null and !navigation.isEmpty()}" class="border-t border-gray-100" th:attr="aria-label=#{shop.categories}">
+                <ul class="mx-auto flex max-w-6xl gap-5 overflow-x-auto px-4 py-2.5 text-sm font-medium">
+                    <li th:each="link : ${navigation}" class="shrink-0">
+                        <a th:href="@{/c/{slug}(slug=${link.slug()})}" class="hover:text-brand-700" th:text="${link.name().in(#locale)}">Category</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
     </header>
     <p th:if="${storePreview != null}" role="status"
        class="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900" th:text="#{shop.preview}">Preview</p>
@@ -77,13 +97,6 @@
         <main id="content" layout:fragment="content"></main>
     </div>
     <footer class="border-t border-gray-200 py-4 text-center text-xs text-gray-500">
-        <p th:if="${shop != null and (shop.contactPhone() != null or shop.whatsapp() != null)}" class="mb-2 flex flex-wrap justify-center gap-4 text-sm">
-            <a th:if="${shop.contactPhone() != null}" th:href="|tel:${shop.contactPhone()}|" class="hover:text-brand-700">
-                <span th:text="#{shop.contact.phone}">Call</span> <bdi dir="ltr" th:text="${shop.contactPhone()}">+963</bdi>
-            </a>
-            <a th:if="${shop.whatsapp() != null}" th:href="|https://wa.me/${#strings.substringAfter(shop.whatsapp(), '+')}|"
-               rel="noopener" class="hover:text-brand-700" th:text="#{shop.contact.whatsapp}">WhatsApp</a>
-        </p>
         <span th:text="${shop != null} ? ${shop.name().in(#locale)} : #{app.name}">Store</span> ·
         <span th:text="#{layout.footer}">All rights reserved</span>
     </footer>

@@ -87,7 +87,10 @@ class ErrorPagesIT {
         assertThat(response).startsWith("HTTP/1.1 503")
                 .contains("هذا المتجر سيفتح قريباً")
                 .contains("noindex")
-                .doesNotContain("غير متاح مؤقتاً");
+                .doesNotContain("غير متاح مؤقتاً")
+                // The store's sign, its shutter down.
+                .contains("<p class=\"shop-sign__name\" dir=\"auto\">متجر " + slug + "</p>")
+                .contains("<div class=\"shop-sign__shutter\" style=\"height: 100%\"></div>");
     }
 
     @Test

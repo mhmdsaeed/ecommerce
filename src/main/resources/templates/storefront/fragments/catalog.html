@@ -15,11 +15,13 @@
                      th:attr="loading=${state.index < eagerCount} ? 'eager' : 'lazy'"
                      class="h-full w-full object-cover transition group-hover:opacity-90">
             </div>
-            <h3 class="mt-2 text-sm font-medium text-gray-900" th:text="${card.name().in(#locale)}">Product</h3>
-            <p class="mt-1 text-sm">
+            <h3 class="mt-2 line-clamp-2 text-sm font-medium text-gray-900" th:text="${card.name().in(#locale)}">Product</h3>
+            <!--/* The price on a tag in the store's colour, like a price sticker. */-->
+            <p class="mt-1.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-1 text-sm">
                 <span th:if="${card.fromPrice()}" class="text-gray-500" th:text="#{shop.price.from}">from</span>
-                <bdi class="font-semibold" th:text="${@shopPrices.show(card.price())}">150,000</bdi>
-                <del th:if="${card.compareAtPrice() != null}" class="ms-1 text-gray-400">
+                <bdi class="rounded bg-brand-50 px-1.5 py-0.5 font-bold tabular-nums text-brand-700"
+                     th:text="${@shopPrices.show(card.price())}">150,000</bdi>
+                <del th:if="${card.compareAtPrice() != null}" class="text-gray-400">
                     <bdi th:text="${@shopPrices.show(card.compareAtPrice())}">200,000</bdi>
                 </del>
             </p>

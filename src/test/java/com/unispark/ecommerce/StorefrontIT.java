@@ -5,6 +5,7 @@ import static com.unispark.ecommerce.TestAccounts.storefront;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -117,14 +118,15 @@ class StorefrontIT {
                 .andExpect(status().isOk())
                 .andExpect(content().string(allOf(
                         containsString("lang=\"ar\""), containsString("dir=\"rtl\""),
-                        containsString("أهلاً بك في متجر الورد"),
                         containsString("ملابس"), not(containsString("موسمي")),
                         containsString("قميص أحمر"), containsString("كوب"), containsString("جوارب"),
                         not(containsString("مسودة")), not(containsString("وشاح شتوي")), not(containsString("نفد")),
                         // $4.50 at 118.5 with the default NEAREST_5 rule.
                         containsString("535 ل.س"),
                         // Variants with different prices show "from" the lowest.
-                        containsString("من</span>"))));
+                        containsString("من</span>"),
+                        // The store's sign in the header carries the page's h1: the store's name.
+                        matchesPattern("(?s).*<header>.*<h1[^>]*>متجر الورد</h1>.*</header>.*"))));
 
         mvc.perform(get(shop + "/c/clothes"))
                 .andExpect(status().isOk())
@@ -145,7 +147,7 @@ class StorefrontIT {
 
         mvc.perform(get(shop + "/").cookie(english))
                 .andExpect(content().string(allOf(
-                        containsString("lang=\"en\""), containsString("dir=\"ltr\""), containsString("Welcome to Rose Shop"),
+                        containsString("lang=\"en\""), containsString("dir=\"ltr\""), containsString(">Rose Shop</h1>"),
                         containsString("Clothes"), containsString("Red shirt"), containsString("535 SYP"))));
         mvc.perform(get(shop + "/p/red-shirt").cookie(english))
                 .andExpect(content().string(allOf(containsString("Size"), containsString("Cotton"))));
@@ -225,7 +227,8 @@ class StorefrontIT {
         mvc.perform(get(shop + "/"))
                 .andExpect(content().string(allOf(
                         containsString("--color-brand-500:#ffff00;"), containsString("Traditional Arabic"),
-                        containsString("تخفيضات الصيف"), not(containsString("أهلاً بك في متجر الورد")),
+                        // The merchant's headline is the tagline under the store's name.
+                        matchesPattern("(?s).*<h1[^>]*>متجر الورد</h1>.*<p[^>]*>تخفيضات الصيف</p>.*"),
                         // Categories section off: its heading is gone, the header navigation stays.
                         not(containsString("<h2 class=\"text-lg font-semibold\">الأقسام</h2>")))));
     }

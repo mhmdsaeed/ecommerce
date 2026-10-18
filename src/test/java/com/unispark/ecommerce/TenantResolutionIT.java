@@ -39,9 +39,9 @@ class TenantResolutionIT {
 
         mvc.perform(get("http://" + slug + ".lvh.me:8080/"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("أهلاً بك في متجر الورد")));
+                .andExpect(content().string(containsString(">متجر الورد</h1>")));
         mvc.perform(get("http://" + slug + ".lvh.me:8080/").param("lang", "en"))
-                .andExpect(content().string(containsString("Welcome to Rose Shop")));
+                .andExpect(content().string(containsString(">Rose Shop</h1>")));
     }
 
     @Test
