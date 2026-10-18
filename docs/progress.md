@@ -1357,3 +1357,23 @@ The storefront is the merchant's shop, so the sign from the platform's pages bec
 | `ErrorPagesIT` (changed) | Opening soon shows the store's name on a sign with the shutter at 100% |
 
 **Live check (local profile):** headless Edge screenshots of demo1's home (1280 and 500 px) and a product page, demo2 with a burgundy theme injected into a saved copy, and `ward2649`'s opening-soon page. No demo store has a phone, WhatsApp, logo or headline set, so those parts of the sign were not seen with data. Cart and checkout inherit the header but were not redesigned or looked at.
+
+## After M15: Driver delivery slips (2026-10-18)
+
+The driver view is used on the road, one-handed, often in sunlight. Orders now read as delivery slips, and the address leads with the landmark, which Syrian addresses rely on.
+
+### What was built
+
+- **Home** (`driver/home.html`): the cash the driver holds at the top, in an amber panel with a large figure. Each order is a slip: number and status, the area and city large (`driver.place`, "{0}، {1}" / "{0}, {1}"), the landmark, the customer's name, then a tear line (`.slip__tear`: dashed rule with a notch cut into each edge) and what to collect, or "paid by transfer". The order out for delivery has a green border and a filled status chip.
+- **Order** (`driver/order.html`): the customer's name as the heading; call (filled), WhatsApp and map as large buttons; the address card leads with the landmark, then the governorate › city › area path, details, phone and the customer's note in its own box; the items and the amount to collect form a slip with the same tear line.
+  - The next step ("I picked it up", or the collected amount and "Delivered and cash collected") sits in a bar stuck to the bottom of the screen, within reach of the thumb. "Customer refused" stays behind a disclosure.
+- Driver copy is unchanged; type and borders are larger and heavier for reading outdoors.
+
+### Tests (569, all green: 272 unit, 297 integration)
+
+| Test | Checks |
+|---|---|
+| `DriverDeliveryIT` (changed) | The landmark leads the address; "I picked it up" sits in the bottom bar |
+| `CheckoutE2EIT` (changed) | The driver opens the order by its link (number and name are no longer one line) |
+
+**Live check (local profile):** demo1's driver had no orders, so order #1009 was placed on demo1 (cash on delivery, Mazzeh, landmark and a note), confirmed, assigned to أبو خالد, set to preparing and picked up by the driver. It stays in the demo data, out for delivery. Headless Edge screenshots of the driver's home and the order before and after pickup, at ~500 px. The status chip for an order out for delivery reads "في الطريق إليك", the shopper's wording; a driver-specific label is a possible follow-up.

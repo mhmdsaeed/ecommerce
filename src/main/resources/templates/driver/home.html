@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <!--/* The driver's open orders and the cash they hold (model: orders, OrderViews; cash, CodSettlement balances;
-       done, a checked message key). */-->
+       done, a checked message key). Each order is a delivery slip: where to go (area large, then the landmark,
+       which Syrian addresses rely on), a tear line, and what to collect. The order out for delivery is outlined. */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/driver}">
@@ -15,34 +16,41 @@
         <div th:replace="~{fragments/forms :: alert(kind='info', message=#{${done}})}"></div>
     </th:block>
 
-    <section th:unless="${cash.isEmpty()}" class="rounded-lg border border-gray-200 p-4" aria-labelledby="cash-heading">
-        <h2 id="cash-heading" class="text-sm text-gray-600" th:text="#{driver.cash}">Cash you hold</h2>
-        <p th:each="balance : ${cash}" class="text-2xl font-bold">
+    <section th:unless="${cash.isEmpty()}" class="rounded-lg border-2 border-amber-300 bg-amber-50 p-4" aria-labelledby="cash-heading">
+        <h2 id="cash-heading" class="font-medium text-amber-900" th:text="#{driver.cash}">Cash you hold</h2>
+        <p th:each="balance : ${cash}" class="mt-1 text-3xl font-bold tabular-nums text-gray-900">
             <bdi th:text="${@money.format(balance.outstanding())}">5,000</bdi>
         </p>
     </section>
 
-    <p th:if="${orders.isEmpty()}" class="rounded-lg border border-dashed border-gray-300 p-6 text-center text-gray-600"
+    <p th:if="${orders.isEmpty()}" class="rounded-lg border-2 border-dashed border-gray-300 p-6 text-center text-gray-600"
        th:text="#{driver.home.empty}">No deliveries.</p>
 
-    <ul th:unless="${orders.isEmpty()}" class="space-y-3">
-        <li th:each="order : ${orders}">
+    <ul th:unless="${orders.isEmpty()}" class="space-y-4">
+        <li th:each="order : ${orders}" th:with="out=${order.status().name() == 'OUT_FOR_DELIVERY'}">
             <a th:href="@{/driver/orders/{number}(number=${order.number()})}"
-               class="block rounded-lg border border-gray-200 p-4 hover:border-brand-600">
-                <span class="flex items-center justify-between gap-3">
-                    <span class="font-semibold" th:text="|#${order.number()} · ${order.customerName()}|">#1001 · Name</span>
-                    <span class="rounded-full px-2 py-0.5 text-xs"
-                          th:classappend="${order.status().name() == 'OUT_FOR_DELIVERY'} ? 'bg-brand-50 text-brand-700' : 'bg-gray-100 text-gray-700'"
-                          th:text="#{order.status.__${order.status()}__}">Preparing</span>
+               class="block overflow-hidden rounded-lg border-2 bg-white"
+               th:classappend="${out} ? 'border-brand-600' : 'border-gray-300'">
+                <span class="block p-4">
+                    <span class="flex items-center justify-between gap-3 text-sm">
+                        <span class="font-semibold text-gray-600" th:text="|#${order.number()}|">#1001</span>
+                        <span class="rounded-full px-2.5 py-0.5 font-medium"
+                              th:classappend="${out} ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-800'"
+                              th:text="#{order.status.__${order.status()}__}">Preparing</span>
+                    </span>
+                    <span class="mt-2 block text-xl font-bold" th:text="${order.address().area() != null} ?
+                            #{driver.place(${order.address().area()}, ${order.address().city()})} : ${order.address().city()}">Mazzeh, Damascus</span>
+                    <span th:if="${order.address().landmark() != null}" class="mt-0.5 block font-medium text-gray-800"
+                          th:text="${order.address().landmark()}">Near the mosque</span>
+                    <span class="mt-1 block text-sm text-gray-600" th:text="${order.customerName()}">Name</span>
                 </span>
-                <span class="mt-1 block text-sm text-gray-600">
-                    <span th:text="${order.address().city()}">City</span><th:block th:if="${order.address().area() != null}"> ·
-                    <span th:text="${order.address().area()}">Area</span></th:block>
+                <span class="slip__tear block" aria-hidden="true"></span>
+                <span class="block px-4 py-3">
+                    <span th:unless="${order.paymentMethod().isTransfer()}" class="block text-lg font-bold tabular-nums"
+                          th:text="#{driver.collect(${@money.format(order.total())})}">Collect 5,000</span>
+                    <span th:if="${order.paymentMethod().isTransfer()}" class="block text-gray-600"
+                          th:text="#{driver.prepaid}">Paid by transfer</span>
                 </span>
-                <span th:unless="${order.paymentMethod().isTransfer()}" class="mt-1 block text-sm font-medium"
-                      th:text="#{driver.collect(${@money.format(order.total())})}">Collect 5,000</span>
-                <span th:if="${order.paymentMethod().isTransfer()}" class="mt-1 block text-sm text-gray-600"
-                      th:text="#{driver.prepaid}">Paid by transfer</span>
             </a>
         </li>
     </ul>

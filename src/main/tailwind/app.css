@@ -91,6 +91,29 @@
   margin-top: 0.25rem;
   font-size: 1.125rem;
 }
+/* Driver view (driver/*.html): a delivery slip's tear line, a dashed rule with a notch cut into each edge,
+   between where to go and what to collect. */
+.slip__tear {
+  position: relative;
+  border-top: 2px dashed var(--color-gray-300);
+}
+.slip__tear::before,
+.slip__tear::after {
+  content: "";
+  position: absolute;
+  top: -10px;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 2px solid var(--color-gray-300);
+}
+.slip__tear::before {
+  inset-inline-start: -11px;
+}
+.slip__tear::after {
+  inset-inline-end: -11px;
+}
 /* The admin sidebar's sign (layouts/admin.html): the store's name and address under a slim rolled-up shutter. */
 .shop-sign--compact {
   padding: 1.25rem 1rem 1rem;

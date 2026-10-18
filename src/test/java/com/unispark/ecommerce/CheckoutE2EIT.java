@@ -279,7 +279,7 @@ class CheckoutE2EIT {
             driver.locator("input[name=password]").fill(TestAccounts.PASSWORD);
             driver.locator("form button[type=submit]").click();
             assertThat(driver).hasURL(Pattern.compile(".*/driver$"));
-            driver.getByText("#" + placed.number() + " · سارة").click();
+            driver.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("#" + placed.number())).click();
             assertThat(driver.getByText("حصّل 22,000 ل.س نقداً")).isVisible();
             driver.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("استلمت الطلب، أنا في الطريق")).click();
             assertThat(driver.getByText("أنت في الطريق")).isVisible();

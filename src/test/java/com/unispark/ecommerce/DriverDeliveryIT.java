@@ -4,6 +4,7 @@ import static com.unispark.ecommerce.TestAccounts.MAIN;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -148,7 +149,10 @@ class DriverDeliveryIT {
         mvc.perform(get(MAIN + "/driver/orders/" + placed.number()).session(driverSession))
                 .andExpect(content().string(allOf(containsString("tel:+963933111001"),
                         containsString("https://wa.me/963933111001"), containsString("google.com/maps/search"),
-                        containsString("استلمت الطلب"))));
+                        containsString("استلمت الطلب"),
+                        // The landmark leads the address; the next step sits in the bar at the bottom.
+                        containsString("<p class=\"mt-1 text-xl font-bold\">قرب الجامع</p>"),
+                        matchesPattern("(?s).*class=\"sticky bottom-0[^\"]*\">\\s*<form[^>]*/start\".*"))));
 
         driverPost(placed, "start").andExpect(redirectedUrl("/driver/orders/" + placed.number() + "?done=started"));
         mvc.perform(get(MAIN + "/driver/orders/" + placed.number()).session(driverSession))
