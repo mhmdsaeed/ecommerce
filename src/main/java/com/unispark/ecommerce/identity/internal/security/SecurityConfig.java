@@ -129,7 +129,7 @@ class SecurityConfig {
         http.securityMatcher(request -> sites.siteOf(request) == Site.STOREFRONT)
                 .authorizeHttpRequests(authorize -> authorize
                         // Areas of the main site, on a store's host.
-                        .requestMatchers("/admin/**", "/driver/**", "/platform/**", "/signup/**", "/api/**")
+                        .requestMatchers("/admin/**", "/driver/**", "/platform/**", "/signup/**", "/api/**", "/welcome")
                         .denyAll()
                         .anyRequest().permitAll())
                 .csrf(csrf -> csrf

@@ -39,6 +39,8 @@ import com.unispark.ecommerce.tenant.StoreSettings;
 @Controller
 class StorefrontController {
 
+    /** The main site's landing page, which {@code /} on the main site shows. Store hosts deny it. */
+    static final String MAIN_SITE_HOME = "/welcome";
     static final int NEWEST = 8;
 
     private final StorefrontCatalog catalog;
@@ -65,7 +67,8 @@ class StorefrontController {
     @GetMapping("/")
     String home(Model model) {
         if (TenantContext.currentTenantId().isEmpty()) {
-            return "storefront/placeholder";
+            // The main site: its landing page is the merchant admin module's (LandingController).
+            return "forward:" + MAIN_SITE_HOME;
         }
         model.addAttribute("newest", catalog.newest(NEWEST));
         model.addAttribute("seo", seo.home(settings.current()));

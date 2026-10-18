@@ -76,6 +76,32 @@
 .shop-sign__domain {
   color: var(--color-brand-100);
 }
+/* The landing page's hero (merchantadmin/landing.html): the whole band is the sign, the address its display type. */
+.shop-sign--hero {
+  padding: 4rem 0 3.5rem;
+}
+.shop-sign--hero .shop-sign__shutter {
+  height: 2rem;
+  z-index: 1;
+}
+.shop-sign--hero.shop-sign--opening .shop-sign__shutter {
+  animation-name: shop-sign-open-hero;
+  animation-duration: 600ms;
+}
+@keyframes shop-sign-open-hero {
+  from { height: 100%; }
+  to { height: 2rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shop-sign--hero.shop-sign--opening .shop-sign__shutter {
+    animation: none;
+  }
+}
+.shop-sign--hero .shop-sign__address {
+  font-size: clamp(2.25rem, 9vw, 4rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
 
 /* Alpine hides x-cloak elements until it has started. */
 [x-cloak] {

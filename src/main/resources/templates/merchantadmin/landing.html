@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<!--/* The main site's landing page (LandingController), for merchants deciding whether to open a store. The hero is
+       the shop sign from the sign-in pages: the address typed under it shows on it, and the form opens the signup
+       page with that address (GET /signup?slug=). Prices are the active plans; nothing here is per visitor. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/base}">
+<head>
+    <title th:text="#{landing.title}">Open your online store</title>
+    <meta name="description" th:content="#{landing.intro}">
+</head>
+<body>
+<div layout:fragment="body" class="flex min-h-screen flex-col" data-area="site">
+    <header class="border-b border-gray-200 bg-white">
+        <div class="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+            <a th:href="@{/}" class="text-lg font-semibold" th:text="#{app.name}">App</a>
+            <nav class="flex flex-wrap items-center gap-4 text-sm">
+                <a th:href="@{/admin/login}" class="font-medium text-brand-700 hover:underline"
+                   th:text="#{landing.login}">Merchant login</a>
+                <a th:href="@{''(lang='ar')}" lang="ar" th:text="#{lang.ar}">العربية</a>
+                <a th:href="@{''(lang='en')}" lang="en" th:text="#{lang.en}">English</a>
+            </nav>
+        </div>
+    </header>
+
+    <main id="content" class="flex-1">
+        <!--/* The sign. The address repeats the field below it, so it is hidden from screen readers. */-->
+        <section class="shop-sign shop-sign--hero shop-sign--opening" x-data="storeSign" data-input="slug">
+            <div class="shop-sign__shutter"></div>
+            <div class="mx-auto max-w-3xl px-4">
+                <p class="shop-sign__address" aria-hidden="true"><bdi dir="ltr"><span class="shop-sign__slug" x-text="slug"></span><span class="shop-sign__domain" th:text="${storeDomain}">.example.com</span></bdi></p>
+                <h1 class="mt-8 max-w-xl text-3xl font-bold leading-tight sm:text-4xl" th:text="#{landing.heading}">
+                    Open your online store in minutes</h1>
+                <p class="mt-4 max-w-xl text-lg leading-relaxed text-brand-100" th:text="#{landing.intro}">Intro</p>
+
+                <form id="claim" th:action="@{/signup}" method="get" class="mt-8 max-w-xl">
+                    <label for="slug" class="block font-medium" th:text="#{landing.claim.label}">Choose your store address</label>
+                    <div class="mt-2 flex flex-col gap-3 sm:flex-row">
+                        <div dir="ltr" class="flex min-w-0 flex-1 items-stretch">
+                            <input id="slug" name="slug" type="text" required maxlength="32" autocomplete="off"
+                                   autocapitalize="none" spellcheck="false" aria-describedby="slug-hint"
+                                   class="min-w-0 flex-1 rounded-s-md border-0 bg-white px-3 py-3 text-lg text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+                            <span class="flex items-center rounded-e-md bg-brand-50 px-3 text-gray-700"
+                                  th:text="${storeDomain}">.example.com</span>
+                        </div>
+                        <button type="submit"
+                                class="rounded-md bg-white px-5 py-3 text-lg font-semibold text-brand-700 hover:bg-brand-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                                th:text="#{landing.claim.submit}">Open your store</button>
+                    </div>
+                    <p id="slug-hint" class="mt-2 text-sm text-brand-100" th:text="#{landing.claim.hint}">Hint</p>
+                    <p class="mt-4 font-medium" th:text="#{landing.claim.trial(${trialDays})}">14 days free</p>
+                </form>
+            </div>
+        </section>
+
+        <!--/* An order's path through the store: a real sequence, so the steps are numbered. */-->
+        <section class="mx-auto max-w-3xl px-4 py-16" aria-labelledby="order-heading">
+            <h2 id="order-heading" class="text-2xl font-bold sm:text-3xl" th:text="#{landing.order.heading}">One order</h2>
+            <ol class="mt-8">
+                <li th:each="step, it : ${ {1, 2, 3, 4} }" class="relative flex gap-4 pb-8 last:pb-0">
+                    <span th:unless="${it.last}" aria-hidden="true"
+                          class="absolute start-5 top-10 bottom-0 w-px -translate-x-1/2 bg-brand-100 rtl:translate-x-1/2"></span>
+                    <span class="relative flex size-10 shrink-0 items-center justify-center rounded-md border-2 border-brand-600 bg-white text-lg font-bold text-brand-700"
+                          th:text="${step}">1</span>
+                    <div class="pt-1.5">
+                        <h3 class="text-lg font-semibold" th:text="#{landing.order.__${step}__.title}">Step</h3>
+                        <p class="mt-1 max-w-prose leading-relaxed text-gray-600" th:text="#{landing.order.__${step}__.body}">Body</p>
+                    </div>
+                </li>
+            </ol>
+        </section>
+
+        <section class="border-y border-gray-200 bg-gray-50">
+            <dl class="mx-auto max-w-3xl divide-y divide-gray-200 px-4">
+                <div class="grid gap-2 py-8 sm:grid-cols-[14rem_1fr] sm:gap-8">
+                    <dt class="text-lg font-semibold" th:text="#{landing.pay.heading}">Payments</dt>
+                    <dd>
+                        <p class="leading-relaxed text-gray-600" th:text="#{landing.pay.body}">Body</p>
+                        <ul class="mt-3 flex flex-wrap gap-2">
+                            <li th:each="method : ${paymentMethods}"
+                                class="rounded-md border border-gray-300 bg-white px-3 py-1 text-sm"
+                                th:text="#{payment.method.__${method}__}">Cash on delivery</li>
+                        </ul>
+                    </dd>
+                </div>
+                <div class="grid gap-2 py-8 sm:grid-cols-[14rem_1fr] sm:gap-8">
+                    <dt class="text-lg font-semibold" th:text="#{landing.currency.heading}">Pounds or dollars</dt>
+                    <dd class="leading-relaxed text-gray-600" th:text="#{landing.currency.body}">Body</dd>
+                </div>
+                <div class="grid gap-2 py-8 sm:grid-cols-[14rem_1fr] sm:gap-8">
+                    <dt class="text-lg font-semibold" th:text="#{landing.delivery.heading}">Delivery</dt>
+                    <dd class="leading-relaxed text-gray-600" th:text="#{landing.delivery.body}">Body</dd>
+                </div>
+            </dl>
+        </section>
+
+        <section th:unless="${plans.isEmpty()}" class="mx-auto max-w-3xl px-4 py-16" aria-labelledby="plans-heading">
+            <h2 id="plans-heading" class="text-2xl font-bold sm:text-3xl" th:text="#{landing.plans.heading}">Prices</h2>
+            <p class="mt-3 max-w-prose leading-relaxed text-gray-600" th:text="#{landing.plans.intro}">Intro</p>
+            <div class="mt-8 overflow-x-auto">
+                <table class="w-full text-start">
+                    <caption class="sr-only" th:text="#{landing.plans.heading}">Prices</caption>
+                    <thead>
+                    <tr class="border-b-2 border-brand-600">
+                        <td class="py-3"></td>
+                        <th th:each="plan : ${plans}" scope="col" class="px-3 py-3 text-start text-lg font-semibold"
+                            th:text="${plan.name().in(#locale)}">Basic</th>
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                    <tr>
+                        <th scope="row" class="py-3 pe-3 text-start font-normal text-gray-600" th:text="#{landing.plans.price}">Price a month</th>
+                        <td th:each="plan : ${plans}" class="px-3 py-3 text-2xl font-bold">
+                            <bdi th:text="${@money.format(plan.monthlyPrice())}">$10</bdi></td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="py-3 pe-3 text-start font-normal text-gray-600" th:text="#{landing.plans.products}">Products</th>
+                        <td th:each="plan : ${plans}" class="px-3 py-3"
+                            th:text="${plan.limits().products()} ?: #{landing.plans.no-limit}">100</td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="py-3 pe-3 text-start font-normal text-gray-600" th:text="#{landing.plans.staff}">Staff</th>
+                        <td th:each="plan : ${plans}" class="px-3 py-3"
+                            th:text="${plan.limits().staff()} ?: #{landing.plans.no-limit}">3</td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="py-3 pe-3 text-start font-normal text-gray-600" th:text="#{landing.plans.orders}">Orders a month</th>
+                        <td th:each="plan : ${plans}" class="px-3 py-3"
+                            th:text="${plan.limits().ordersPerMonth()} ?: #{landing.plans.no-limit}">300</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="bg-brand-700 text-white">
+            <div class="mx-auto flex max-w-3xl flex-col items-start gap-4 px-4 py-12 sm:flex-row sm:items-center sm:justify-between">
+                <h2 class="text-2xl font-bold" th:text="#{landing.end.heading}">Choose your store address</h2>
+                <a th:href="@{/signup}" class="rounded-md bg-white px-5 py-3 font-semibold text-brand-700 hover:bg-brand-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                   th:text="#{landing.claim.submit}">Open your store</a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="py-6 text-center text-xs text-gray-500" th:text="#{layout.footer}">All rights reserved</footer>
+</div>
+</body>
+</html>

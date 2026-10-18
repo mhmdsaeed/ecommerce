@@ -27,8 +27,9 @@ document.addEventListener("alpine:init", function () {
   });
 });
 
-// Sign-in pages: the shop sign (fragments/auth.html) shows the store address as it is typed into #store.
-// Without that input (e.g. after "send link") it keeps the address the server rendered.
+// Sign-in pages and the landing page: the shop sign (fragments/auth.html) shows the store address as it is typed
+// into #store (or the input named by data-input). Without that input (e.g. after "send link") it keeps the address
+// the server rendered.
 document.addEventListener("alpine:init", function () {
   window.Alpine.data("storeSign", function () {
     return {
@@ -36,7 +37,7 @@ document.addEventListener("alpine:init", function () {
       init: function () {
         var shown = this.$el.querySelector(".shop-sign__slug");
         this.slug = shown ? shown.textContent : "";
-        var input = document.getElementById("store");
+        var input = document.getElementById(this.$el.dataset.input || "store");
         if (!input) {
           return;
         }

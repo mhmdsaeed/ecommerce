@@ -82,6 +82,11 @@ class BillingService implements Plans, Subscriptions, Invoices {
     }
 
     @Override
+    public int trialDays() {
+        return properties.trialDays();
+    }
+
+    @Override
     public SaveResult save(PlanDraft draft) {
         var problems = new ArrayList<FieldProblem>();
         var code = draft.code() == null ? "" : draft.code().strip().toLowerCase(Locale.ROOT);

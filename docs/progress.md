@@ -1260,3 +1260,34 @@ The login, forgot-password and reset panels open with a shop sign: a rolled-up s
 | `StaffPasswordsIT` (+1, now 13) | Login and forgot pages show the store on a live sign, the login's shutter opens; sending a link keeps the store (flash); a working reset link shows the store on an open sign; an unusable one shows a closed sign with no address |
 
 **Live check (local profile):** the login, forgot, reset and driver login pages rendered the sign; after "Send link" the sign kept `demo1`; an expired link showed the closed shutter; owner login still worked. Headless Edge screenshots in Arabic and English, desktop and ~500 px wide, with a long slug. Edge will not render narrower than about 492 px, so a 375 px phone view and the roll-up animation itself were not seen.
+
+## After M15: Merchant landing page (2026-10-18)
+
+The main site's `/` showed a "coming soon" placeholder. It now shows a landing page for merchants deciding whether to open a store, leading to signup.
+
+### What was built
+
+- **Hero:** the shop sign from the sign-in pages, full width. Its address (`____.lvh.me`) follows the field under it as it is typed; "Open your store" opens `/signup?slug=<address>`. The shutter rolls up once on load (not with `prefers-reduced-motion`). Below it, the trial length from `billing.trial-days`.
+- **An order's path** in four numbered steps (a real sequence): the customer orders and sees the delivery fee, the merchant confirms (and checks transfer receipts), their driver delivers, the cash collected is tracked until handed over.
+- **Three facts** as rows: the payment methods (from `PaymentMethod`), pricing in pounds or dollars at the merchant's rate, a delivery fee per area.
+- **Prices:** the active plans (`Plans.all()`), as columns of a table: monthly price, products, staff, orders a month ("No limit" for empty limits). Platform admin edits show up here.
+- **Routing:** the storefront still owns `/`; without a store (the main site) it forwards to `/welcome`, served by `merchantadmin`'s `LandingController`. The storefront chain denies `/welcome` on store hosts (404).
+- **`Plans.trialDays()`** (new), so the page states the configured trial.
+- **Signup prefill:** `GET /signup?slug=` fills the address, normalized (lowercase, trimmed), even if invalid, so the visitor corrects it rather than retyping; submitting reports problems as before.
+- **Removed:** `storefront/placeholder.html` and its `placeholder.*` keys.
+- The sign component (`storeSign`) reads its input from `data-input` (default `#store`); `.shop-sign--hero` styles in `app.css`.
+
+### Tests (568, all green: 272 unit, 296 integration)
+
+| Test | Checks |
+|---|---|
+| `LandingPageIT` (5) | `/` on the main site forwards to `/welcome`; the page has the live sign, the GET form to `/signup`, the seeded plans and limits, payment methods, no missing keys; English with "A 14-day free trial"; a store host answers 404 for `/welcome` and its `/` is the storefront; signup prefills ` My-Shop ` as `my-shop` |
+| `MainSiteLanguageIT` (3, was `PlaceholderPageIT`) | Arabic RTL by default with hashed asset URLs, English LTR remembered in a cookie, unsupported languages ignored, now on `/welcome` |
+| `TenantResolutionIT` (changed) | The base domain, `www.` and other hosts forward `/` to the landing page |
+
+**Live check (local profile):** headless Edge screenshots in Arabic and English, 1280 px and 500 px wide; the Arabic trial line reads "14 يوماً". Typing into the field was not exercised in a browser (same component as the login sign).
+
+### Decisions
+
+- **No testimonials, numbers or screenshots:** none exist yet, and the page does not invent them.
+- **Product name and domain** still come from `app.name` and the base host (SPEC 19 open question); the page changes with them.

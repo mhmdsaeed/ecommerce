@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import com.unispark.ecommerce.identity.MerchantSignup;
 import com.unispark.ecommerce.identity.MerchantSignup.Rejected;
@@ -21,6 +22,7 @@ import com.unispark.ecommerce.identity.MerchantSignup.SignupRequest;
 import com.unispark.ecommerce.identity.MerchantSignup.TooManyAttempts;
 import com.unispark.ecommerce.identity.StaffSessions;
 import com.unispark.ecommerce.tenant.Sites;
+import com.unispark.ecommerce.tenant.StoreSlugs;
 
 /** Merchant signup on the main site. Success logs the owner in and opens the (empty) dashboard. */
 @Controller
@@ -28,6 +30,7 @@ import com.unispark.ecommerce.tenant.Sites;
 class SignupController {
 
     static final String VIEW = "merchantadmin/signup";
+    private static final int MAX_PREFILL = 64;
 
     private final MerchantSignup signup;
     private final StaffSessions sessions;
@@ -44,9 +47,18 @@ class SignupController {
         return "." + sites.baseHost();
     }
 
+    /**
+     * {@code slug}: the address chosen on the landing page. Kept even if invalid, so the member can correct it;
+     * submitting reports the problem.
+     */
     @GetMapping
-    String form(Model model) {
-        model.addAttribute("form", new SignupForm());
+    String form(@RequestParam(name = "slug", required = false) String slug, Model model) {
+        var form = new SignupForm();
+        var chosen = StoreSlugs.normalize(slug);
+        if (chosen.length() <= MAX_PREFILL) {
+            form.setSlug(chosen);
+        }
+        model.addAttribute("form", form);
         return VIEW;
     }
 

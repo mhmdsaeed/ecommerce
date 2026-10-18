@@ -17,6 +17,9 @@ public interface Plans {
 
     Optional<PlanView> find(String code);
 
+    /** How long a new store's free trial lasts before its first invoice. */
+    int trialDays();
+
     /** Creates the plan, or updates the one with this code. */
     SaveResult save(PlanDraft draft);
 

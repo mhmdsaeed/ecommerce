@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -84,9 +85,8 @@ class TenantResolutionIT {
     @Test
     void treatsTheBaseDomainWwwAndOtherHostsAsTheMainSite() throws Exception {
         for (var host : new String[] {"lvh.me:8080", "www.lvh.me:8080", "localhost"}) {
-            mvc.perform(get("http://" + host + "/"))
-                    .andExpect(status().isOk())
-                    .andExpect(content().string(containsString("متجرك على الإنترنت خلال دقائق")));
+            // The main site's root shows its landing page.
+            mvc.perform(get("http://" + host + "/")).andExpect(forwardedUrl("/welcome"));
         }
     }
 

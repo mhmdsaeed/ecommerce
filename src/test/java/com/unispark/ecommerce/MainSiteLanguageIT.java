@@ -23,14 +23,14 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 @Import(TestcontainersConfig.class)
 @ActiveProfiles("test")
-class PlaceholderPageIT {
+class MainSiteLanguageIT {
 
     @Autowired
     MockMvc mvc;
 
     @Test
     void rendersArabicRtlPageByDefault() throws Exception {
-        mvc.perform(get("/"))
+        mvc.perform(get("/welcome"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("text/html"))
                 .andExpect(content().string(allOf(
@@ -45,22 +45,22 @@ class PlaceholderPageIT {
 
     @Test
     void switchesToEnglishLtrAndRemembersItInACookie() throws Exception {
-        mvc.perform(get("/").param("lang", "en"))
+        mvc.perform(get("/welcome").param("lang", "en"))
                 .andExpect(status().isOk())
                 .andExpect(cookie().value("lang", "en"))
                 .andExpect(content().string(allOf(
                         containsString("lang=\"en\""),
                         containsString("dir=\"ltr\""),
-                        containsString("Your online store in minutes"),
+                        containsString("Open your online store in minutes"),
                         not(containsString("??")))));
 
-        mvc.perform(get("/").cookie(new Cookie("lang", "en")))
+        mvc.perform(get("/welcome").cookie(new Cookie("lang", "en")))
                 .andExpect(content().string(containsString("dir=\"ltr\"")));
     }
 
     @Test
     void ignoresUnsupportedLanguages() throws Exception {
-        mvc.perform(get("/").param("lang", "fr"))
+        mvc.perform(get("/welcome").param("lang", "fr"))
                 .andExpect(status().isOk())
                 .andExpect(cookie().doesNotExist("lang"))
                 .andExpect(content().string(containsString("dir=\"rtl\"")));
