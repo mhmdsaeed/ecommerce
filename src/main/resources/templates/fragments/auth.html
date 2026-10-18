@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<!--/* Sign-in page building blocks.
+       sign: the shop sign at the top of the login, forgot and reset panels, showing the address of the store being
+       logged in to. It repeats the store field, so it is hidden from screen readers. state: 'opening' (the shutter
+       rolls up once, login only), 'open' or 'closed' (shutter down: the reset link no longer works).
+       live: true follows the #store input as it is typed (Alpine storeSign in app.js). */-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<div th:fragment="sign(store, domain, state, live)" aria-hidden="true"
+     class="shop-sign" th:classappend="|shop-sign--${state}|"
+     th:attr="x-data=${live} ? 'storeSign' : null">
+    <div class="shop-sign__shutter"></div>
+    <!--/* The address reads left to right but lines up with the page's start edge, like the heading below.
+           No whitespace between the spans: an empty slug shows as a blank slot (.shop-sign__slug:empty). */-->
+    <p th:unless="${state == 'closed'}" class="shop-sign__address"><bdi dir="ltr"><span class="shop-sign__slug" th:text="${store}" th:attr="x-text=${live} ? 'slug' : null"></span><span class="shop-sign__domain" th:text="${domain}">.example.com</span></bdi></p>
+</div>
+
+</body>
+</html>

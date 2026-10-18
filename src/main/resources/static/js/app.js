@@ -27,6 +27,28 @@ document.addEventListener("alpine:init", function () {
   });
 });
 
+// Sign-in pages: the shop sign (fragments/auth.html) shows the store address as it is typed into #store.
+// Without that input (e.g. after "send link") it keeps the address the server rendered.
+document.addEventListener("alpine:init", function () {
+  window.Alpine.data("storeSign", function () {
+    return {
+      slug: "",
+      init: function () {
+        var shown = this.$el.querySelector(".shop-sign__slug");
+        this.slug = shown ? shown.textContent : "";
+        var input = document.getElementById("store");
+        if (!input) {
+          return;
+        }
+        var self = this;
+        var update = function () { self.slug = input.value.trim().toLowerCase(); };
+        input.addEventListener("input", update);
+        update();
+      }
+    };
+  });
+});
+
 // htmx does not swap 4xx/5xx responses, so a failed request would otherwise look like nothing happened.
 // Pages that want feedback include an element with id "htmx-error" holding the localized message.
 (function () {

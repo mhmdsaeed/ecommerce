@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.unispark.ecommerce.identity.StaffPasswords;
 import com.unispark.ecommerce.identity.StaffPasswords.Changed;
@@ -42,19 +43,29 @@ class PasswordResetController {
         this.sites = sites;
     }
 
+    /** For the shop sign every page here shows: the store address is {@code <store><storeDomain>}. */
+    @ModelAttribute("storeDomain")
+    String storeDomain() {
+        return "." + sites.baseHost();
+    }
+
     @GetMapping("/forgot")
     String forgot(@RequestParam(required = false) String store, Model model) {
-        model.addAttribute("store", store);
-        model.addAttribute("storeDomain", "." + sites.baseHost());
+        if (!model.containsAttribute("store")) {
+            model.addAttribute("store", store);
+        }
         model.addAttribute("minutes", StaffPasswords.LINK_LIFETIME.toMinutes());
         return FORGOT_VIEW;
     }
 
     @PostMapping("/forgot")
     String requestReset(@RequestParam(defaultValue = "") String store,
-            @RequestParam(defaultValue = "") String username, HttpServletRequest request, Locale locale) {
+            @RequestParam(defaultValue = "") String username, HttpServletRequest request, Locale locale,
+            RedirectAttributes redirect) {
         if (store.length() <= 64 && username.length() <= 254) {
             passwords.requestReset(store, username, request.getRemoteAddr(), locale);
+            // The "sent" page keeps the shop sign on the store that was typed.
+            redirect.addFlashAttribute("store", store.strip());
         }
         return "redirect:/admin/password/forgot?sent";
     }

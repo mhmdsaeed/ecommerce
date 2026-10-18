@@ -11,6 +11,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
@@ -209,6 +210,25 @@ class StaffPasswordsIT {
                 .andExpect(content().string(containsString("هذا الرابط لم يعد يعمل")));
         mvc.perform(reset(token, "another-pass-11", "another-pass-11"))
                 .andExpect(content().string(containsString("هذا الرابط لم يعد يعمل")));
+    }
+
+    @Test
+    void showsTheStoreBeingSignedInToOnTheShopSign(CapturedOutput output) throws Exception {
+        var sign = "<span class=\"shop-sign__slug\" x-text=\"slug\">" + slug + "</span>";
+        mvc.perform(get(MAIN + "/admin/login").param("store", slug))
+                .andExpect(content().string(allOf(containsString("shop-sign--opening"), containsString(sign))));
+        mvc.perform(get(MAIN + "/admin/password/forgot").param("store", slug))
+                .andExpect(content().string(containsString(sign)));
+        requestReset(clerkEmail).andExpect(flash().attribute("store", slug));
+
+        var token = linkSentTo(output, "Email to " + clerkEmail);
+        mvc.perform(get(MAIN + "/admin/password/reset").param("store", slug).param("token", token))
+                .andExpect(content().string(allOf(containsString("class=\"shop-sign shop-sign--open\""),
+                        containsString("<span class=\"shop-sign__slug\">" + slug + "</span>"))));
+        // A link that no longer works: the shutter is down and no address shows.
+        mvc.perform(get(MAIN + "/admin/password/reset").param("store", slug).param("token", "not-a-token"))
+                .andExpect(content().string(allOf(containsString("shop-sign--closed"),
+                        not(containsString("shop-sign__slug")))));
     }
 
     @Test

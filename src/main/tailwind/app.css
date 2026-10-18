@@ -18,6 +18,63 @@
   /* 600 carries white button text: #00855d keeps it at 4.65:1 (WCAG AA needs 4.5). */
   --color-brand-600: #00855d;
   --color-brand-700: #006a4a;
+  --color-brand-800: #0b5c42;
+}
+
+/*
+ * The shop sign on the sign-in pages (fragments/auth.html): a rolled-up shutter over a sign showing the store
+ * address. Logging in opens the shop, so on the login page the shutter rolls up once; "closed" keeps it down.
+ */
+.shop-sign {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-brand-700);
+  color: #fff;
+  padding: 2.75rem 1.5rem 1.5rem;
+}
+.shop-sign__shutter {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 1.5rem;
+  background:
+    linear-gradient(to bottom, transparent calc(100% - 3px), var(--color-brand-800) calc(100% - 3px)),
+    repeating-linear-gradient(to bottom, var(--color-brand-600) 0 5px, var(--color-brand-800) 5px 6px);
+}
+.shop-sign--opening .shop-sign__shutter {
+  animation: shop-sign-open 450ms cubic-bezier(0.3, 0, 0.2, 1) 150ms both;
+}
+.shop-sign--closed .shop-sign__shutter {
+  height: 100%;
+}
+@keyframes shop-sign-open {
+  from { height: 100%; }
+  to { height: 1.5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shop-sign--opening .shop-sign__shutter {
+    animation: none;
+  }
+}
+.shop-sign__address {
+  font-size: clamp(1.5rem, 6vw, 2.25rem);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+.shop-sign__slug {
+  font-weight: 700;
+}
+.shop-sign__slug:empty {
+  display: inline-block;
+  min-width: 4ch;
+  height: 0.9em;
+  border-bottom: 2px dashed currentColor;
+  opacity: 0.6;
+  vertical-align: baseline;
+}
+.shop-sign__domain {
+  color: var(--color-brand-100);
 }
 
 /* Alpine hides x-cloak elements until it has started. */
