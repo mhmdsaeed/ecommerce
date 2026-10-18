@@ -56,6 +56,38 @@ document.addEventListener("alpine:init", function () {
   });
 });
 
+// Checkout: the delivery slip's address as the driver will read it, following the form's name, governorate, city,
+// area and landmark fields as they are typed.
+document.addEventListener("alpine:init", function () {
+  window.Alpine.data("slipPreview", function () {
+    return {
+      name: "",
+      landmark: "",
+      place: "",
+      init: function () {
+        var self = this;
+        var field = function (id) { return document.getElementById(id); };
+        var value = function (id) { var input = field(id); return input ? input.value.trim() : ""; };
+        var update = function () {
+          var governorate = field("governorate");
+          var chosen = governorate && governorate.value ? governorate.options[governorate.selectedIndex].text : "";
+          self.name = value("name");
+          self.landmark = value("landmark");
+          self.place = [chosen, value("city"), value("area")].filter(Boolean).join(" › ");
+        };
+        ["name", "governorate", "city", "area", "landmark"].forEach(function (id) {
+          var input = field(id);
+          if (input) {
+            input.addEventListener("input", update);
+            input.addEventListener("change", update);
+          }
+        });
+        update();
+      }
+    };
+  });
+});
+
 // htmx does not swap 4xx/5xx responses, so a failed request would otherwise look like nothing happened.
 // Pages that want feedback include an element with id "htmx-error" holding the localized message.
 (function () {

@@ -5,6 +5,7 @@ import static com.unispark.ecommerce.TestAccounts.storefront;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -119,7 +120,10 @@ class CheckoutWebIT {
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(content().string(allOf(containsString("name=\"_csrf\""), containsString("name=\"idempotencyKey\""),
                         containsString("الدفع عند الاستلام"), containsString("شام كاش"), containsString("20,000 ل.س"),
-                        containsString("اختر عنوان التوصيل"))))
+                        containsString("اختر عنوان التوصيل"),
+                        // The delivery slip previews the address as the driver will read it (needs JavaScript).
+                        containsString("x-data=\"slipPreview\" x-cloak aria-hidden=\"true\""),
+                        containsString("هكذا سيقرأ السائق عنوانك"))))
                 .andReturn().getResponse().getContentAsString();
         var key = hidden(page, "idempotencyKey");
 
@@ -136,7 +140,9 @@ class CheckoutWebIT {
                 .andExpect(header().string("Referrer-Policy", "no-referrer"))
                 .andExpect(content().string(allOf(containsString("طلب رقم 1001"), containsString("بانتظار التأكيد"),
                         containsString("ادفع 22,000 ل.س نقداً عند استلام طلبك."), containsString("2 × وشاح"),
-                        containsString("قرب الجامع"), not(containsString("name=\"reference\"")))));
+                        containsString("قرب الجامع"), not(containsString("name=\"reference\"")),
+                        // The first of the order's steps is the current one.
+                        matchesPattern("(?s).*<li[^>]*aria-current=\"step\">.*?بانتظار التأكيد.*"))));
         // A repeated submit (back button, double click) lands on the same order.
         shopper.perform(form(key).param("paymentMethod", "COD"), false)
                 .andExpect(redirectedUrl(orderUrl));

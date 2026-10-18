@@ -1377,3 +1377,26 @@ The driver view is used on the road, one-handed, often in sunlight. Orders now r
 | `CheckoutE2EIT` (changed) | The driver opens the order by its link (number and name are no longer one line) |
 
 **Live check (local profile):** demo1's driver had no orders, so order #1009 was placed on demo1 (cash on delivery, Mazzeh, landmark and a note), confirmed, assigned to أبو خالد, set to preparing and picked up by the driver. It stays in the demo data, out for delivery. Headless Edge screenshots of the driver's home and the order before and after pickup, at ~500 px. The status chip for an order out for delivery reads "في الطريق إليك", the shopper's wording; a driver-specific label is a possible follow-up.
+
+## After M15: Checkout slip and order progress (2026-10-18)
+
+Shoppers now see the same delivery slip as the driver: at checkout as a live preview, and on their order page.
+
+### What was built
+
+- **Checkout** (`storefront/checkout.html`): the order summary is a delivery slip. Above the tear line, the address as the driver will read it, live from the form (`slipPreview` in `app.js`): the name, the landmark large, then governorate › city › area, captioned "Your driver will read your address like this". While the landmark is empty, the slip asks for one (`checkout.slip.landmark-missing`). Below the tear line, the summary as before (its own border removed). The slip stays in view on large screens. Without JavaScript the preview stays hidden (`x-cloak`) and the page works as before.
+- **Order page** (`storefront/order.html`):
+  - A numbered track of the order's steps (awaiting confirmation, confirmed, preparing, out for delivery, delivered; "completed" once closed), done ones ticked, the current one filled with `aria-current="step"`. Cancelled, refused and returned orders show their status alone. Payment status is a line under it.
+  - The address and the items form one slip with a tear line, landmark first, as on the driver's phone.
+- Messages: `checkout.slip.caption`, `checkout.slip.landmark-missing`, `order.track`.
+
+### Tests (569, all green: 272 unit, 297 integration)
+
+| Test | Checks |
+|---|---|
+| `CheckoutWebIT` (changed) | The checkout page carries the slip preview; a new order's first step is the current one |
+| `CheckoutE2EIT` (unchanged) | Caught that a completed order's track ended on "delivered", so the shopper never saw "completed"; the last step now reads "completed" once the order is closed |
+
+**Live check (local profile):** headless Edge screenshots of order #1009's page (out for delivery, 1280 and 500 px) and of a saved copy of demo1's checkout with the address fields filled in, where the preview filled from them. The summary's refresh on an address change was not watched in a browser.
+
+**Noticed, not changed:** in Arabic, `shop.cart.subtotal` and `checkout.total` are both "المجموع", so the summary shows the same label twice.

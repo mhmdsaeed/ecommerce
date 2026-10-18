@@ -9,7 +9,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<section th:fragment="summary" id="checkout-summary" class="space-y-4 rounded-lg border border-gray-200 p-4"
+<section th:fragment="summary" id="checkout-summary" class="space-y-4 p-4"
          aria-labelledby="summary-heading" th:with="cart=${preview.cart()}">
     <h2 id="summary-heading" class="text-lg font-semibold" th:text="#{checkout.summary}">Your order</h2>
     <ul class="divide-y divide-gray-100 text-sm">

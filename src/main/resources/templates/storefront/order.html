@@ -24,16 +24,32 @@
     <p th:if="${param['proof-image'] != null}" role="alert"
        class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-800" th:text="#{order.proof.image-rejected}">Bad image.</p>
 
-    <dl class="grid gap-4 rounded-lg border border-gray-200 p-4 sm:grid-cols-2">
-        <div>
-            <dt class="text-sm text-gray-600" th:text="#{order.status}">Status</dt>
-            <dd class="font-semibold" th:text="#{order.status.__${order.status()}__}">Pending</dd>
-        </div>
-        <div>
-            <dt class="text-sm text-gray-600" th:text="#{order.payment-status}">Payment</dt>
-            <dd class="font-semibold" th:text="#{payment.status.__${order.paymentStatus()}__}">Unpaid</dd>
-        </div>
-    </dl>
+    <!--/* An order on its way moves through these steps in order, so they are numbered: done ones carry a tick, the
+           current one is filled. A cancelled, refused or returned order left the path: its status shows alone. */-->
+    <section th:with="last=${order.status().name() == 'COMPLETED'} ? 'COMPLETED' : 'DELIVERED',
+                      steps=${ {'PENDING_CONFIRMATION', 'CONFIRMED', 'PREPARING', 'OUT_FOR_DELIVERY', last} },
+                      current=${steps.indexOf(order.status().name())}"
+             aria-labelledby="track-heading">
+        <h2 id="track-heading" class="sr-only" th:text="#{order.track}">Your order so far</h2>
+        <ol th:if="${current >= 0}" class="flex flex-col gap-2 sm:flex-row sm:gap-0">
+            <li th:each="step, state : ${steps}" class="flex items-center gap-2 sm:flex-1 sm:flex-col sm:items-start"
+                th:attr="aria-current=${state.index == current} ? 'step'">
+                <span aria-hidden="true" class="flex size-8 shrink-0 items-center justify-center rounded-md border-2 text-sm font-bold"
+                      th:classappend="${state.index < current} ? 'border-brand-600 bg-brand-600 text-white'
+                            : (${state.index == current} ? 'border-brand-700 bg-brand-700 text-white' : 'border-gray-300 bg-white text-gray-500')"
+                      th:text="${state.index < current} ? '✓' : ${state.count}">1</span>
+                <span class="text-sm" th:classappend="${state.index == current} ? 'font-bold text-gray-900' : (${state.index < current} ? 'text-gray-700' : 'text-gray-500')"
+                      th:text="#{order.status.__${step}__}">Pending</span>
+            </li>
+        </ol>
+        <p th:if="${current < 0}" class="text-lg font-semibold">
+            <span th:text="#{order.status}">Status</span>: <span th:text="#{order.status.__${order.status()}__}">Cancelled</span>
+        </p>
+    </section>
+    <p class="text-sm">
+        <span class="text-gray-600" th:text="#{order.payment-status}">Payment</span>:
+        <span class="font-semibold" th:text="#{payment.status.__${order.paymentStatus()}__}">Unpaid</span>
+    </p>
 
     <section class="rounded-lg border border-gray-200 p-4" aria-labelledby="pay-heading">
         <h2 id="pay-heading" class="text-lg font-semibold"
@@ -86,8 +102,25 @@
         </th:block>
     </section>
 
-    <section class="rounded-lg border border-gray-200 p-4" aria-labelledby="items-heading">
-        <h2 id="items-heading" class="text-lg font-semibold" th:text="#{order.items}">Items</h2>
+    <!--/* The delivery slip, as at checkout and on the driver's phone: the address (landmark first), a tear line, the
+           items and what to pay. */-->
+    <div class="overflow-hidden rounded-lg border-2 border-gray-300 bg-white">
+    <section class="p-4" aria-labelledby="address-heading">
+        <h2 id="address-heading" class="text-sm font-semibold text-gray-600" th:text="#{checkout.address}">Delivery address</h2>
+        <p class="mt-1 font-semibold" th:text="${order.customerName()}">Name</p>
+        <p th:if="${order.address().landmark() != null}" class="mt-1 text-xl font-bold" th:text="${order.address().landmark()}">Landmark</p>
+        <p class="mt-1 text-gray-700">
+            <span th:text="#{governorate.__${order.address().governorate()}__}">Damascus</span> ›
+            <span th:text="${order.address().city()}">City</span><th:block th:if="${order.address().area() != null}"> ›
+            <span th:text="${order.address().area()}">Area</span></th:block>
+        </p>
+        <p th:if="${order.address().details() != null}" class="mt-1" th:text="${order.address().details()}">Details</p>
+        <p class="mt-1 text-sm text-gray-600"><bdi dir="ltr" th:text="${order.customerPhone()}">+963</bdi></p>
+        <p th:if="${order.notes() != null}" class="mt-3 whitespace-pre-line rounded-md bg-gray-50 p-3 text-sm text-gray-700" th:text="${order.notes()}">Notes</p>
+    </section>
+    <div class="slip__tear" aria-hidden="true"></div>
+    <section class="p-4" aria-labelledby="items-heading">
+        <h2 id="items-heading" class="text-sm font-semibold text-gray-600" th:text="#{order.items}">Items</h2>
         <ul class="mt-2 divide-y divide-gray-100 text-sm">
             <li th:each="item : ${order.items()}" class="flex justify-between gap-3 py-2">
                 <span>
@@ -110,20 +143,7 @@
                 <dd><bdi class="font-bold" th:text="${@shopPrices.format(order.total())}">5,000</bdi></dd></div>
         </dl>
     </section>
-
-    <section class="rounded-lg border border-gray-200 p-4 text-sm" aria-labelledby="address-heading">
-        <h2 id="address-heading" class="text-lg font-semibold" th:text="#{checkout.address}">Delivery address</h2>
-        <p class="mt-2" th:text="${order.customerName()}">Name</p>
-        <p dir="ltr" class="text-start" th:text="${order.customerPhone()}">+963</p>
-        <p>
-            <span th:text="#{governorate.__${order.address().governorate()}__}">Damascus</span> ›
-            <span th:text="${order.address().city()}">City</span><th:block th:if="${order.address().area() != null}"> ›
-            <span th:text="${order.address().area()}">Area</span></th:block>
-        </p>
-        <p th:if="${order.address().landmark() != null}" th:text="${order.address().landmark()}">Landmark</p>
-        <p th:if="${order.address().details() != null}" th:text="${order.address().details()}">Details</p>
-        <p th:if="${order.notes() != null}" class="mt-2 whitespace-pre-line text-gray-600" th:text="${order.notes()}">Notes</p>
-    </section>
+    </div>
 
     <p class="text-sm text-gray-600" th:text="#{order.keep-link}">Keep this page's address to follow your order.</p>
 </main>
