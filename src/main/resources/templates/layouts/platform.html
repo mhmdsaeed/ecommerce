@@ -11,10 +11,13 @@
             <a th:href="@{/platform}" class="text-lg font-semibold" th:text="#{platform.title}">Platform admin</a>
             <nav class="flex flex-wrap items-center gap-4 text-sm">
                 <th:block sec:authorize="hasRole('PLATFORM_ADMIN')">
-                    <a th:href="@{/platform/stores}" class="hover:underline" th:text="#{platform.nav.stores}">Stores</a>
-                    <a th:href="@{/platform/subscriptions}" class="hover:underline" th:text="#{platform.nav.subscriptions}">Subscriptions</a>
-                    <a th:href="@{/platform/invoices}" class="hover:underline" th:text="#{platform.nav.invoices}">Invoices</a>
-                    <a th:href="@{/platform/plans}" class="hover:underline" th:text="#{platform.nav.plans}">Plans</a>
+                    <!--/* The current section (platformSection, PlatformModelAdvice) is underlined and aria-current. */-->
+                    <a th:each="link : ${ {'dashboard', 'stores', 'subscriptions', 'invoices', 'plans'} }"
+                       th:href="${link == 'dashboard'} ? @{/platform} : @{/platform/{section}(section=${link})}"
+                       th:attr="aria-current=${platformSection == link} ? 'page'"
+                       class="underline-offset-8 hover:underline"
+                       th:classappend="${platformSection == link} ? 'font-semibold underline decoration-2'"
+                       th:text="${link == 'dashboard'} ? #{platform.dashboard.title} : #{platform.nav.__${link}__}">Stores</a>
                     <span class="text-gray-300" sec:authentication="name">admin@example.com</span>
                     <form th:action="@{/platform/logout}" method="post">
                         <button type="submit" class="hover:underline" th:text="#{auth.logout}">Log out</button>

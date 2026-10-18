@@ -1400,3 +1400,22 @@ Shoppers now see the same delivery slip as the driver: at checkout as a live pre
 **Live check (local profile):** headless Edge screenshots of order #1009's page (out for delivery, 1280 and 500 px) and of a saved copy of demo1's checkout with the address fields filled in, where the preview filled from them. The summary's refresh on an address change was not watched in a browser.
 
 **Noticed, not changed:** in Arabic, `shop.cart.subtotal` and `checkout.total` are both "المجموع", so the summary shows the same label twice.
+
+## After M15: Platform overview ledger and store status marks (2026-10-18)
+
+The platform admin's dashboard listed the 50 newest stores. It is now the operator's ledger of what needs following up.
+
+### What was built
+
+- **Overview** (`/platform`, `PlatformController`): "What needs you" as ledger rows (label, dotted leader, figure), each linking to its filtered list: invoices awaiting payment (from the first page of open invoices, "50+" beyond it), stores past due, trials ending within 7 days, suspended stores, new stores in the last 7 days. Non-zero rows of the first three get an amber edge; zeros are grey. Same pattern as the merchant dashboard. Below, the 10 newest stores, linked to their detail pages, and "All stores (N)". The page is now titled "Overview" (`platform.dashboard.title`).
+- **Store status mark** (`platformadmin/fragments.html :: store-status`, `.store-mark`): next to a store's status on the overview, the stores list and the store page, a tiny shopfront: a sign over a lit doorway while the store trades, a grey shutter down when it is suspended or closed. The label carries the meaning; the mark is `aria-hidden`.
+- **Navigation** (`layouts/platform.html`): an "Overview" link, and the current section underlined with `aria-current="page"` (`PlatformModelAdvice.platformSection`).
+- Messages: `platform.dashboard.recent`, `platform.ledger.*`; `platform.dashboard.title` and `store-count` reworded.
+
+### Tests (569, all green: 272 unit, 297 integration)
+
+| Test | Checks |
+|---|---|
+| `BillingIT` (changed) | After a billing cycle, the overview shows the open invoice and past-due rows with an amber edge and links to the filtered lists; the overview and stores pages mark their own navigation link; the stores list carries the status mark |
+
+**Live check (local profile):** headless Edge screenshots of the overview and stores list as `admin@lvh.me`. Locally nothing is owed, past due or suspended, so the amber rows were checked only by the test, and the closed mark only in a saved copy with one row edited to show it.

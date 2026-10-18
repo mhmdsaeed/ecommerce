@@ -9,6 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -342,8 +343,16 @@ class BillingIT {
     void platformAdminScreensListAndEditBilling() throws Exception {
         cycle.run(today.plusDays(14));
         var admin = platformAdmin();
+        // The overview's ledger: an open invoice and a store past due, both marked as needing action.
+        mvc.perform(get(PLATFORM + "/platform").session(admin))
+                .andExpect(content().string(allOf(containsString("فواتير بانتظار الدفع"),
+                        containsString("href=\"/platform/subscriptions?status=PAST_DUE\""),
+                        containsString("border-s-4 border-s-amber-400"),
+                        matchesPattern("(?s).*<a href=\"/platform\"[^>]*aria-current=\"page\".*"))));
         mvc.perform(get(PLATFORM + "/platform/stores").session(admin))
-                .andExpect(content().string(allOf(containsString(slug), containsString("بانتظار الدفع"))));
+                .andExpect(content().string(allOf(containsString(slug), containsString("بانتظار الدفع"),
+                        containsString("class=\"store-mark\""),
+                        matchesPattern("(?s).*<a href=\"/platform/stores\"[^>]*aria-current=\"page\".*"))));
         mvc.perform(get(PLATFORM + "/platform/stores/" + store).session(admin))
                 .andExpect(content().string(allOf(containsString(onlyInvoice().label()),
                         containsString("تحققتُ من المالك والمتجر"))));

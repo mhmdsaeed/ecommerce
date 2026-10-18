@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<!--/* Platform admin building blocks.
+       store-status(status): a store's status label with its shopfront mark (.store-mark); status is the StoreStatus
+       name. The mark is decoration for scanning a list; the label carries the meaning. */-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<span th:fragment="store-status(status)" class="inline-flex items-center gap-1.5">
+    <span aria-hidden="true" class="store-mark"
+          th:classappend="${status == 'SUSPENDED' or status == 'CLOSED'} ? 'store-mark--closed'"></span>
+    <span th:text="#{store.status.__${status}__}">Active</span>
+</span>
+
+</body>
+</html>

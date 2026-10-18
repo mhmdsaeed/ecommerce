@@ -114,6 +114,24 @@
 .slip__tear::after {
   inset-inline-end: -11px;
 }
+/* Platform admin (platformadmin/fragments.html): a store's status as a tiny shopfront next to its label. A sign over
+   a lit doorway when the store trades; the shutter down, in grey, when it is suspended or closed. */
+.store-mark {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 0.875rem;
+  vertical-align: -0.125em;
+  border: 1px solid var(--color-brand-700);
+  border-radius: 2px;
+  background: linear-gradient(to bottom, var(--color-brand-700) 0 35%, var(--color-brand-50) 35%);
+}
+.store-mark--closed {
+  border-color: var(--color-gray-600);
+  background:
+    linear-gradient(to bottom, var(--color-gray-600) 0 35%, transparent 35%),
+    repeating-linear-gradient(to bottom, var(--color-gray-400) 0 2px, var(--color-gray-600) 2px 3px);
+}
 /* The admin sidebar's sign (layouts/admin.html): the store's name and address under a slim rolled-up shutter. */
 .shop-sign--compact {
   padding: 1.25rem 1rem 1rem;

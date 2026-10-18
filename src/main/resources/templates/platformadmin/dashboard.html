@@ -1,36 +1,75 @@
 <!DOCTYPE html>
+<!--/* The operator's dashboard (PlatformController): a ledger of what needs following up, each row linking to its
+       list, with an amber edge on rows that ask for action; then the newest stores. Same pattern as the merchant's
+       dashboard ledger. */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/platform}">
 <head>
-    <title th:text="#{platform.dashboard.title}">Stores</title>
+    <title th:text="#{platform.dashboard.title}">Overview</title>
 </head>
 <body>
-<main layout:fragment="content">
-    <h1 class="text-2xl font-bold" th:text="#{platform.dashboard.title}">Stores</h1>
-    <p class="mt-1 text-gray-600" th:text="#{platform.dashboard.store-count(${storeCount})}">0 stores</p>
+<main layout:fragment="content" class="max-w-3xl space-y-10">
+    <h1 class="text-2xl font-bold" th:text="#{platform.dashboard.title}">Overview</h1>
 
-    <p th:if="${stores.isEmpty()}" class="mt-6 text-gray-600" th:text="#{platform.dashboard.empty}">No stores yet.</p>
-    <section th:unless="${stores.isEmpty()}" class="mt-6 overflow-x-auto rounded-lg border border-gray-200 bg-white">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50 text-gray-600">
-            <tr>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.name}">Name</th>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.slug}">Address</th>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.status}">Status</th>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.created}">Created</th>
-            </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-            <tr th:each="store : ${stores}">
-                <td class="px-4 py-3" th:text="${store.name().in(#locale)}">Name</td>
-                <td class="px-4 py-3" dir="ltr" th:text="${store.slug()}">slug</td>
-                <td class="px-4 py-3" th:text="#{store.status.__${store.status()}__}">Status</td>
-                <td class="px-4 py-3" dir="ltr" th:text="${store.createdOn()}">2026-10-14</td>
-            </tr>
-            </tbody>
-        </table>
+    <section aria-labelledby="ledger-heading">
+        <h2 id="ledger-heading" class="text-lg font-semibold" th:text="#{platform.ledger.heading}">What needs you</h2>
+        <ul class="mt-3 divide-y divide-gray-200 overflow-hidden rounded-lg border border-gray-200 bg-white">
+            <li th:replace="~{:: row(label=#{platform.ledger.open-invoices}, count=${ledger.openInvoices()},
+                    more=${ledger.moreOpenInvoices()}, urgent=true, href=@{/platform/invoices(status='OPEN')})}"></li>
+            <li th:replace="~{:: row(label=#{platform.ledger.past-due}, count=${ledger.pastDue()}, more=false, urgent=true,
+                    href=@{/platform/subscriptions(status='PAST_DUE')})}"></li>
+            <li th:replace="~{:: row(label=#{platform.ledger.trials-ending(${week})}, count=${ledger.trialsEnding()}, more=false,
+                    urgent=true, href=@{/platform/subscriptions(status='TRIAL')})}"></li>
+            <li th:replace="~{:: row(label=#{platform.ledger.suspended}, count=${ledger.suspended()}, more=false, urgent=false,
+                    href=@{/platform/subscriptions(status='SUSPENDED')})}"></li>
+            <li th:replace="~{:: row(label=#{platform.ledger.new-stores(${week})}, count=${ledger.newStores()}, more=false,
+                    urgent=false, href=@{/platform/stores})}"></li>
+        </ul>
+    </section>
+
+    <section aria-labelledby="recent-heading">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="recent-heading" class="text-lg font-semibold" th:text="#{platform.dashboard.recent}">Newest stores</h2>
+            <a th:href="@{/platform/stores}" class="text-sm font-medium text-brand-700 hover:underline"
+               th:text="#{platform.dashboard.store-count(${storeCount})}">Stores: 12</a>
+        </div>
+        <p th:if="${stores.isEmpty()}" class="mt-3 text-gray-600" th:text="#{platform.dashboard.empty}">No stores yet.</p>
+        <div th:unless="${stores.isEmpty()}" class="mt-3 overflow-x-auto rounded-lg border border-gray-200 bg-white">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 text-gray-600">
+                <tr>
+                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.name}">Name</th>
+                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.slug}">Address</th>
+                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.status}">Status</th>
+                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.created}">Created</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                <tr th:each="store : ${stores}">
+                    <td class="px-4 py-3">
+                        <a th:href="@{/platform/stores/{id}(id=${store.id()})}" class="font-medium text-brand-700 hover:underline"
+                           th:text="${store.name().in(#locale)}">Name</a>
+                    </td>
+                    <td class="px-4 py-3" dir="ltr" th:text="${store.slug()}">slug</td>
+                    <td class="px-4 py-3"><span th:replace="~{platformadmin/fragments :: store-status(status=${store.status()})}"></span></td>
+                    <td class="px-4 py-3" dir="ltr" th:text="${store.createdOn()}">2026-10-14</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 </main>
+
+<!--/* One ledger row. more: the count is a page of a longer list ("50+"). urgent: a non-zero count asks for action. */-->
+<li th:fragment="row(label, count, more, urgent, href)" class="border-s-4"
+    th:classappend="${urgent and count > 0} ? 'border-s-amber-400' : 'border-s-transparent'">
+    <a th:href="${href}" class="flex items-baseline gap-3 px-4 py-4 hover:bg-gray-50">
+        <span th:text="${label}">Label</span>
+        <span aria-hidden="true" class="min-w-6 flex-1 border-b-2 border-dotted border-gray-300"></span>
+        <span class="text-2xl font-bold tabular-nums" th:classappend="${count == 0} ? 'text-gray-400'"
+              th:text="${more} ? |${count}+| : ${#numbers.formatInteger(count, 1)}">0</span>
+    </a>
+</li>
 </body>
 </html>
