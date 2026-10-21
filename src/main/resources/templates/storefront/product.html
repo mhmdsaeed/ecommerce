@@ -105,7 +105,11 @@
                 <div th:unless="${coverage.isEmpty()}" class="grid gap-1 py-3 sm:grid-cols-[8rem_1fr] sm:gap-4">
                     <dt class="font-medium text-gray-900" th:text="#{shop.product.delivery}">Delivery to</dt>
                     <dd class="text-gray-700">
-                        <th:block th:each="covered, s : ${coverage.governorates()}"><span th:text="#{governorate.__${covered.governorate()}__}">Damascus</span><th:block th:unless="${s.last}" th:text="#{shop.list.separator}">,</th:block>
+                        <!--/* A governorate only some of whose places have a zone names them: its cities, and the areas
+                               of a city only some of whose areas have one, e.g. "Damascus (Mazzeh: Western Villas)". */-->
+                        <th:block th:each="covered, s : ${coverage.governorates()}"><span th:text="#{governorate.__${covered.governorate()}__}">Damascus</span><th:block th:unless="${covered.everywhere()}">
+                            (<th:block th:each="city, c : ${covered.cities()}"><span th:text="${city.name()}">Mazzeh</span><th:block th:unless="${city.everywhere()}" th:text="#{shop.product.delivery.areas}">:</th:block><th:block th:unless="${city.everywhere()}" th:each="area, a : ${city.areas()}">
+                                <span th:text="${area}">Western Villas</span><th:block th:unless="${a.last}" th:text="#{shop.list.separator}">,</th:block></th:block><th:block th:unless="${c.last}"><th:block th:text="#{shop.list.separator}">,</th:block> </th:block></th:block>)</th:block><th:block th:unless="${s.last}" th:text="#{shop.list.separator}">,</th:block>
                         </th:block>
                         <span class="block text-gray-500" th:text="#{shop.product.delivery.fee}">The fee shows in your cart.</span>
                     </dd>

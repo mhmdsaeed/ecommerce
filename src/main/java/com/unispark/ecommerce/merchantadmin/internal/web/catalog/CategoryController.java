@@ -1,6 +1,7 @@
 package com.unispark.ecommerce.merchantadmin.internal.web.catalog;
 
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -123,6 +124,12 @@ class CategoryController {
         var all = categories.list();
         model.addAttribute("categories", all);
         model.addAttribute("parents", all.stream().filter(Categories.CategoryView::topLevel).toList());
+        // What shoppers see: a visible category, under a visible parent when it has one (as the storefront shows them).
+        var visible = all.stream().filter(Categories.CategoryView::active).map(Categories.CategoryView::id)
+                .collect(Collectors.toSet());
+        model.addAttribute("inShop", all.stream()
+                .filter(category -> category.active() && (category.topLevel() || visible.contains(category.parentId())))
+                .map(Categories.CategoryView::id).collect(Collectors.toSet()));
         return PAGE;
     }
 

@@ -19,13 +19,16 @@ import com.unispark.ecommerce.payment.internal.persistence.PaymentMethodConfig;
 import com.unispark.ecommerce.payment.internal.persistence.PaymentMethodConfigRepository;
 import com.unispark.ecommerce.shared.FieldProblem;
 import com.unispark.ecommerce.shared.LocalizedText;
+import com.unispark.ecommerce.shared.TenantCache;
 
+/** Payment methods. The enabled ones show on every product page, so they are cached per store and evicted on change. */
 @Service
 @Transactional
 class PaymentMethodService implements PaymentMethods {
 
     private final PaymentMethodConfigRepository configs;
     private final ApplicationEventPublisher events;
+    private final TenantCache<List<MethodConfig>> enabled = new TenantCache<>();
 
     PaymentMethodService(PaymentMethodConfigRepository configs, ApplicationEventPublisher events) {
         this.configs = configs;
@@ -43,7 +46,7 @@ class PaymentMethodService implements PaymentMethods {
     @Override
     @Transactional(readOnly = true)
     public List<MethodConfig> enabled() {
-        return all().stream().filter(MethodConfig::enabled).toList();
+        return enabled.get(() -> all().stream().filter(MethodConfig::enabled).toList());
     }
 
     @Override
@@ -79,6 +82,7 @@ class PaymentMethodService implements PaymentMethods {
         config.update(draft.enabled(), localized(nameAr, nameEn), accountId, accountName,
                 localized(instructionsAr, instructionsEn));
         configs.save(config);
+        enabled.evict();
         return new Saved();
     }
 
@@ -92,6 +96,7 @@ class PaymentMethodService implements PaymentMethods {
         var previous = config.getQrImageKey();
         config.setQrImageKey(imageKey);
         configs.save(config);
+        enabled.evict();
         if (previous != null && !previous.equals(imageKey)) {
             events.publishEvent(new ImageDiscarded(previous));
         }

@@ -23,8 +23,12 @@ import com.unispark.ecommerce.shared.Amounts;
 import com.unispark.ecommerce.shared.FieldProblem;
 import com.unispark.ecommerce.shared.LocalizedText;
 import com.unispark.ecommerce.shared.Money;
+import com.unispark.ecommerce.shared.TenantCache;
 
-/** Zones. A store has a few dozen at most, so matching and coverage load the active zones and work in memory. */
+/**
+ * Zones. A store has a few dozen at most, so matching and coverage load the active zones and work in memory. Coverage
+ * is shown on every product page, so it is cached per store and evicted when a zone changes.
+ */
 @Service
 @Transactional
 class DeliveryZoneService implements DeliveryZones {
@@ -34,6 +38,7 @@ class DeliveryZoneService implements DeliveryZones {
             .thenComparing(zone -> Objects.requireNonNullElse(Destination.key(zone.area()), ""));
 
     private final DeliveryZoneRepository zones;
+    private final TenantCache<Coverage> coverage = new TenantCache<>();
 
     DeliveryZoneService(DeliveryZoneRepository zones) {
         this.zones = zones;
@@ -63,6 +68,7 @@ class DeliveryZoneService implements DeliveryZones {
         }
         var zone = zones.save(new DeliveryZone(checked.destination(), draft.currency(), checked.fee(),
                 checked.minOrder(), checked.freeOver(), checked.eta()));
+        coverage.evict();
         return new Saved(zone.getId());
     }
 
@@ -79,6 +85,7 @@ class DeliveryZoneService implements DeliveryZones {
         }
         existing.get().update(checked.destination(), draft.currency(), checked.fee(), checked.minOrder(),
                 checked.freeOver(), checked.eta());
+        coverage.evict();
         return new Saved(id);
     }
 
@@ -86,6 +93,7 @@ class DeliveryZoneService implements DeliveryZones {
     public ZoneResult setActive(UUID id, boolean active) {
         return zones.findById(id).<ZoneResult>map(zone -> {
             zone.setActive(active);
+            coverage.evict();
             return new Saved(id);
         }).orElseGet(NotFound::new);
     }
@@ -94,6 +102,7 @@ class DeliveryZoneService implements DeliveryZones {
     public ZoneResult delete(UUID id) {
         return zones.findById(id).<ZoneResult>map(zone -> {
             zones.delete(zone);
+            coverage.evict();
             return new Saved(id);
         }).orElseGet(NotFound::new);
     }
@@ -107,6 +116,10 @@ class DeliveryZoneService implements DeliveryZones {
     @Override
     @Transactional(readOnly = true)
     public Coverage coverage() {
+        return coverage.get(this::loadCoverage);
+    }
+
+    private Coverage loadCoverage() {
         var byGovernorate = new TreeMap<Governorate, List<Zone>>();
         for (var zone : active()) {
             byGovernorate.computeIfAbsent(zone.governorate(), governorate -> new ArrayList<>()).add(zone);

@@ -153,34 +153,9 @@ document.addEventListener("alpine:init", function () {
 });
 
 // Storefront look settings: a small copy of the shop that follows the form (data-form) as the merchant types. The
-// colour shades are the storefront's (ThemeStyle.java): 50 is the colour mixed with white, 600 the colour darkened
-// until white text on it is readable (4.5:1), 700 the 600 a fifth darker.
+// colour shades are the storefront's, worked out on the server (ThemePalette): data-colors holds them for the
+// colour first shown, and data-palette answers with them for each colour picked. Fonts come from data-classic-fonts.
 document.addEventListener("alpine:init", function () {
-  var CLASSIC_FONTS = "\"Traditional Arabic\", \"Noto Naskh Arabic\", \"Times New Roman\", Georgia, serif";
-
-  function channels(hex) {
-    return [1, 3, 5].map(function (i) { return parseInt(hex.substr(i, 2), 16); });
-  }
-  function toHex(color) {
-    return "#" + color.map(function (c) { return ("0" + Math.round(c).toString(16)).slice(-2); }).join("");
-  }
-  function mix(color, other, amount) {
-    return color.map(function (c, i) { return Math.round(c + (other[i] - c) * amount); });
-  }
-  function contrastWithWhite(color) {
-    var linear = color.map(function (c) {
-      var v = c / 255;
-      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-    });
-    return 1.05 / (0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2] + 0.05);
-  }
-  function readableOnWhite(color) {
-    for (var step = 0; step < 40 && contrastWithWhite(color) < 4.5; step++) {
-      color = mix(color, [0, 0, 0], 0.06);
-    }
-    return color;
-  }
-
   window.Alpine.data("themePreview", function () {
     return {
       style: "",
@@ -188,32 +163,54 @@ document.addEventListener("alpine:init", function () {
       text: "",
       init: function () {
         var self = this;
-        var form = document.getElementById(this.$el.dataset.form);
+        var dataset = this.$el.dataset;
+        var form = document.getElementById(dataset.form);
         if (!form) {
           return;
         }
-        var english = this.$el.dataset.lang === "en";
+        var english = dataset.lang === "en";
         var value = function (name) {
           var field = form.elements[name];
           return field ? field.value.trim() : "";
         };
+        var colors = dataset.colors || "";
+        var known = {};
+        known[value("primaryColor")] = colors;
+        var timer = null;
         var either = function (ar, en) { return english ? (value(en) || value(ar)) : (value(ar) || value(en)); };
+        var render = function () {
+          var font = form.querySelector("input[name=font]:checked");
+          var classic = font && font.value === "CLASSIC";
+          self.style = colors + (classic ? "font-family:" + dataset.classicFonts + ";" : "");
+        };
+        var pick = function (color) {
+          clearTimeout(timer);
+          if (color in known) {
+            colors = known[color];
+            return;
+          }
+          timer = setTimeout(function () {
+            fetch(dataset.palette + "?color=" + encodeURIComponent(color), { headers: { Accept: "application/json" } })
+              .then(function (response) { return response.ok ? response.json() : null; })
+              .then(function (palette) {
+                if (!palette) {
+                  return;
+                }
+                known[color] = "--p-50:" + palette.shade50 + ";--p-600:" + palette.shade600
+                  + ";--p-700:" + palette.shade700 + ";";
+                if (value("primaryColor") === color) {
+                  colors = known[color];
+                  render();
+                }
+              })
+              .catch(function () { /* keeps the colour shown last */ });
+          }, 120);
+        };
         var update = function () {
           self.title = either("heroTitleAr", "heroTitleEn");
           self.text = either("heroTextAr", "heroTextEn");
-          var style = "";
-          var color = value("primaryColor");
-          if (/^#[0-9a-fA-F]{6}$/.test(color)) {
-            var base = channels(color);
-            var button = readableOnWhite(base);
-            style += "--p-50:" + toHex(mix(base, [255, 255, 255], 0.92)) + ";--p-600:" + toHex(button)
-              + ";--p-700:" + toHex(mix(button, [0, 0, 0], 0.2)) + ";";
-          }
-          var font = form.querySelector("input[name=font]:checked");
-          if (font && font.value === "CLASSIC") {
-            style += "font-family:" + CLASSIC_FONTS + ";";
-          }
-          self.style = style;
+          pick(value("primaryColor"));
+          render();
         };
         form.addEventListener("input", update);
         form.addEventListener("change", update);

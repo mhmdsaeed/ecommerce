@@ -47,7 +47,19 @@ public record StoreTheme(String primaryColor, String logoKey, LocalizedText hero
      * MODERN is the platform's sans-serif stack; CLASSIC prefers traditional Naskh-style Arabic faces.
      */
     public enum FontChoice {
-        MODERN,
-        CLASSIC
+        MODERN("\"Segoe UI\", Tahoma, \"Noto Sans Arabic\", \"Geeza Pro\", system-ui, -apple-system, Roboto, Arial, "
+                + "sans-serif"),
+        CLASSIC("\"Traditional Arabic\", \"Noto Naskh Arabic\", \"Times New Roman\", Georgia, serif");
+
+        private final String stack;
+
+        FontChoice(String stack) {
+            this.stack = stack;
+        }
+
+        /** The CSS font-family value. */
+        public String stack() {
+            return stack;
+        }
     }
 }

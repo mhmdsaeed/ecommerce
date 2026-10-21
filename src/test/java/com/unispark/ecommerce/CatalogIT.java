@@ -407,6 +407,12 @@ class CatalogIT {
                         matchesPattern("(?s).*<a href=\"//" + slug + "\\.[^\"]*/c/ملابس\".*"),
                         matchesPattern("(?s).*border-s-2[^\"]*\">\\s*<div class=\"opacity-60\">\\s*<div class=\"font-medium\">قمصان</div>"
                                 + "\\s*<span dir=\"ltr\"[^>]*>/c/قمصان</span>.*منتج واحد.*"))));
+        // A visible subcategory under a hidden parent is not in the shop either: no link, and it says why.
+        mvc.perform(htmx(post(MAIN + "/admin/categories/{id}/active", child)).param("active", "true"));
+        mvc.perform(htmx(post(MAIN + "/admin/categories/{id}/active", parent)).param("active", "false"))
+                .andExpect(content().string(allOf(not(containsString("/c/قمصان\" target")),
+                        matchesPattern("(?s).*border-s-2[^\"]*\">\\s*<div class=\"opacity-60\">\\s*<div class=\"font-medium\">قمصان</div>"
+                                + ".*مخفي مع القسم الرئيسي.*"))));
         mvc.perform(htmx(post(MAIN + "/admin/categories")).param("nameAr", "أحذية").param("parentId", child.toString()))
                 .andExpect(content().string(containsString("يمكن أن يكون القسم الفرعي داخل قسم رئيسي فقط")));
     }

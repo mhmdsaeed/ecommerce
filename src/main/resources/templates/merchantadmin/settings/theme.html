@@ -2,8 +2,9 @@
 <!--/* Storefront look (model: form, logoUrl, fonts, currentStore). Beside the form, a small copy of the shop in the
        colour being picked (app.js: themePreview): its sign with the name and the home page's title and text, two
        products with their price tags, the add-to-cart button. The colour shades follow the storefront's rules
-       (ThemeStyle): the button colour is darkened until white text is readable. Without JavaScript the preview shows
-       the saved look in the platform colours. The "tabs" fragment is the settings navigation. */-->
+       (ThemePalette, which /admin/settings/theme/palette returns as the colour is picked): the button colour is
+       darkened until white text is readable. Without JavaScript the preview shows the look as the form holds it. The
+       "tabs" fragment is the settings navigation. */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/admin}">
@@ -55,7 +56,7 @@
                     <div class="space-y-1">
                         <label for="primaryColor" class="block text-sm font-medium text-gray-800" th:text="#{settings.theme.color}">Colour</label>
                         <div class="flex items-center gap-3">
-                            <input type="color" th:field="*{primaryColor}" class="h-10 w-16 shrink-0 rounded border border-gray-300">
+                            <input type="color" id="primaryColor" name="primaryColor" th:value="*{primaryColor}" class="h-10 w-16 shrink-0 rounded border border-gray-300">
                             <span class="text-xs text-gray-500" th:text="#{settings.theme.color.hint}">Hint</span>
                         </div>
                         <p th:if="${#fields.hasErrors('primaryColor')}" th:errors="*{primaryColor}" class="text-sm text-red-600"></p>
@@ -88,10 +89,15 @@
         </div>
 
         <aside x-data="themePreview" data-form="theme-form" th:data-lang="${#locale.language}"
+               th:data-colors="${previewColors}" th:data-palette="@{/admin/settings/theme/palette}" th:data-classic-fonts="${classicFonts}"
+               th:with="english=${#locale.language == 'en'},
+                        previewTitle=${english and !#strings.isEmpty(form.heroTitleEn) or #strings.isEmpty(form.heroTitleAr) ? form.heroTitleEn : form.heroTitleAr},
+                        previewText=${english and !#strings.isEmpty(form.heroTextEn) or #strings.isEmpty(form.heroTextAr) ? form.heroTextEn : form.heroTextAr}"
                class="lg:sticky lg:top-4" aria-labelledby="preview-heading">
             <h2 id="preview-heading" class="text-sm font-medium text-gray-700" th:text="#{settings.theme.preview}">Your shop</h2>
             <p class="text-xs text-gray-500" th:text="#{settings.theme.preview.hint}">Changes show here before you save.</p>
             <div class="theme-preview mt-3 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
+                 th:style="${previewColors + (form.font?.name() == 'CLASSIC' ? 'font-family:' + classicFonts + ';' : '')}"
                  x-bind:style="style" aria-hidden="true">
                 <div class="theme-preview__sign px-4 pb-4 pt-3 text-white">
                     <div class="flex items-center gap-2">
@@ -101,9 +107,9 @@
                         <span class="theme-preview__cart rounded bg-white px-2 py-1 text-xs font-semibold" th:text="#{shop.cart}">Cart</span>
                     </div>
                     <p x-show="title" class="mt-3 font-semibold leading-snug" x-text="title"
-                       th:text="${form.heroTitleAr}" th:style="${#strings.isEmpty(form.heroTitleAr)} ? 'display: none' : null"></p>
+                       th:text="${previewTitle}" th:style="${#strings.isEmpty(previewTitle)} ? 'display: none' : null"></p>
                     <p x-show="text" class="theme-preview__tagline mt-1 text-sm" x-text="text"
-                       th:text="${form.heroTextAr}" th:style="${#strings.isEmpty(form.heroTextAr)} ? 'display: none' : null"></p>
+                       th:text="${previewText}" th:style="${#strings.isEmpty(previewText)} ? 'display: none' : null"></p>
                 </div>
                 <div class="grid grid-cols-2 gap-3 p-4">
                     <div th:each="n : ${ {1, 2} }">

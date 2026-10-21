@@ -23,24 +23,25 @@
                th:text="#{category.empty}">No categories yet.</p>
 
             <!--/* The categories as a tree, in the shop's order: a subcategory hangs off a line under its parent. Each
-                   shows its address in the shop (a link while it is visible) and its number of products; a hidden one
+                   shows its address in the shop (a link while shoppers can see it: it and its parent are visible) and its number of products; a hidden one
                    is greyed. Rows stack on phones. */-->
             <ul th:unless="${categories.isEmpty()}" class="rounded-lg border border-gray-200 bg-white text-sm">
                 <li th:each="category, state : ${categories}" class="px-4"
                     th:classappend="${category.topLevel() and !state.first} ? 'border-t border-gray-200' : ''">
                     <div class="grid gap-x-4 gap-y-2 py-3 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center"
                          th:classappend="${category.topLevel()} ? '' : 'ms-3 border-s-2 border-gray-200 ps-4'">
-                        <div th:classappend="${category.active()} ? '' : 'opacity-60'">
+                        <div th:with="shown=${inShop.contains(category.id())}" th:classappend="${shown} ? '' : 'opacity-60'">
                             <div th:class="${category.topLevel()} ? 'font-semibold' : 'font-medium'" th:text="${category.name().in(#locale)}">Name</div>
-                            <a th:if="${category.active() and storeHost != null}" th:href="|//${storeHost}/c/${category.slug()}|"
+                            <a th:if="${shown and storeHost != null}" th:href="|//${storeHost}/c/${category.slug()}|"
                                target="_blank" rel="noopener" dir="ltr" class="text-xs text-brand-700 hover:underline"
                                th:text="'/c/' + ${category.slug()}">/c/slug</a>
-                            <span th:unless="${category.active() and storeHost != null}" dir="ltr" class="text-xs text-gray-500"
+                            <span th:unless="${shown and storeHost != null}" dir="ltr" class="text-xs text-gray-500"
                                   th:text="'/c/' + ${category.slug()}">/c/slug</span>
                         </div>
-                        <div class="text-gray-600" th:text="#{category.product-count(${category.productCount()})}">3 products</div>
+                        <div class="text-gray-600" th:with="plural=${@plurals.of(category.productCount())}" th:text="#{category.product-count.__${plural}__(${category.productCount()})}">3 products</div>
                         <div class="flex flex-wrap items-center gap-3 md:justify-end">
-                            <span th:if="${category.active()}" class="rounded-full bg-brand-50 px-2 py-0.5 text-xs text-brand-700" th:text="#{category.status.active}">Visible</span>
+                            <span th:if="${inShop.contains(category.id())}" class="rounded-full bg-brand-50 px-2 py-0.5 text-xs text-brand-700" th:text="#{category.status.active}">Visible</span>
+                            <span th:if="${category.active() and !inShop.contains(category.id())}" class="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600" th:text="#{category.status.parent-hidden}">Hidden with its parent</span>
                             <span th:unless="${category.active()}" class="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600" th:text="#{category.status.hidden}">Hidden</span>
                             <a th:href="@{/admin/categories/{id}/edit(id=${category.id()})}" class="text-brand-700 hover:underline"
                                th:text="#{category.action.edit}">Edit</a>

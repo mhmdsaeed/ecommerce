@@ -1510,3 +1510,25 @@ Four design passes in one go: the storefront product page, the error pages, the 
 **Live check (local profile):** headless Edge screenshots on demo1 at 1280 and ~500 px: the product page (with a second photo added to the shirt for the gallery, removed after), a 404, the theme page with a colour and title typed in, payments, zones, staff, categories and inventory.
 
 **Noticed, not changed:** a 404 on a real store shows the platform header, not the store's sign (the error dispatch does not know the store), so it cannot offer the store's search; the theme preview shows the title in the admin's language only.
+
+## After M15: Review fixes (2026-10-21)
+
+Fixes for a code review of the previous pass.
+
+- **Product page delivery line:** a governorate the store covers only in part names its cities, and the areas of a city covered only in part, e.g. "Latakia (Latakia: Al-Zira'a, Jableh)" (`shop.product.delivery.areas`).
+- **Categories:** a visible subcategory under a hidden parent is not in the shop, so it is greyed, has no shop link and says "Hidden with its parent" (`inShop`, `category.status.parent-hidden`).
+- **Theme preview:** one implementation of the colour shades, `tenant.ThemePalette`, used by `ThemeStyle` and by the preview through `GET /admin/settings/theme/palette?color=` (app.js no longer copies the maths). Font stacks moved to `FontChoice.stack()`. The preview is coloured from the server before any script runs, in the admin's language. A refused colour puts the saved colour back in the colour input instead of black.
+- **Product page cost:** delivery coverage and enabled payment methods are cached per store (`shared.TenantCache`, 60 s, evicted on change and again after commit).
+- **Arabic plurals:** `@plurals.of(n)` (`PluralText`) gives the CLDR category (zero, one, two, few, many, other), so 100 منتج, 105 منتجات, 250 منتجاً; `category.product-count.<category>`.
+- **Customers table** has its own `admin.customers.col.actions`; `category.col.actions` is gone.
+
+### Tests
+
+| Test | Checks |
+|---|---|
+| `ThemePaletteTest` (new), `ThemeStyleTest` (changed) | Shades only for `#rrggbb`; readable button shade; 500 is the colour |
+| `PluralTextTest` (new) | Arabic categories by the last two digits; English one/other |
+| `StorefrontIT` (changed) | Partly covered governorate names its places; coverage and payment changes show on the next view; refused colour keeps the saved one; palette endpoint; English preview title |
+| `CatalogIT` (changed) | Subcategory under a hidden parent: no link, "Hidden with its parent" |
+
+**Live check (local profile):** on demo1, the palette endpoint (404 for a non-colour), a refused colour keeping the saved one, category counts in Arabic, and the product page's delivery line ("دمشق (دمشق)، ريف دمشق، حلب (حلب)": demo1's zones cover Damascus city, not the whole governorate).

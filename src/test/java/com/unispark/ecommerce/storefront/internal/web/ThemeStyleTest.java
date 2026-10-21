@@ -2,8 +2,6 @@ package com.unispark.ecommerce.storefront.internal.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.awt.Color;
-
 import org.junit.jupiter.api.Test;
 
 import com.unispark.ecommerce.tenant.StoreTheme;
@@ -22,22 +20,6 @@ class ThemeStyleTest {
 
         assertThat(css).contains("--color-brand-500:#1e88e5;").contains("--color-brand-50:")
                 .contains("--color-brand-600:").contains("--color-brand-700:").doesNotContain("--font-sans");
-    }
-
-    @Test
-    void darkensLightColoursUntilWhiteTextIsReadable() {
-        for (var light : new String[] {"#ffff00", "#ffffff", "#7fdbff", "#ffb300"}) {
-            var button = ThemeStyle.readableOnWhite(Color.decode(light));
-
-            assertThat(ThemeStyle.contrastWithWhite(button)).as(light).isGreaterThanOrEqualTo(4.5);
-        }
-    }
-
-    @Test
-    void keepsDarkColoursAsTheyAre() {
-        var navy = Color.decode("#1a237e");
-
-        assertThat(ThemeStyle.readableOnWhite(navy)).isEqualTo(navy);
     }
 
     @Test

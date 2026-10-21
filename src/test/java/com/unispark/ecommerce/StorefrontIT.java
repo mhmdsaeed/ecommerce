@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -53,6 +54,7 @@ import com.unispark.ecommerce.shared.LocalizedText;
 import com.unispark.ecommerce.shared.TenantContext;
 import com.unispark.ecommerce.tenant.StoreSettings;
 import com.unispark.ecommerce.tenant.StoreTheme;
+import com.unispark.ecommerce.tenant.ThemePalette;
 
 /** M5 done-when: a shopper browses a store in Arabic and English (SPEC 9.2, 17). */
 @SpringBootTest
@@ -163,15 +165,32 @@ class StorefrontIT {
         TenantContext.runAs(store, () -> {
             zones.create(new ZoneDraft(Governorate.ALEPPO, null, null, "5000", Currency.SYP, null, null, null, null));
             zones.create(new ZoneDraft(Governorate.DAMASCUS, null, null, "2000", Currency.SYP, null, null, null, null));
+            // Only parts of Latakia: one whole city, and one area of another.
+            zones.create(new ZoneDraft(Governorate.LATAKIA, "جبلة", null, "4000", Currency.SYP, null, null, null, null));
+            zones.create(new ZoneDraft(Governorate.LATAKIA, "اللاذقية", "الزراعة", "3000", Currency.SYP, null, null,
+                    null, null));
             methods.save(PaymentMethod.SHAM_CASH, new MethodDraft(true, null, null, "0944 123 456", "متجر الورد",
                     null, null));
         });
 
         mvc.perform(get(shop + "/p/red-shirt"))
                 .andExpect(content().string(allOf(
-                        matchesPattern("(?s).*<dt[^>]*>التوصيل إلى</dt>.*<span>دمشق</span>،\\s*<span>حلب</span>.*"),
+                        matchesPattern("(?s).*<dt[^>]*>التوصيل إلى</dt>.*<span>دمشق</span>،\\s*<span>حلب</span>،"
+                                + "\\s*<span>اللاذقية</span>\\s*\\(<span>اللاذقية</span>:\\s*<span>الزراعة</span>،"
+                                + "\\s*<span>جبلة</span>\\s*\\).*"),
                         containsString("تظهر أجرة التوصيل في السلة"),
                         matchesPattern("(?s).*<dt[^>]*>الدفع</dt>.*شام كاش.*"))));
+
+        // Both are cached per store; a change shows on the next view.
+        TenantContext.runAs(store, () -> {
+            var aleppo = zones.list().stream().filter(zone -> zone.governorate() == Governorate.ALEPPO).findFirst()
+                    .orElseThrow();
+            zones.setActive(aleppo.id(), false);
+            methods.save(PaymentMethod.SHAM_CASH, new MethodDraft(false, null, null, null, null, null, null));
+        });
+        mvc.perform(get(shop + "/p/red-shirt"))
+                .andExpect(content().string(allOf(not(containsString("<span>حلب</span>")),
+                        not(containsString("شام كاش")))));
     }
 
     @Test
@@ -282,9 +301,30 @@ class StorefrontIT {
                 .andExpect(content().string(allOf(containsString("x-data=\"themePreview\""),
                         matchesPattern("(?s).*theme-preview__sign.*متجر الورد.*أهلاً بالجميع.*"),
                         matchesPattern("(?s).*<a href=\"/admin/settings/theme\"[^>]*aria-current=\"page\".*"))));
+        // A refused colour: the colour input and the preview go back to the saved colour rather than black.
         mvc.perform(post(MAIN + "/admin/settings/theme").session(owner).with(csrf())
                         .param("primaryColor", "red; background:url(x)").param("font", "MODERN"))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(content().string(allOf(containsString("value=\"#8e24aa\""),
+                        containsString("data-colors=\"--p-50:"), not(containsString("url(x)")))));
+        // The preview's shades as a colour is picked, worked out like the storefront's.
+        mvc.perform(get(MAIN + "/admin/settings/theme/palette").session(owner).param("color", "#ffff00"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.shade500").value("#ffff00"))
+                .andExpect(jsonPath("$.shade600").value(ThemePalette.of("#ffff00").orElseThrow().shade600()));
+        mvc.perform(get(MAIN + "/admin/settings/theme/palette").session(owner).param("color", "red"))
+                .andExpect(status().isNotFound());
+        // In English, the preview shows the English title before any script runs.
+        mvc.perform(post(MAIN + "/admin/settings/theme").session(owner).with(csrf())
+                        .param("primaryColor", "#8e24aa").param("heroTitleEn", "Welcome all").param("font", "MODERN")
+                        .param("showCategories", "true").param("showNewProducts", "true"))
+                .andExpect(redirectedUrl("/admin/settings/theme?saved"));
+        mvc.perform(get(MAIN + "/admin/settings/theme").session(owner).cookie(new Cookie("lang", "en")))
+                .andExpect(content().string(matchesPattern("(?s).*theme-preview__sign.*<p[^>]*>Welcome all</p>.*")));
+        mvc.perform(post(MAIN + "/admin/settings/theme").session(owner).with(csrf())
+                        .param("primaryColor", "#8e24aa").param("heroTitleAr", "أهلاً بالجميع").param("font", "MODERN")
+                        .param("showCategories", "true").param("showNewProducts", "true"))
+                .andExpect(redirectedUrl("/admin/settings/theme?saved"));
 
         mvc.perform(get(shop + "/"))
                 .andExpect(content().string(allOf(containsString("--color-brand-500:#8e24aa;"),
