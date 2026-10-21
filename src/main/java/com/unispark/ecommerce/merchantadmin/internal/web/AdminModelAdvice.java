@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 
 import com.unispark.ecommerce.billing.SubscriptionStatus;
 import com.unispark.ecommerce.billing.Subscriptions;
+import com.unispark.ecommerce.identity.ColorSchemes;
 import com.unispark.ecommerce.identity.StaffPrincipal;
 import com.unispark.ecommerce.order.Orders;
 import com.unispark.ecommerce.shared.TenantContext;
@@ -35,13 +36,16 @@ class AdminModelAdvice {
     private final Subscriptions subscriptions;
     private final Orders orders;
     private final Sites sites;
+    private final ColorSchemes schemes;
     private final Clock clock;
 
-    AdminModelAdvice(StoreLookup stores, Subscriptions subscriptions, Orders orders, Sites sites, Clock clock) {
+    AdminModelAdvice(StoreLookup stores, Subscriptions subscriptions, Orders orders, Sites sites, ColorSchemes schemes,
+            Clock clock) {
         this.stores = stores;
         this.subscriptions = subscriptions;
         this.orders = orders;
         this.sites = sites;
+        this.schemes = schemes;
         this.clock = clock;
     }
 
@@ -78,6 +82,18 @@ class AdminModelAdvice {
             return null;
         }
         return orders.counts(clock.instant()).toConfirm();
+    }
+
+    /**
+     * The member's light or dark choice, for the layout's data-scheme: on full pages only, like the orders badge.
+     */
+    @ModelAttribute("colorScheme")
+    String colorScheme(HttpServletRequest request) {
+        var staff = currentStaff();
+        if (staff == null || !"GET".equals(request.getMethod()) || request.getHeader("HX-Request") != null) {
+            return null;
+        }
+        return schemes.ofStaff(staff.staffId()).attribute();
     }
 
     @ModelAttribute("currentStaff")

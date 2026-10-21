@@ -6,6 +6,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 
+import com.unispark.ecommerce.identity.ColorScheme;
 import com.unispark.ecommerce.identity.StaffRole;
 import com.unispark.ecommerce.shared.TenantScopedEntity;
 
@@ -34,6 +35,11 @@ public class StaffUser extends TenantScopedEntity {
     /** Goes up with every password change; sessions from before it end (StaffSessionFilter). */
     @Column(name = "credentials_version", nullable = false)
     private int credentialsVersion;
+
+    /** Light or dark admin screens. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "color_scheme", nullable = false)
+    private ColorScheme colorScheme = ColorScheme.DEVICE;
 
     protected StaffUser() {
     }
@@ -77,6 +83,14 @@ public class StaffUser extends TenantScopedEntity {
 
     public int getCredentialsVersion() {
         return credentialsVersion;
+    }
+
+    public ColorScheme getColorScheme() {
+        return colorScheme;
+    }
+
+    public void setColorScheme(ColorScheme colorScheme) {
+        this.colorScheme = colorScheme;
     }
 
     /** {@code email} lowercase, {@code phone} in E.164; at least one of them. */

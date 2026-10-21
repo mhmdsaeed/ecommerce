@@ -53,6 +53,23 @@
 
             <section class="rounded-lg border border-gray-200 bg-white p-6">
                 <form id="theme-form" th:action="@{/admin/settings/theme}" th:object="${form}" method="post" class="max-w-lg space-y-4" novalidate>
+                    <!--/* The storefront's look: a small drawing of each layout, its name and the kind of shop it suits. */-->
+                    <fieldset>
+                        <legend class="text-sm font-medium text-gray-800" th:text="#{settings.theme.look}">Look</legend>
+                        <div class="mt-2 grid gap-3 sm:grid-cols-2">
+                            <label th:each="choice : ${looks}"
+                                   class="look-choice flex cursor-pointer gap-3 rounded-lg border-2 border-gray-200 bg-white p-3 has-[:checked]:border-brand-600 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-brand-600">
+                                <input type="radio" th:field="*{look}" th:value="${choice}" class="sr-only">
+                                <span th:class="|look-sketch look-sketch--${#strings.toLowerCase(choice)}|" aria-hidden="true">
+                                    <span class="look-sketch__sign"></span><span class="look-sketch__body"></span>
+                                </span>
+                                <span class="min-w-0">
+                                    <span class="block font-semibold" th:text="#{settings.theme.look.__${choice}__}">Souq</span>
+                                    <span class="block text-xs text-gray-600" th:text="#{settings.theme.look.__${choice}__.hint}">For any shop</span>
+                                </span>
+                            </label>
+                        </div>
+                    </fieldset>
                     <div class="space-y-1">
                         <label for="primaryColor" class="block text-sm font-medium text-gray-800" th:text="#{settings.theme.color}">Colour</label>
                         <div class="flex items-center gap-3">
@@ -98,7 +115,8 @@
             <p class="text-xs text-gray-500" th:text="#{settings.theme.preview.hint}">Changes show here before you save.</p>
             <div class="theme-preview mt-3 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
                  th:style="${previewColors + (form.font?.name() == 'CLASSIC' ? 'font-family:' + classicFonts + ';' : '')}"
-                 x-bind:style="style" aria-hidden="true">
+                 th:attr="data-look=${#strings.toLowerCase(form.look ?: 'SOUQ')}"
+                 x-bind:style="style" x-bind:data-look="look" aria-hidden="true">
                 <div class="theme-preview__sign px-4 pb-4 pt-3 text-white">
                     <div class="flex items-center gap-2">
                         <img th:if="${logoUrl != null}" th:src="${logoUrl}" alt="" width="28" height="28" class="h-7 w-7 rounded bg-white object-contain">
@@ -111,10 +129,10 @@
                     <p x-show="text" class="theme-preview__tagline mt-1 text-sm" x-text="text"
                        th:text="${previewText}" th:style="${#strings.isEmpty(previewText)} ? 'display: none' : null"></p>
                 </div>
-                <div class="grid grid-cols-2 gap-3 p-4">
-                    <div th:each="n : ${ {1, 2} }">
-                        <div class="aspect-square rounded-md bg-gray-100"></div>
-                        <div class="mt-2 h-2 w-3/4 rounded bg-gray-200"></div>
+                <div class="theme-preview__items grid grid-cols-2 gap-3 p-4">
+                    <div th:each="n : ${ {1, 2} }" class="theme-preview__item">
+                        <div class="theme-preview__photo aspect-square rounded-md bg-gray-100"></div>
+                        <div class="theme-preview__name mt-2 h-2 w-3/4 rounded bg-gray-200"></div>
                         <span class="theme-preview__tag mt-2 inline-block rounded px-1.5 py-0.5 text-xs font-bold tabular-nums"
                               th:text="${n == 1} ? '25,000' : '40,000'">25,000</span>
                     </div>

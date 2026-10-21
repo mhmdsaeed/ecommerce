@@ -240,7 +240,7 @@ class StorefrontCatalogService implements StorefrontCatalog {
         var image = product.getImages().stream().min(Comparator.comparingInt(ProductImage::getSortOrder))
                 .map(CatalogViews::image).orElse(null);
         return new ProductCard(product.getId(), product.getName(), product.getSlug(), cheapest.price(),
-                cheapest.compareAtPrice(), differentPrices, image);
+                cheapest.compareAtPrice(), differentPrices, image, available.size() == 1 ? cheapest.getId() : null);
     }
 
     private static ProductView view(Product product, Visible visible) {

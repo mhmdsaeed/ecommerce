@@ -2,8 +2,11 @@ package com.unispark.ecommerce.identity.internal.persistence;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 
+import com.unispark.ecommerce.identity.ColorScheme;
 import com.unispark.ecommerce.shared.BaseEntity;
 
 /** A platform administrator. Platform entity: no tenant. Email is stored lowercase. */
@@ -24,6 +27,11 @@ public class PlatformUser extends BaseEntity {
 
     @Column(nullable = false)
     private boolean active;
+
+    /** Light or dark platform admin screens. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "color_scheme", nullable = false)
+    private ColorScheme colorScheme = ColorScheme.DEVICE;
 
     protected PlatformUser() {
     }
@@ -49,5 +57,13 @@ public class PlatformUser extends BaseEntity {
 
     public boolean isActive() {
         return active;
+    }
+
+    public ColorScheme getColorScheme() {
+        return colorScheme;
+    }
+
+    public void setColorScheme(ColorScheme colorScheme) {
+        this.colorScheme = colorScheme;
     }
 }

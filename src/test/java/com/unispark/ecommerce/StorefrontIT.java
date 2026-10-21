@@ -274,7 +274,7 @@ class StorefrontIT {
     @Test
     void appliesTheStoreTheme() throws Exception {
         TenantContext.runAs(store, () -> settings.updateTheme(new StoreTheme("#ffff00", null,
-                LocalizedText.of("تخفيضات الصيف", "Summer sale"), null, StoreTheme.FontChoice.CLASSIC, false, true)));
+                LocalizedText.of("تخفيضات الصيف", "Summer sale"), null, StoreTheme.FontChoice.CLASSIC, false, true, null)));
 
         mvc.perform(get(shop + "/"))
                 .andExpect(content().string(allOf(
@@ -286,6 +286,48 @@ class StorefrontIT {
     }
 
     @Test
+    void laysTheStoreOutByItsLook() throws Exception {
+        mvc.perform(get(shop + "/"))
+                .andExpect(content().string(allOf(containsString("data-look=\"souq\""),
+                        containsString("class=\"product-grid\""), not(containsString("grocer-row")))));
+
+        look(StoreTheme.Look.GROCER);
+        // Rows; a product with one variant goes straight into the cart, one with options sends the shopper to choose.
+        mvc.perform(get(shop + "/c/clothes"))
+                .andExpect(content().string(allOf(containsString("data-look=\"grocer\""),
+                        containsString("class=\"grocer-row\""),
+                        matchesPattern("(?s).*<form hx-post=\"/cart/items\" hx-target=\"#added-[0-9a-f-]+\".*"
+                                + "name=\"variantId\" value=\"[0-9a-f-]+\".*"),
+                        matchesPattern("(?s).*<a href=\"/p/red-shirt\"[^>]*grocer-row__action.*"))));
+
+        look(StoreTheme.Look.SHOWROOM);
+        // Categories as tiles; no product has a photo yet, so none is featured.
+        mvc.perform(get(shop + "/"))
+                .andExpect(content().string(allOf(containsString("data-look=\"showroom\""),
+                        containsString("class=\"showroom-tile\""), not(containsString("showroom-feature")))));
+        // The newest product with a photo first and large; it is not repeated in the grid below.
+        TenantContext.runAs(store, () -> jdbc.update("""
+                INSERT INTO product_image (id, tenant_id, product_id, variant_id, storage_key, width, height, sort_order,
+                                           created_at, updated_at, version)
+                SELECT ?, tenant_id, id, NULL, 'socks-photo', 800, 600, 0, now(), now(), 0 FROM product WHERE slug = 'socks'
+                """, UUID.randomUUID()));
+        mvc.perform(get(shop + "/"))
+                .andExpect(content().string(allOf(
+                        matchesPattern("(?s).*class=\"showroom-feature\".*<h2 id=\"feature-heading\"[^>]*>جوارب</h2>.*"),
+                        not(matchesPattern("(?s).*class=\"product-grid\".*جوارب.*")))));
+
+        look(StoreTheme.Look.BOUTIQUE);
+        mvc.perform(get(shop + "/"))
+                .andExpect(content().string(allOf(containsString("data-look=\"boutique\""),
+                        containsString("class=\"boutique-links mt-4\""), not(containsString("showroom-feature")))));
+    }
+
+    private void look(StoreTheme.Look look) {
+        TenantContext.runAs(store, () -> settings.updateTheme(
+                new StoreTheme(null, null, null, null, null, null, null, look)));
+    }
+
+    @Test
     void merchantsEditTheThemeInTheAdmin() throws Exception {
         TestAccounts.staff(staffUsers, passwords, store, "Owner", "owner@" + slug + ".test", null, StaffRole.OWNER);
         var owner = TestAccounts.logIn(mvc, slug, "owner@" + slug + ".test");
@@ -294,11 +336,15 @@ class StorefrontIT {
                 .andExpect(content().string(containsString("value=\"#00855d\"")));
         mvc.perform(post(MAIN + "/admin/settings/theme").session(owner).with(csrf())
                         .param("primaryColor", "#8e24aa").param("heroTitleAr", "أهلاً بالجميع")
-                        .param("font", "MODERN").param("showCategories", "true").param("showNewProducts", "true"))
+                        .param("font", "MODERN").param("showCategories", "true").param("showNewProducts", "true")
+                        .param("look", "SHOWROOM"))
                 .andExpect(redirectedUrl("/admin/settings/theme?saved"));
-        // The preview beside the form: the store's sign with its name and the saved title; the tab marks the page.
+        // The preview beside the form: the store's sign with its name and the saved title, in the saved look; the
+        // look picker marks it; the tab marks the page.
         mvc.perform(get(MAIN + "/admin/settings/theme").session(owner))
                 .andExpect(content().string(allOf(containsString("x-data=\"themePreview\""),
+                        containsString("data-look=\"showroom\""),
+                        matchesPattern("(?s).*value=\"SHOWROOM\"[^>]*checked=\"checked\".*"),
                         matchesPattern("(?s).*theme-preview__sign.*متجر الورد.*أهلاً بالجميع.*"),
                         matchesPattern("(?s).*<a href=\"/admin/settings/theme\"[^>]*aria-current=\"page\".*"))));
         // A refused colour: the colour input and the preview go back to the saved colour rather than black.

@@ -50,7 +50,7 @@
        th:text="#{__${key}__}">Link</a>
 </li>
 
-<!--/* Who is logged in, logging out and the language: the bottom of the sidebar and of the phone menu. */-->
+<!--/* Who is logged in, logging out, the language and light or dark: the bottom of the sidebar and of the phone menu. */-->
 <div th:fragment="account" class="space-y-3 text-sm">
     <a th:href="@{/admin/account}" class="block font-medium text-gray-900 hover:underline"
        th:attr="aria-current=${adminSection == 'account'} ? 'page'" th:title="#{admin.nav.account}"
@@ -62,6 +62,7 @@
         <a th:href="@{''(lang='ar')}" lang="ar" class="text-gray-700 hover:underline" th:text="#{lang.ar}">العربية</a>
         <a th:href="@{''(lang='en')}" lang="en" class="text-gray-700 hover:underline" th:text="#{lang.en}">English</a>
     </div>
+    <form th:replace="~{fragments/scheme :: switch(action=@{/admin/scheme})}"></form>
 </div>
 
 </body>

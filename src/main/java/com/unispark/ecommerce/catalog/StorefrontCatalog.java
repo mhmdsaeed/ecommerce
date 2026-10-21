@@ -83,9 +83,14 @@ public interface StorefrontCatalog {
     record CategoryLink(UUID id, LocalizedText name, String slug, List<CategoryLink> children) {
     }
 
-    /** {@code price} is the lowest available variant's; {@code fromPrice} when variants differ in price. */
+    /**
+     * {@code price} is the lowest available variant's; {@code fromPrice} when variants differ in price.
+     *
+     * @param onlyVariantId the product's one available variant, which can go in the cart from a list; null when
+     *                      the shopper has options to choose on the product page
+     */
     record ProductCard(UUID id, LocalizedText name, String slug, Money price, Money compareAtPrice, boolean fromPrice,
-            ImageView image) {
+            ImageView image, UUID onlyVariantId) {
     }
 
     record ResultPage(List<ProductCard> products, int page, int totalPages, long totalItems) {

@@ -1,5 +1,6 @@
 package com.unispark.ecommerce.storefront.internal.web;
 
+import java.util.Locale;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -57,6 +58,7 @@ class StorefrontAdvice {
         var shop = settings.current();
         model.addAttribute("shop", shop);
         model.addAttribute("themeStyle", ThemeStyle.css(shop.theme()));
+        model.addAttribute("look", shop.theme().lookOrDefault().name().toLowerCase(Locale.ROOT));
         model.addAttribute("logoUrl", shop.theme().logoKey() == null ? null
                 : images.url(shop.theme().logoKey(), ImageSize.SMALL));
         model.addAttribute("navigation", catalog.navigation());

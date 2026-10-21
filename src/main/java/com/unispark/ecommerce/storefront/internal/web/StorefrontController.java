@@ -33,6 +33,7 @@ import com.unispark.ecommerce.pricing.ExchangeRates;
 import com.unispark.ecommerce.shared.ListParams;
 import com.unispark.ecommerce.shared.TenantContext;
 import com.unispark.ecommerce.tenant.StoreSettings;
+import com.unispark.ecommerce.tenant.StoreTheme.Look;
 
 /**
  * Storefront browse pages (SPEC 9.2): home, category, product, search and the language switch. The main site's
@@ -77,8 +78,14 @@ class StorefrontController {
             // The main site: its landing page is the merchant admin module's (LandingController).
             return "forward:" + MAIN_SITE_HOME;
         }
-        model.addAttribute("newest", catalog.newest(NEWEST));
-        model.addAttribute("seo", seo.home(settings.current()));
+        var newest = catalog.newest(NEWEST);
+        var shop = settings.current();
+        // A showroom puts its newest product with a photo first, large; the rest follow in the grid.
+        var feature = shop.theme().lookOrDefault() == Look.SHOWROOM
+                ? newest.stream().filter(card -> card.image() != null).findFirst().orElse(null) : null;
+        model.addAttribute("feature", feature);
+        model.addAttribute("newest", feature == null ? newest : newest.stream().filter(card -> card != feature).toList());
+        model.addAttribute("seo", seo.home(shop));
         return "storefront/home";
     }
 

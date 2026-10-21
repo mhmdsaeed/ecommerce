@@ -159,6 +159,7 @@ document.addEventListener("alpine:init", function () {
   window.Alpine.data("themePreview", function () {
     return {
       style: "",
+      look: "",
       title: "",
       text: "",
       init: function () {
@@ -208,6 +209,8 @@ document.addEventListener("alpine:init", function () {
         };
         var update = function () {
           self.title = either("heroTitleAr", "heroTitleEn");
+          var look = form.querySelector("input[name=look]:checked");
+          self.look = look ? look.value.toLowerCase() : "souq";
           self.text = either("heroTextAr", "heroTextEn");
           pick(value("primaryColor"));
           render();

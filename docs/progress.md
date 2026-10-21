@@ -1573,3 +1573,31 @@ Part 1 of the plan agreed on 2026-10-21 (then themes, merchant reports, platform
 | `WholePhotoTemplatesTest` (new) | No `<img>` in a template uses `object-cover` |
 
 **Live check (local profile):** reset requests for real and unknown demo1 accounts timed alike; links and the "password changed" email arrived in Mailpit; one open link per account after repeated requests; staff@demo1.test reset back to its demo password. The storefront home at 1280 px (demo photos are square, so the change shows on non-square photos only).
+
+## After M15: Storefront looks and dark admin screens (2026-10-21)
+
+Part 2 of the plan agreed on 2026-10-21.
+
+### Storefront looks
+
+The merchant picks a look on the storefront settings page (a small drawing of each, its name and the kind of shop it suits); every look keeps the store's colour, logo and font. Stored as `look` in the theme JSON (`StoreTheme.Look`, null is Souq), so no migration. The storefront layout sets `data-look`; app.css restyles the header and product grid per look, and templates change only where the structure does.
+
+- **Souq** (default): unchanged; the store's sign in its colour, price tags, two to four columns.
+- **Boutique**: a white header with a rule in the store's colour, categories as quiet text links, three columns of tall (4:5) photos, prices as plain text.
+- **Grocer**: a compact sign, products as rows (photo, name, the price large) with an "Add" button that puts a single-variant product straight into the cart (HTMX, `ProductCard.onlyVariantId`), or "Choose" for products with options.
+- **Showroom**: a near-black header with a rule in the store's colour, the newest product that has a photo featured large (picked in `StorefrontController.home`, not repeated in the grid), categories as tiles, products as bordered cards with 4:3 photos.
+
+The settings preview follows the look being picked.
+
+### Dark admin screens
+
+Each person chooses Device (the default), Light or Dark with a switch at the bottom of the admin sidebar, in the driver header and in the platform admin header; the choice is stored on their account (`V18__color_scheme.sql`: `staff_user.color_scheme`, `platform_user.color_scheme`; `identity.ColorSchemes`). Layouts write `data-scheme`; a tiny inline script in the head sets `data-dark` before the page paints, following the device as it changes. One dark stylesheet in app.css turns the palette rather than adding `dark:` to every template: the grey ramp runs the other way, light tints become dark ones, white surfaces become dark ones, and dark text shades of each colour become light ones; buttons keep their colour. The storefront preview and the look drawings stay light. Login pages and the storefront have no scheme. Switching goes back to the page it was on, same area only.
+
+### Tests
+
+| Test | Checks |
+|---|---|
+| `StorefrontIT` (changed) | New `laysTheStoreOutByItsLook`: Souq grid, Grocer rows with quick add and Choose, Showroom tiles and the featured photo (only with a photo, not repeated), Boutique links; the admin saves a look and the preview and picker show it |
+| `ColorSchemeIT` (new) | Dark is remembered across sessions; the switch goes back only to a page of the same area; unknown values change nothing; drivers and platform admins switch too; storefront and login pages carry no scheme |
+
+**Live check (local profile):** demo1 in each look at 1280 px and Grocer at 500 px; the admin dashboard, an order, the storefront settings and a driver's statement in dark; the platform store list in dark. Fixed after the screenshots: a featured product without a photo left an empty panel (now only products with photos are featured), the look drawings turned dark, the platform header's email was too faint. demo1's theme and both demo accounts' schemes were set back afterwards.

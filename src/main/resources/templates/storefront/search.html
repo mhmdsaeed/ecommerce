@@ -13,7 +13,7 @@
     <p th:if="${!q.isBlank() and results.products().isEmpty()}" class="mt-6 text-gray-600"
        th:text="#{shop.search.none}">Nothing found.</p>
     <h2 class="sr-only" th:unless="${results.products().isEmpty()}" th:text="#{shop.products}">Products</h2>
-    <th:block th:unless="${results.products().isEmpty()}"><div class="mt-6" th:replace="~{storefront/fragments/catalog :: product-grid(products=${results.products()}, eagerCount=4)}"></div></th:block>
+    <div th:unless="${results.products().isEmpty()}" class="mt-6"><th:block th:replace="~{storefront/fragments/catalog :: product-grid(products=${results.products()}, eagerCount=4)}"></th:block></div>
     <div th:replace="~{storefront/fragments/catalog :: pager(results=${results}, base=@{/search(q=${q})})}"></div>
 </main>
 </body>

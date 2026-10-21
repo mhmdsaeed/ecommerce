@@ -16,6 +16,7 @@
                 </form>
                 <a th:href="@{''(lang='ar')}" lang="ar" th:text="#{lang.ar}">العربية</a>
                 <a th:href="@{''(lang='en')}" lang="en" th:text="#{lang.en}">English</a>
+                <th:block th:if="${currentStaff != null}"><form th:replace="~{fragments/scheme :: switch(action=@{/driver/scheme})}"></form></th:block>
             </nav>
         </div>
     </header>

@@ -33,7 +33,7 @@
     </ul>
     <p th:if="${results.products().isEmpty()}" class="mt-8 text-gray-600" th:text="#{shop.category.empty}">No products here yet.</p>
     <h2 class="sr-only" th:unless="${results.products().isEmpty()}" th:text="#{shop.products}">Products</h2>
-    <th:block th:unless="${results.products().isEmpty()}"><div class="mt-6" th:replace="~{storefront/fragments/catalog :: product-grid(products=${results.products()}, eagerCount=4)}"></div></th:block>
+    <div th:unless="${results.products().isEmpty()}" class="mt-6"><th:block th:replace="~{storefront/fragments/catalog :: product-grid(products=${results.products()}, eagerCount=4)}"></th:block></div>
     <div th:replace="~{storefront/fragments/catalog :: pager(results=${results}, base=@{/c/{slug}(slug=${category.slug()}, sort=${sort})})}"></div>
 </main>
 </body>

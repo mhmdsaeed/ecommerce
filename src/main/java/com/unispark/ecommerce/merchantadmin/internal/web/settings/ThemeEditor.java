@@ -38,7 +38,7 @@ class ThemeEditor {
         var current = settings.current().theme();
         settings.updateTheme(new StoreTheme(blankToNull(form.getPrimaryColor()), current.logoKey(),
                 text(form.getHeroTitleAr(), form.getHeroTitleEn()), text(form.getHeroTextAr(), form.getHeroTextEn()),
-                form.getFont(), form.isShowCategories(), form.isShowNewProducts()));
+                form.getFont(), form.isShowCategories(), form.isShowNewProducts(), form.getLook()));
     }
 
     /** Null when stored, else why the upload was refused. */
@@ -58,8 +58,7 @@ class ThemeEditor {
     private void setLogo(String key) {
         transaction.executeWithoutResult(status -> {
             var theme = settings.current().theme();
-            settings.updateTheme(new StoreTheme(theme.primaryColor(), key, theme.heroTitle(), theme.heroText(),
-                    theme.font(), theme.showCategories(), theme.showNewProducts()));
+            settings.updateTheme(theme.withLogo(key));
             if (theme.logoKey() != null && !theme.logoKey().equals(key)) {
                 events.publishEvent(new ImageDiscarded(theme.logoKey()));
             }

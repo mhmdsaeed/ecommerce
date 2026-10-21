@@ -2,10 +2,28 @@
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       th:lang="${#locale.language}"
-      th:dir="${#locale.language == 'ar'} ? 'rtl' : 'ltr'">
+      th:dir="${#locale.language == 'ar'} ? 'rtl' : 'ltr'"
+      th:attr="data-scheme=${colorScheme}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!--/* Admin screens (colorScheme set): dark when the person chose dark, or chose "device" and the device is dark.
+           Runs before the page paints, so a dark page never flashes white; follows the device as it changes. */-->
+    <th:block th:if="${colorScheme != null}">
+        <meta name="color-scheme" content="light dark">
+        <script>
+            (function (root) {
+                var media = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+                function apply() {
+                    var dark = root.getAttribute("data-scheme") === "dark"
+                        || (root.getAttribute("data-scheme") === "device" && media !== null && media.matches);
+                    if (dark) { root.setAttribute("data-dark", ""); } else { root.removeAttribute("data-dark"); }
+                }
+                apply();
+                if (media !== null && media.addEventListener) { media.addEventListener("change", apply); }
+            })(document.documentElement);
+        </script>
+    </th:block>
     <title layout:title-pattern="$CONTENT_TITLE · $LAYOUT_TITLE" th:text="#{app.name}">App</title>
     <!--/* No favicon yet (store logos may become one): an empty icon stops browsers requesting /favicon.ico. */-->
     <link rel="icon" href="data:,">

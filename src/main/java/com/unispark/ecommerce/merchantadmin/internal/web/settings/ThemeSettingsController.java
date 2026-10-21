@@ -22,6 +22,7 @@ import com.unispark.ecommerce.media.ImageSize;
 import com.unispark.ecommerce.media.ImageStore;
 import com.unispark.ecommerce.tenant.StoreSettings;
 import com.unispark.ecommerce.tenant.StoreTheme.FontChoice;
+import com.unispark.ecommerce.tenant.StoreTheme.Look;
 import com.unispark.ecommerce.tenant.ThemePalette;
 
 /** Storefront look (SPEC 9.3, 10): colour, logo, hero text, font and home sections. Owners and managers only. */
@@ -95,6 +96,7 @@ class ThemeSettingsController {
         var logoKey = settings.current().theme().logoKey();
         model.addAttribute("logoUrl", logoKey == null ? null : images.url(logoKey, ImageSize.SMALL));
         model.addAttribute("fonts", FontChoice.values());
+        model.addAttribute("looks", Look.values());
         model.addAttribute("classicFonts", FontChoice.CLASSIC.stack());
         model.addAttribute("previewColors", previewColors(((ThemeForm) model.getAttribute("form")).getPrimaryColor()));
         return PAGE;

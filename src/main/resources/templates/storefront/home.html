@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <!--/* The store's home. The store's name on its sign (layouts/storefront.html) is the page's h1, set larger; the
-       merchant's headline and text, if any, are the sign's tagline, in the store's colour. */-->
+       merchant's headline and text, if any, are the sign's tagline, in the store's colour.
+       By look: categories as chips (souq, grocer), as quiet text links (boutique) or as tiles (showroom); a
+       showroom also puts its newest product with a photo (feature, from the controller) first, large. */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/storefront}">
@@ -8,21 +10,55 @@
     <title th:text="#{shop.home.title}">Home</title>
 </head>
 <body>
-<h1 layout:fragment="sign-name" class="min-w-0 text-2xl font-bold leading-tight sm:text-4xl" dir="auto"
+<h1 layout:fragment="sign-name" class="store-sign__name min-w-0 text-2xl font-bold leading-tight sm:text-4xl" dir="auto"
     th:text="${shop.name().in(#locale)}">Store</h1>
 
 <div layout:fragment="sign-tagline" th:with="theme=${shop.theme()}"
-     th:if="${shop.theme().heroTitle() != null or shop.theme().heroText() != null}" class="mx-auto max-w-6xl px-4 pb-8">
+     th:if="${shop.theme().heroTitle() != null or shop.theme().heroText() != null}" class="store-sign__tagline mx-auto max-w-6xl px-4 pb-8">
     <p th:if="${theme.heroTitle() != null}" class="max-w-2xl text-xl font-semibold leading-snug sm:text-2xl"
        th:text="${theme.heroTitle().in(#locale)}">Summer sale</p>
-    <p th:if="${theme.heroText() != null}" class="mt-2 max-w-2xl whitespace-pre-line leading-relaxed text-brand-50"
+    <p th:if="${theme.heroText() != null}" class="store-sign__text mt-2 max-w-2xl whitespace-pre-line leading-relaxed text-brand-50"
        th:text="${theme.heroText().in(#locale)}">Text</p>
 </div>
 
 <main layout:fragment="content" class="space-y-10" th:with="theme=${shop.theme()}">
+    <!--/* Showroom: the newest product, large. */-->
+    <section th:if="${feature != null and theme.newProductsShown()}" class="showroom-feature" aria-labelledby="feature-heading"
+             th:with="key=${feature.image() != null} ? ${feature.image().storageKey()} : null">
+        <a th:href="@{/p/{slug}(slug=${feature.slug()})}" class="showroom-feature__photo">
+            <img th:if="${key != null}" th:with="medium=${@shopImages.medium(key)}, large=${@shopImages.large(key)}"
+                 th:src="${medium}" th:srcset="|${medium} 640w, ${large} 1024w|" sizes="(min-width: 768px) 60vw, 100vw"
+                 width="640" height="480" alt="" fetchpriority="high" class="h-full w-full object-contain">
+        </a>
+        <div class="showroom-feature__text">
+            <p class="text-sm font-medium text-brand-700" th:text="#{shop.newest.latest}">Just in</p>
+            <h2 id="feature-heading" class="mt-1 text-2xl font-bold leading-tight sm:text-3xl" th:text="${feature.name().in(#locale)}">Product</h2>
+            <p class="mt-3 flex flex-wrap items-baseline gap-x-2">
+                <span th:if="${feature.fromPrice()}" class="text-gray-500" th:text="#{shop.price.from}">from</span>
+                <bdi class="text-2xl font-bold tabular-nums" th:text="${@shopPrices.show(feature.price())}">150,000</bdi>
+                <del th:if="${feature.compareAtPrice() != null}" class="text-gray-400">
+                    <bdi th:text="${@shopPrices.show(feature.compareAtPrice())}">200,000</bdi>
+                </del>
+            </p>
+            <a th:href="@{/p/{slug}(slug=${feature.slug()})}"
+               class="mt-5 inline-block rounded-md bg-brand-600 px-5 py-3 font-semibold text-white hover:bg-brand-700"
+               th:text="#{shop.product.view}">View product</a>
+        </div>
+    </section>
+
     <section th:if="${theme.categoriesShown() and !navigation.isEmpty()}">
         <h2 class="text-lg font-semibold" th:text="#{shop.categories}">Categories</h2>
-        <ul class="mt-4 flex flex-wrap gap-2">
+        <ul th:if="${look == 'showroom'}" class="showroom-tiles mt-4">
+            <li th:each="link : ${navigation}">
+                <a th:href="@{/c/{slug}(slug=${link.slug()})}" class="showroom-tile" th:text="${link.name().in(#locale)}">Category</a>
+            </li>
+        </ul>
+        <ul th:if="${look == 'boutique'}" class="boutique-links mt-4">
+            <li th:each="link : ${navigation}">
+                <a th:href="@{/c/{slug}(slug=${link.slug()})}" th:text="${link.name().in(#locale)}">Category</a>
+            </li>
+        </ul>
+        <ul th:unless="${look == 'showroom' or look == 'boutique'}" class="mt-4 flex flex-wrap gap-2">
             <li th:each="link : ${navigation}">
                 <a th:href="@{/c/{slug}(slug=${link.slug()})}"
                    class="block rounded-full border border-gray-300 px-4 py-2 font-medium hover:border-brand-600 hover:text-brand-700"
@@ -31,10 +67,12 @@
         </ul>
     </section>
 
-    <section th:if="${theme.newProductsShown()}">
+    <section th:if="${theme.newProductsShown() and (feature == null or !newest.isEmpty())}">
         <h2 class="text-lg font-semibold" th:text="#{shop.newest}">New arrivals</h2>
         <p th:if="${newest.isEmpty()}" class="mt-4 text-gray-600" th:text="#{shop.empty}">No products yet.</p>
-        <th:block th:unless="${newest.isEmpty()}"><div class="mt-4" th:replace="~{storefront/fragments/catalog :: product-grid(products=${newest}, eagerCount=2)}"></div></th:block>
+        <div th:unless="${newest.isEmpty()}" class="mt-4">
+            <th:block th:replace="~{storefront/fragments/catalog :: product-grid(products=${newest}, eagerCount=2)}"></th:block>
+        </div>
     </section>
 </main>
 </body>

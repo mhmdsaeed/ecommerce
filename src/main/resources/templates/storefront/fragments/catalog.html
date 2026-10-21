@@ -3,10 +3,46 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<ul th:fragment="product-grid(products, eagerCount)" class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-    <li th:each="card, state : ${products}">
+<!--/* Products as the store's look lays them out (layouts/storefront.html sets data-look): rows with a quick add
+       button for a grocer, cards for the others, whose columns, photo shape and price style app.css sets per look. */-->
+<th:block th:fragment="product-grid(products, eagerCount)">
+    <ul th:if="${look == 'grocer'}" class="grocer-list">
+        <li th:each="card, state : ${products}" class="grocer-row">
+            <a th:href="@{/p/{slug}(slug=${card.slug()})}" class="grocer-row__photo">
+                <img th:if="${card.image() != null}" th:with="small=${@shopImages.small(card.image().storageKey())}"
+                     th:src="${small}" width="80" height="80" alt=""
+                     th:attr="loading=${state.index < eagerCount} ? 'eager' : 'lazy'" class="h-full w-full object-contain">
+            </a>
+            <div class="min-w-0">
+                <h3 class="line-clamp-2 font-medium text-gray-900">
+                    <a th:href="@{/p/{slug}(slug=${card.slug()})}" class="hover:underline" th:text="${card.name().in(#locale)}">Product</a>
+                </h3>
+                <p class="mt-1 flex flex-wrap items-baseline gap-x-1.5">
+                    <span th:if="${card.fromPrice()}" class="text-sm text-gray-500" th:text="#{shop.price.from}">from</span>
+                    <bdi class="text-lg font-bold tabular-nums text-brand-700" th:text="${@shopPrices.show(card.price())}">150,000</bdi>
+                    <del th:if="${card.compareAtPrice() != null}" class="text-sm text-gray-400">
+                        <bdi th:text="${@shopPrices.show(card.compareAtPrice())}">200,000</bdi>
+                    </del>
+                </p>
+                <div th:id="|added-${card.id()}|" class="mt-1 empty:hidden" aria-live="polite"></div>
+            </div>
+            <!--/* One variant: straight into the cart (HTMX); options to choose: to the product page. */-->
+            <form th:if="${card.onlyVariantId() != null}" th:hx-post="@{/cart/items}" th:hx-target="|#added-${card.id()}|"
+                  hx-swap="innerHTML" class="grocer-row__action">
+                <input type="hidden" name="variantId" th:value="${card.onlyVariantId()}">
+                <input type="hidden" name="quantity" value="1">
+                <button type="submit" class="rounded-md bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+                        th:attr="aria-label=#{shop.cart.add.named(${card.name().in(#locale)})}" th:text="#{shop.cart.add.short}">Add</button>
+            </form>
+            <a th:unless="${card.onlyVariantId() != null}" th:href="@{/p/{slug}(slug=${card.slug()})}"
+               class="grocer-row__action rounded-md border border-brand-600 px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50"
+               th:attr="aria-label=#{shop.product.choose.named(${card.name().in(#locale)})}" th:text="#{shop.product.choose}">Choose</a>
+        </li>
+    </ul>
+    <ul th:unless="${look == 'grocer'}" class="product-grid">
+    <li th:each="card, state : ${products}" class="product-card">
         <a th:href="@{/p/{slug}(slug=${card.slug()})}" class="group block">
-            <div class="aspect-square overflow-hidden rounded-lg bg-gray-100">
+            <div class="product-card__photo overflow-hidden rounded-lg bg-gray-100">
                 <img th:if="${card.image() != null}"
                      th:with="key=${card.image().storageKey()}, small=${@shopImages.small(key)}, medium=${@shopImages.medium(key)}"
                      th:src="${small}" th:srcset="|${small} 320w, ${medium} 640w|"
@@ -15,11 +51,11 @@
                      th:attr="loading=${state.index < eagerCount} ? 'eager' : 'lazy'"
                      class="h-full w-full object-contain transition group-hover:opacity-90">
             </div>
-            <h3 class="mt-2 line-clamp-2 text-sm font-medium text-gray-900" th:text="${card.name().in(#locale)}">Product</h3>
-            <!--/* The price on a tag in the store's colour, like a price sticker. */-->
+            <h3 class="product-card__name mt-2 line-clamp-2 text-sm font-medium text-gray-900" th:text="${card.name().in(#locale)}">Product</h3>
+            <!--/* The price on a tag in the store's colour, like a price sticker (plain text in a boutique). */-->
             <p class="mt-1.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-1 text-sm">
                 <span th:if="${card.fromPrice()}" class="text-gray-500" th:text="#{shop.price.from}">from</span>
-                <bdi class="rounded bg-brand-50 px-1.5 py-0.5 font-bold tabular-nums text-brand-700"
+                <bdi class="product-card__price rounded bg-brand-50 px-1.5 py-0.5 font-bold tabular-nums text-brand-700"
                      th:text="${@shopPrices.show(card.price())}">150,000</bdi>
                 <del th:if="${card.compareAtPrice() != null}" class="text-gray-400">
                     <bdi th:text="${@shopPrices.show(card.compareAtPrice())}">200,000</bdi>
@@ -27,7 +63,8 @@
             </p>
         </a>
     </li>
-</ul>
+    </ul>
+</th:block>
 
 <nav th:fragment="pager(results, base)" th:if="${results.totalPages() > 1}"
      class="mt-8 flex items-center justify-between text-sm" th:attr="aria-label=#{shop.pages}">

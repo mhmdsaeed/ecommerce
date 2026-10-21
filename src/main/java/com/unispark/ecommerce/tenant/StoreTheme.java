@@ -11,12 +11,13 @@ import com.unispark.ecommerce.shared.LocalizedText;
  *
  * @param primaryColor {@code #rrggbb}; buttons and links derive their shades from it
  * @param logoKey      a media key of the uploaded logo
+ * @param look         the storefront's layout preset; null is {@link Look#SOUQ}
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record StoreTheme(String primaryColor, String logoKey, LocalizedText heroTitle, LocalizedText heroText,
-        FontChoice font, Boolean showCategories, Boolean showNewProducts) {
+        FontChoice font, Boolean showCategories, Boolean showNewProducts, Look look) {
 
-    public static final StoreTheme DEFAULT = new StoreTheme(null, null, null, null, null, null, null);
+    public static final StoreTheme DEFAULT = new StoreTheme(null, null, null, null, null, null, null, null);
 
     private static final Pattern HEX_COLOR = Pattern.compile("#[0-9a-fA-F]{6}");
 
@@ -42,6 +43,15 @@ public record StoreTheme(String primaryColor, String logoKey, LocalizedText hero
         return font == null ? FontChoice.MODERN : font;
     }
 
+    public Look lookOrDefault() {
+        return look == null ? Look.SOUQ : look;
+    }
+
+    /** A copy with another logo. */
+    public StoreTheme withLogo(String key) {
+        return new StoreTheme(primaryColor, key, heroTitle, heroText, font, showCategories, showNewProducts, look);
+    }
+
     /**
      * System font stacks only: web fonts would cost download time on slow connections (SPEC 9.5, 18).
      * MODERN is the platform's sans-serif stack; CLASSIC prefers traditional Naskh-style Arabic faces.
@@ -61,5 +71,18 @@ public record StoreTheme(String primaryColor, String logoKey, LocalizedText hero
         public String stack() {
             return stack;
         }
+    }
+
+    /**
+     * How the storefront is laid out, for different kinds of shop; each takes the store's colour, logo and font.
+     * SOUQ: the store's sign as header, price tags, two to four columns (the default). BOUTIQUE: a quiet header,
+     * fewer and taller photos, prices as plain text. GROCER: a compact header and products as rows with a quick add
+     * button. SHOWROOM: a dark header, the newest product large on the home page and categories as tiles.
+     */
+    public enum Look {
+        SOUQ,
+        BOUTIQUE,
+        GROCER,
+        SHOWROOM
     }
 }

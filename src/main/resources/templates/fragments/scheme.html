@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<!--/* The Light / Dark / Device switch in the admin, driver and platform menus (model: colorScheme, device, light or
+       dark). Three buttons in one form; the current one is pressed. action: the area's /scheme endpoint. */-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<form th:fragment="switch(action)" th:action="${action}" method="post" class="scheme-switch"
+      th:attr="aria-label=#{scheme.label}">
+    <button th:each="choice : ${ {'device', 'light', 'dark'} }" type="submit" name="scheme"
+            th:value="${#strings.toUpperCase(choice)}" th:attr="aria-pressed=${colorScheme == choice}"
+            th:text="#{scheme.__${choice}__}">Device</button>
+</form>
+</body>
+</html>

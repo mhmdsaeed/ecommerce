@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 
 import com.unispark.ecommerce.tenant.StoreTheme;
 import com.unispark.ecommerce.tenant.StoreTheme.FontChoice;
+import com.unispark.ecommerce.tenant.StoreTheme.Look;
 
 /** Storefront theme form backing object. The logo has its own upload form. */
 public class ThemeForm {
@@ -35,6 +36,9 @@ public class ThemeForm {
 
     private boolean showNewProducts = true;
 
+    @NotNull
+    private Look look = Look.SOUQ;
+
     static ThemeForm of(StoreTheme theme) {
         var form = new ThemeForm();
         form.primaryColor = theme.primaryColor() == null ? PLATFORM_COLOR : theme.primaryColor();
@@ -49,6 +53,7 @@ public class ThemeForm {
         form.font = theme.fontOrDefault();
         form.showCategories = theme.categoriesShown();
         form.showNewProducts = theme.newProductsShown();
+        form.look = theme.lookOrDefault();
         return form;
     }
 
@@ -114,5 +119,13 @@ public class ThemeForm {
 
     public void setShowNewProducts(boolean showNewProducts) {
         this.showNewProducts = showNewProducts;
+    }
+
+    public Look getLook() {
+        return look;
+    }
+
+    public void setLook(Look look) {
+        this.look = look;
     }
 }
