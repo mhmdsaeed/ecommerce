@@ -227,6 +227,19 @@
   mask: radial-gradient(circle at calc(100% - 1.125rem) 50%, transparent 0.25rem, #000 0.3rem);
 }
 
+/* Settlement (merchantadmin/settlement/list.html): a driver's cash track. The whole bar is what they collected; the
+   green part, from the start, what they handed over; the hatched amber rest is still with them. */
+.cash-track {
+  display: flex;
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: repeating-linear-gradient(-45deg, var(--color-amber-300) 0 4px, var(--color-amber-100) 4px 8px);
+}
+.cash-track__handed {
+  background: var(--color-brand-600);
+}
+
 /* Storefront look settings (merchantadmin/settings/theme.html): the preview's colours, set inline by app.js
    (themePreview) from the colour being picked; the platform's own colours until then. */
 .theme-preview {

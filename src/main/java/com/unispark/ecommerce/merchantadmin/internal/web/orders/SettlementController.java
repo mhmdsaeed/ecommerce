@@ -48,8 +48,7 @@ class SettlementController {
 
     @GetMapping
     String list(Model model) {
-        model.addAttribute("balances", settlement.balances());
-        model.addAttribute("names", names());
+        model.addAttribute("rows", SettlementViews.rows(settlement.balances(), names()));
         return "merchantadmin/settlement/list";
     }
 
@@ -64,7 +63,7 @@ class SettlementController {
         // The remit form starts on the first currency the driver still holds, empty when everything is handed over.
         model.addAttribute("due", statement.balances().stream()
                 .filter(balance -> balance.outstanding().isPositive()).findFirst().orElse(null));
-        model.addAttribute("names", names());
+        model.addAttribute("lines", SettlementViews.lines(statement, names()));
         model.addAttribute("currencies", Currency.values());
         model.addAttribute("done", "remitted".equals(done) ? "settlement.done.remitted" : null);
         model.addAttribute("error", error != null && Set.of("amount", "too-much").contains(error)

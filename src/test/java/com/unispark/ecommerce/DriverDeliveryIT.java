@@ -177,9 +177,16 @@ class DriverDeliveryIT {
         mvc.perform(get(MAIN + "/admin/orders/" + placed.number()).session(owner))
                 .andExpect(content().string(containsString("حصّل أبو سمير مبلغ 22,000 ل.س نقداً.")));
         remit("15,000", "SYP").andExpect(redirectedUrl("/admin/settlement/" + driver + "?done=remitted"));
+        // What the driver still holds, then the statement: the handover, newest, then the collection, each with what
+        // the driver held after it.
         mvc.perform(get(MAIN + "/admin/settlement/" + driver + "?done=remitted").session(owner))
-                .andExpect(content().string(allOf(containsString("تم تسجيل المبلغ."), containsString("7,000 ل.س"),
-                        containsString("#" + placed.number()), containsString("هالة"))));
+                .andExpect(content().string(allOf(containsString("تم تسجيل المبلغ."),
+                        matchesPattern("(?s).*ما زال مع أبو سمير.*7,000 ل.س.*"),
+                        matchesPattern("(?s).*تسليم إلى هالة.*15,000 ل.س.*7,000 ل.س.*#" + placed.number()
+                                + ".*22,000 ل.س.*22,000 ل.س.*"))));
+        mvc.perform(get(MAIN + "/admin/settlement").session(owner))
+                .andExpect(content().string(allOf(containsString("border-s-amber-400"),
+                        containsString("سلّم 15,000 ل.س من 22,000 ل.س"), containsString("inline-size: 68%"))));
         assertThat(as(() -> settlement.outstanding())).containsExactly(syp("7000"));
 
         remit("8000", "SYP").andExpect(redirectedUrl("/admin/settlement/" + driver + "?error=too-much"));

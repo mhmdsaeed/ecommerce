@@ -1,5 +1,8 @@
 <!DOCTYPE html>
-<!--/* Cash-on-delivery settlement (model: balances, CodSettlement.DriverBalances; names, staff names by id). */-->
+<!--/* Cash-on-delivery settlement (model: rows, SettlementViews.DriverRow, drivers holding cash first). A ledger like the
+       dashboard's: the driver, a dotted leader, the cash they still hold, with an amber edge while they hold any. Under
+       it, per currency, the cash track: the bar is everything the driver collected, green for what they handed over
+       and hatched amber for what is still with them. */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/admin}">
@@ -7,38 +10,36 @@
     <title th:text="#{settlement.title}">Settlement</title>
 </head>
 <body>
-<main layout:fragment="content">
+<main layout:fragment="content" class="max-w-2xl">
     <h1 class="text-2xl font-bold" th:text="#{settlement.title}">Cash settlement</h1>
-    <p class="mt-2 max-w-3xl text-sm text-gray-600" th:text="#{settlement.intro}">Intro</p>
+    <p class="mt-2 text-sm text-gray-600" th:text="#{settlement.intro}">Intro</p>
 
-    <p th:if="${balances.isEmpty()}" class="mt-6 rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-gray-600"
+    <p th:if="${rows.isEmpty()}" class="mt-6 rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-gray-600"
        th:text="#{settlement.empty}">Nothing collected yet.</p>
 
-    <div th:unless="${balances.isEmpty()}" class="mt-6 overflow-x-auto rounded-lg border border-gray-200 bg-white">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50 text-gray-600">
-            <tr>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.driver}">Driver</th>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{settlement.collected}">Collected</th>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{settlement.remitted}">Handed over</th>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{settlement.outstanding}">Outstanding</th>
-            </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-            <tr th:each="row : ${balances}">
-                <td class="px-4 py-3">
-                    <a th:href="@{/admin/settlement/{id}(id=${row.driverId()})}" class="font-medium text-brand-700 hover:underline"
-                       th:text="${names.get(row.driverId())}">Driver</a>
-                </td>
-                <td class="px-4 py-3"><bdi th:each="balance : ${row.balances()}" class="block" th:text="${@money.format(balance.collected())}">0</bdi></td>
-                <td class="px-4 py-3"><bdi th:each="balance : ${row.balances()}" class="block" th:text="${@money.format(balance.remitted())}">0</bdi></td>
-                <td class="px-4 py-3 font-semibold" th:classappend="${row.settled()} ? 'text-gray-500' : 'text-amber-800'">
-                    <bdi th:each="balance : ${row.balances()}" class="block" th:text="${@money.format(balance.outstanding())}">0</bdi>
-                </td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
+    <ul th:unless="${rows.isEmpty()}" class="mt-6 divide-y divide-gray-200 overflow-hidden rounded-lg border border-gray-200 bg-white">
+        <li th:each="row : ${rows}" class="border-s-4"
+            th:classappend="${row.settled()} ? 'border-s-transparent' : 'border-s-amber-400'">
+            <a th:href="@{/admin/settlement/{id}(id=${row.driverId()})}" class="block px-4 py-4 hover:bg-gray-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600">
+                <span class="flex items-baseline gap-3">
+                    <span class="font-semibold text-brand-700" th:text="${row.name()}">Driver</span>
+                    <span aria-hidden="true" class="min-w-6 flex-1 border-b-2 border-dotted border-gray-300"></span>
+                    <span th:if="${row.settled()}" class="text-gray-500" th:text="#{settlement.settled}">All handed over</span>
+                    <span th:unless="${row.settled()}" class="flex flex-col items-end text-xl font-bold tabular-nums text-amber-800">
+                        <bdi th:each="track : ${row.tracks()}" th:if="${track.balance().outstanding().isPositive()}"
+                             th:text="${@money.format(track.balance().outstanding())}">35,000</bdi>
+                    </span>
+                </span>
+                <span th:each="track : ${row.tracks()}" class="mt-3 block">
+                    <span class="cash-track" aria-hidden="true">
+                        <span class="cash-track__handed" th:style="|inline-size: ${track.handedOverPercent()}%|"></span>
+                    </span>
+                    <span class="mt-1 block text-sm text-gray-600"
+                          th:text="#{settlement.track(${@money.format(track.balance().remitted())}, ${@money.format(track.balance().collected())})}">Handed over 65,000 of 100,000</span>
+                </span>
+            </a>
+        </li>
+    </ul>
 </main>
 </body>
 </html>

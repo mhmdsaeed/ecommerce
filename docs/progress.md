@@ -1532,3 +1532,24 @@ Fixes for a code review of the previous pass.
 | `CatalogIT` (changed) | Subcategory under a hidden parent: no link, "Hidden with its parent" |
 
 **Live check (local profile):** on demo1, the palette endpoint (404 for a non-colour), a refused colour keeping the saved one, category counts in Arabic, and the product page's delivery line ("دمشق (دمشق)، ريف دمشق، حلب (حلب)": demo1's zones cover Damascus city, not the whole governorate).
+
+## After M15: Settlement (2026-10-21)
+
+A design pass on cash-on-delivery settlement.
+
+- **List** (`settlement/list.html`): a ledger like the dashboard's, drivers holding cash first with an amber edge and the amount held; under each, per currency, a cash track (`.cash-track`): the bar is what they collected, green for what they handed over, hatched amber for what they still hold, with "Handed over X of Y".
+- **Driver** (`settlement/statement.html`): what the driver still holds in the amber box the driver sees on their own page, with collected and handed over as ledger lines; the handover form as a receipt torn off above "Received by {you}"; the statement: collections and handovers newest first, each with what the driver held after it (`SettlementViews.lines`, worked back from the current balance; when a list is full, older lines are left out and the page says so). Rows stack on phones.
+- Messages: `settlement.settled`, `settlement.track`, `settlement.holds*`, `settlement.received-by`, `settlement.statement*`; `settlement.collections` and `settlement.remittances` removed.
+
+### Tests
+
+| Test | Checks |
+|---|---|
+| `SettlementViewsTest` (new) | Drivers holding cash first; percent handed over; held-after per line; lines older than a full list left out |
+| `DriverDeliveryIT` (changed) | The amber "still with", the statement order with held-after amounts, the cash track's percent |
+
+**Live check (local profile):** on demo1, driver أبو خالد delivered orders 1005 and 1009 (cash 2,535 and 2,570) and the owner recorded 3,000 handed over ("Evening handover"); these stay in the demo data. Headless Edge screenshots of the list (1280 px) and the driver page (1280 and 500 px). Signs on statement amounts (+/−) were dropped after the screenshots: the money format is RTL-shaped and the sign landed on the wrong side.
+
+**Accessibility pass:** list rows get an inset focus ring (the rounded list clips an outside one); a zero balance is gray-500, not gray-400 (2.5:1); the amount field is `aria-invalid` after a refused handover. Not checked below ~492 px (headless Edge clamps the window).
+
+**Noticed, not changed:** the statement shows the latest 50 collections and 50 handovers; there is no paging to older lines.
