@@ -13,7 +13,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.unispark.ecommerce.identity.ResetLinkSender;
 import com.unispark.ecommerce.identity.ResetLinkSender.ResetLink;
 import com.unispark.ecommerce.identity.StaffPasswords;
 import com.unispark.ecommerce.identity.StaffPrincipal;
@@ -45,20 +44,20 @@ class StaffPasswordService implements StaffPasswords {
     private final PasswordResetRepository resets;
     private final PasswordEncoder passwords;
     private final PasswordChanges passwordChanges;
-    private final ResetLinkSender sender;
+    private final PasswordMessages messages;
     private final LoginThrottle throttle;
     private final TransactionTemplate transaction;
     private final Clock clock;
 
     StaffPasswordService(StoreLookup stores, StaffUserRepository staff, PasswordResetRepository resets,
-            PasswordEncoder passwords, PasswordChanges passwordChanges, ResetLinkSender sender, LoginThrottle throttle,
-            TransactionTemplate transaction, Clock clock) {
+            PasswordEncoder passwords, PasswordChanges passwordChanges, PasswordMessages messages,
+            LoginThrottle throttle, TransactionTemplate transaction, Clock clock) {
         this.stores = stores;
         this.staff = staff;
         this.resets = resets;
         this.passwords = passwords;
         this.passwordChanges = passwordChanges;
-        this.sender = sender;
+        this.messages = messages;
         this.throttle = throttle;
         this.transaction = transaction;
         this.clock = clock;
@@ -93,6 +92,12 @@ class StaffPasswordService implements StaffPasswords {
         if (identifier instanceof Unusable || !throttle.tryResetRequest(clientAddress, slug + "/" + identifier.key())) {
             return;
         }
+        // Everything after the throttle runs on another thread: the answer takes as long whether or not the store and
+        // the account exist, and whether or not a link is made and sent.
+        messages.inBackground(() -> createLink(slug, identifier, locale));
+    }
+
+    private void createLink(String slug, LoginIdentifier identifier, Locale locale) {
         var store = openStore(slug);
         if (store.isEmpty()) {
             return;
@@ -107,6 +112,8 @@ class StaffPasswordService implements StaffPasswords {
                 if (user.isEmpty() || !user.get().isActive()) {
                     return null;
                 }
+                // Only the newest link works: asking again closes the ones before it.
+                passwordChanges.closeLinks(user.get().getId());
                 var token = SecretTokens.newToken();
                 resets.save(new PasswordReset(user.get().getId(), SecretTokens.hash(token),
                         clock.instant().plus(LINK_LIFETIME)));
@@ -117,7 +124,7 @@ class StaffPasswordService implements StaffPasswords {
             });
             // After the commit, so the link works by the time it arrives.
             if (link != null) {
-                sender.send(link);
+                messages.resetLink(link);
             }
         });
     }

@@ -40,7 +40,7 @@
         <ul th:unless="${product.images().isEmpty()}" class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
             <li th:each="image, state : ${product.images()}" class="space-y-2">
                 <img th:with="url=${@imageUrls.medium(image.storageKey())}" th:src="${url}" th:width="${image.width()}" th:height="${image.height()}"
-                     loading="lazy" alt="" class="aspect-square w-full rounded-md border border-gray-200 object-cover">
+                     loading="lazy" alt="" class="aspect-square w-full rounded-md border border-gray-200 bg-gray-100 object-contain">
                 <p th:if="${state.first}" class="text-xs text-gray-500" th:text="#{product.images.main}">Main image</p>
                 <div class="flex flex-wrap gap-3 text-sm">
                     <form th:unless="${state.first}" th:action="@{/admin/products/{p}/images/{i}/move(p=${product.id()}, i=${image.id()})}" method="post"
@@ -186,7 +186,7 @@
         <figure class="w-44 shrink-0 self-center px-3 sm:self-start">
             <div class="aspect-square overflow-hidden rounded-t-md bg-gray-100">
                 <img th:if="${shelf.hasPhoto()}" th:with="url=${@imageUrls.medium(shelf.imageKey())}" th:src="${url}" alt=""
-                     width="320" height="320" class="h-full w-full object-cover">
+                     width="320" height="320" class="h-full w-full object-contain">
                 <span th:unless="${shelf.hasPhoto()}"
                       class="flex h-full items-center justify-center rounded-t-md border-2 border-b-0 border-dashed border-gray-300 text-sm text-gray-500"
                       th:text="#{product.shelf.no-photo}">No photo</span>

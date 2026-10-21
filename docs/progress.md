@@ -1553,3 +1553,23 @@ A design pass on cash-on-delivery settlement.
 **Accessibility pass:** list rows get an inset focus ring (the rounded list clips an outside one); a zero balance is gray-500, not gray-400 (2.5:1); the amount field is `aria-invalid` after a refused handover. Not checked below ~492 px (headless Edge clamps the window).
 
 **Noticed, not changed:** the statement shows the latest 50 collections and 50 handovers; there is no paging to older lines.
+
+## After M15: Password reset hardening and whole photos (2026-10-21)
+
+Part 1 of the plan agreed on 2026-10-21 (then themes, merchant reports, platform reports).
+
+### What changed
+
+- **Reset requests reveal nothing by timing:** after the rate limit, everything (finding the store and account, making the link, sending it) runs on another thread (`PasswordMessages.inBackground`), so the answer takes as long for an unknown account as for a real one (measured locally: 18 to 26 ms either way; before, a real account waited for the link to be made and sent). Messages go after the transaction commits, through an executor rather than application events, which are stored (a link must not be).
+- **Only the newest link works:** asking again closes every link still open for the member (`PasswordChanges.closeLinks`).
+- **Password changed notice:** every change (own, set by an owner or manager, or by reset) sends the member an email, or a text when they have no email: their password changed, they were signed out elsewhere, and what to do if it was not them (`ResetLinkSender.passwordChanged`, template `password_changed`, `notification.password_changed*`).
+- **Whole photos:** product photos in storefront cards, product thumbnails, the cart, the admin product list and product page, and payment proof screenshots are shown whole (`object-contain` on a light square) instead of cropped to fill it.
+
+### Tests
+
+| Test | Checks |
+|---|---|
+| `StaffPasswordsIT` (changed) | Links are read once sent (messages arrive after the response); new `onlyTheNewestLinkWorks`, `tellsMembersWhenTheirPasswordChanges` (and nothing for a refused change) |
+| `WholePhotoTemplatesTest` (new) | No `<img>` in a template uses `object-cover` |
+
+**Live check (local profile):** reset requests for real and unknown demo1 accounts timed alike; links and the "password changed" email arrived in Mailpit; one open link per account after repeated requests; staff@demo1.test reset back to its demo password. The storefront home at 1280 px (demo photos are square, so the change shows on non-square photos only).

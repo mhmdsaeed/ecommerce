@@ -16,7 +16,8 @@ public enum Template {
     PAYMENT_PROOF_REJECTED,
     OTP,
     NEW_ORDER,
-    PASSWORD_RESET;
+    PASSWORD_RESET,
+    PASSWORD_CHANGED;
 
     /** As stored in {@code notification_log.template}, e.g. {@code order_confirmed}. */
     public String code() {

@@ -118,7 +118,7 @@
             <a th:if="${screenshots.containsKey(proof.id())}" th:with="url=${screenshots.get(proof.id())}" th:href="${url}"
                target="_blank" rel="noopener noreferrer" class="inline-block">
                 <img th:src="${url}" th:alt="#{admin.orders.proof.screenshot}" width="160" height="160" loading="lazy"
-                     class="h-40 w-40 rounded-md border border-gray-200 object-cover">
+                     class="h-40 w-40 rounded-md border border-gray-200 bg-gray-100 object-contain">
             </a>
             <p th:if="${proof.reviewNote() != null}" class="text-gray-600" th:text="${proof.reviewNote()}">Note</p>
         </div>

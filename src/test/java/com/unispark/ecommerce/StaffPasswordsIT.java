@@ -17,7 +17,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.locks.LockSupport;
+import java.util.function.Predicate;
+import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -285,8 +290,38 @@ class StaffPasswordsIT {
             requestReset(clerkEmail).andExpect(redirectedUrl("/admin/password/forgot?sent"));
         }
 
-        assertThat(Pattern.compile("Email to " + Pattern.quote(clerkEmail)).matcher(output.getOut()).results().count())
-                .isEqualTo(3);
+        var out = awaitOutput(output, text -> count(text, "Email to " + clerkEmail) >= 3);
+        assertThat(count(out, "Email to " + clerkEmail)).isEqualTo(3);
+    }
+
+    @Test
+    void onlyTheNewestLinkWorks(CapturedOutput output) throws Exception {
+        requestReset(clerkEmail);
+        var first = linkSentTo(output, "Email to " + clerkEmail);
+        requestReset(clerkEmail);
+        awaitOutput(output, out -> count(out, "Email to " + clerkEmail) == 2);
+        var second = linkSentTo(output, "Email to " + clerkEmail);
+
+        assertThat(second).isNotEqualTo(first);
+        mvc.perform(get(MAIN + "/admin/password/reset").param("store", slug).param("token", first))
+                .andExpect(content().string(containsString("هذا الرابط لم يعد يعمل")));
+        mvc.perform(reset(second, NEW_PASSWORD, NEW_PASSWORD)).andExpect(redirectedUrl("/admin/login?reset"));
+    }
+
+    @Test
+    void tellsMembersWhenTheirPasswordChanges(CapturedOutput output) throws Exception {
+        var owner = TestAccounts.logIn(mvc, slug, ownerEmail);
+        mvc.perform(post(MAIN + "/admin/staff/" + clerkId + "/password").session(owner).with(csrf())
+                        .param("newPassword", NEW_PASSWORD))
+                .andExpect(redirectedUrl("/admin/staff?password-set"));
+
+        var notice = Pattern.compile(Pattern.quote("Email to " + clerkEmail + ": ") + "[^\\n]*تغيّرت كلمة مرورك");
+        awaitOutput(output, out -> notice.matcher(out).find());
+        // A rejected change sends nothing.
+        var before = count(output.getOut(), "تغيّرت كلمة مرور");
+        mvc.perform(changeOwn(TestAccounts.logIn(mvc, slug, ownerEmail), "wrong-password", NEW_PASSWORD, NEW_PASSWORD))
+                .andExpect(content().string(containsString("هذه ليست كلمة مرورك الحالية")));
+        assertThat(count(output.getOut(), "تغيّرت كلمة مرور")).isEqualTo(before);
     }
 
     @Test
@@ -297,9 +332,13 @@ class StaffPasswordsIT {
         var stored = TenantContext.callAs(store, () -> jdbc.queryForList(
                 "SELECT token_hash FROM password_reset WHERE staff_id = ?", String.class, clerkId));
         assertThat(stored).hasSize(1).doesNotContain(token);
-        var logged = TenantContext.callAs(store, () -> jdbc.queryForList(
-                "SELECT template || ' ' || recipient FROM notification_log WHERE template = 'password_reset'",
-                String.class));
+        var deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos();
+        List<String> logged;
+        do {
+            logged = TenantContext.callAs(store, () -> jdbc.queryForList(
+                    "SELECT template || ' ' || recipient FROM notification_log WHERE template = 'password_reset'"
+                            + " AND status = 'SENT'", String.class));
+        } while (logged.isEmpty() && System.nanoTime() < deadline);
         assertThat(logged).containsExactly("password_reset " + clerkEmail);
     }
 
@@ -330,14 +369,39 @@ class StaffPasswordsIT {
     /** One address for the logins of a test, so failed attempts add up per account, not per address. */
     private final RequestPostProcessor sameAddress = fromNewAddress();
 
-    /** The token of the last reset link in the log line that starts with {@code prefix}. */
+    /** The token of the last reset link in a log line that starts with {@code prefix}, once it has been sent. */
     private String linkSentTo(CapturedOutput output, String prefix) {
-        var all = output.getOut();
-        var from = all.lastIndexOf(prefix);
-        assertThat(from).as("a message %s", prefix).isNotNegative();
-        var matcher = LINK.matcher(all.substring(from));
-        assertThat(matcher.find()).as("a reset link after %s", prefix).isTrue();
+        var link = awaitOutput(output, out -> lastLink(out, prefix) != null);
+        var matcher = lastLink(link, prefix);
         assertThat(matcher.group(1)).isEqualTo(slug);
         return matcher.group(2);
+    }
+
+    /** The last reset link in a message whose log line starts with {@code prefix}; null when there is none. */
+    private static MatchResult lastLink(String out, String prefix) {
+        MatchResult last = null;
+        var matcher = LINK.matcher(out);
+        while (matcher.find()) {
+            var message = Math.max(out.lastIndexOf("Email to ", matcher.start()),
+                    out.lastIndexOf("Message to ", matcher.start()));
+            if (message >= 0 && out.startsWith(prefix, message)) {
+                last = matcher.toMatchResult();
+            }
+        }
+        return last;
+    }
+
+    /** Messages are sent on another thread after the request: waits up to five seconds for the condition. */
+    private static String awaitOutput(CapturedOutput output, Predicate<String> condition) {
+        var deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos();
+        while (!condition.test(output.getOut()) && System.nanoTime() < deadline) {
+            LockSupport.parkNanos(Duration.ofMillis(50).toNanos());
+        }
+        assertThat(condition).as("expected output").accepts(output.getOut());
+        return output.getOut();
+    }
+
+    private static long count(String out, String text) {
+        return Pattern.compile(Pattern.quote(text)).matcher(out).results().count();
     }
 }

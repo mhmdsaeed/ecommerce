@@ -40,6 +40,12 @@ class NotificationService implements CodeSender, ResetLinkSender, NotificationLo
     }
 
     @Override
+    public void passwordChanged(PasswordChanged notice) {
+        deliveries.deliver("password-changed:" + UUID.randomUUID(), Template.PASSWORD_CHANGED, null,
+                texts.passwordChanged(notice));
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<Entry> forOrder(UUID orderId) {
         return entries.findByOrderIdOrderByCreatedAtAscIdAsc(orderId).stream().map(NotificationService::entry).toList();

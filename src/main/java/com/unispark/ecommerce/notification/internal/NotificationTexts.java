@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.thymeleaf.ITemplateEngine;
 import org.thymeleaf.context.Context;
 
+import com.unispark.ecommerce.identity.ResetLinkSender.PasswordChanged;
 import com.unispark.ecommerce.identity.ResetLinkSender.ResetLink;
 import com.unispark.ecommerce.identity.StaffPasswords;
 import com.unispark.ecommerce.order.Orders.Address;
@@ -64,6 +65,16 @@ class NotificationTexts {
                 text("notification.password_reset", link.locale(), link.storeName(), url, minutes));
     }
 
+    /** That a member's password changed, by email or text. Plain text, no HTML. */
+    Message passwordChanged(PasswordChanged notice) {
+        if (notice.email() != null) {
+            return Message.email(notice.email(),
+                    text("notification.password_changed.subject", notice.locale(), notice.storeName()),
+                    text("notification.password_changed.email", notice.locale(), notice.storeName()), null);
+        }
+        return Message.phone(notice.phone(), text("notification.password_changed", notice.locale(), notice.storeName()));
+    }
+
     /**
      * @param note staff's reason, for a rejected payment proof; null for none
      */
@@ -81,7 +92,7 @@ class NotificationTexts {
             case PAYMENT_PROOF_REJECTED -> note == null
                     ? text("notification.payment_proof_rejected", locale, store, number)
                     : text("notification.payment_proof_rejected.reason", locale, store, number, note);
-            case OTP, NEW_ORDER, PASSWORD_RESET ->
+            case OTP, NEW_ORDER, PASSWORD_RESET, PASSWORD_CHANGED ->
                     throw new IllegalArgumentException("Not a shopper message about an order: " + template);
         };
         return Message.phone(order.customerPhone(), text);

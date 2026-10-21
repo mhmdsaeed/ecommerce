@@ -13,7 +13,7 @@
                      sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
                      width="320" height="320" alt=""
                      th:attr="loading=${state.index < eagerCount} ? 'eager' : 'lazy'"
-                     class="h-full w-full object-cover transition group-hover:opacity-90">
+                     class="h-full w-full object-contain transition group-hover:opacity-90">
             </div>
             <h3 class="mt-2 line-clamp-2 text-sm font-medium text-gray-900" th:text="${card.name().in(#locale)}">Product</h3>
             <!--/* The price on a tag in the store's colour, like a price sticker. */-->

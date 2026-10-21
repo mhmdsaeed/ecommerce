@@ -125,7 +125,7 @@
 <!--/* The product's main photo, or a dashed frame where it would go. */-->
 <span th:fragment="thumb(item)" class="contents">
     <img th:if="${item.imageKey() != null}" th:with="url=${@imageUrls.small(item.imageKey())}" th:src="${url}" alt=""
-         width="48" height="48" loading="lazy" class="h-12 w-12 shrink-0 rounded object-cover">
+         width="48" height="48" loading="lazy" class="h-12 w-12 shrink-0 rounded bg-gray-100 object-contain">
     <span th:unless="${item.imageKey() != null}" class="h-12 w-12 shrink-0 rounded border-2 border-dashed border-gray-300" aria-hidden="true"></span>
 </span>
 

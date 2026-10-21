@@ -43,7 +43,7 @@
                             x-on:click="show(+$el.dataset.index)" x-bind:aria-current="current === +$el.dataset.index ? 'true' : null"
                             th:attr="aria-label=#{shop.product.photo(${product.name().in(#locale)}, ${state.count}, ${count})}"
                             class="block overflow-hidden rounded-md border-2 border-transparent focus-visible:outline-2 focus-visible:outline-brand-600 aria-[current=true]:border-brand-600">
-                        <img th:src="${small}" alt="" width="64" height="64" loading="lazy" class="h-16 w-16 object-cover">
+                        <img th:src="${small}" alt="" width="64" height="64" loading="lazy" class="h-16 w-16 bg-gray-100 object-contain">
                     </button>
                 </li>
             </ul>
