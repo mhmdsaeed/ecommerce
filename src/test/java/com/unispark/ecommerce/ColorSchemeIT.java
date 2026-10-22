@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
 import java.util.UUID;
@@ -116,6 +117,21 @@ class ColorSchemeIT {
                 .andExpect(redirectedUrl("/platform/stores"));
         mvc.perform(get(PLATFORM + "/platform/stores").session(platform))
                 .andExpect(content().string(containsString("data-scheme=\"dark\"")));
+    }
+
+    @Test
+    void aFormSentBackWithMistakesKeepsTheChoice() throws Exception {
+        var owner = TestAccounts.logIn(mvc, slug, "owner@" + slug + ".test");
+        mvc.perform(post(MAIN + "/admin/scheme").session(owner).with(csrf()).param("scheme", "DARK"));
+        mvc.perform(post(MAIN + "/admin/settings/store").session(owner).with(csrf()).param("nameAr", ""))
+                .andExpect(status().isOk())
+                .andExpect(content().string(allOf(containsString("data-scheme=\"dark\""), not(containsString(ONLY_LIGHT)))));
+
+        var platform = platformAdmin();
+        mvc.perform(post(PLATFORM + "/platform/scheme").session(platform).with(csrf()).param("scheme", "DARK"));
+        mvc.perform(post(PLATFORM + "/platform/plans").session(platform).with(csrf()).param("code", "Bad Code"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(allOf(containsString("data-scheme=\"dark\""), not(containsString(ONLY_LIGHT)))));
     }
 
     @Test

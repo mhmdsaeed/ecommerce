@@ -85,12 +85,13 @@ class AdminModelAdvice {
     }
 
     /**
-     * The member's light or dark choice, for the layout's data-scheme: on full pages only, like the orders badge.
+     * The member's light or dark choice, for the layout's data-scheme: on full pages only. Unlike the orders badge,
+     * a form sent back with mistakes (a POST that renders its page) needs it too, or the page turns light.
      */
     @ModelAttribute("colorScheme")
     String colorScheme(HttpServletRequest request) {
         var staff = currentStaff();
-        if (staff == null || !"GET".equals(request.getMethod()) || request.getHeader("HX-Request") != null) {
+        if (staff == null || request.getHeader("HX-Request") != null) {
             return null;
         }
         return schemes.ofStaff(staff.staffId()).attribute();
