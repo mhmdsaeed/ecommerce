@@ -253,3 +253,18 @@ document.addEventListener("alpine:init", function () {
     };
   });
 });
+
+// Reports: figures folded away under "Show as a table" print too. They are opened for printing, then closed again.
+(function () {
+  var opened = [];
+  window.addEventListener("beforeprint", function () {
+    document.querySelectorAll("details.report-table-toggle:not([open])").forEach(function (details) {
+      details.open = true;
+      opened.push(details);
+    });
+  });
+  window.addEventListener("afterprint", function () {
+    opened.forEach(function (details) { details.open = false; });
+    opened = [];
+  });
+})();

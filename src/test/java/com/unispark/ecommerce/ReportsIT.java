@@ -200,7 +200,9 @@ class ReportsIT {
                 .andExpect(status().isOk())
                 .andExpect(content().string(allOf(containsString("34,000"),
                         matchesPattern("(?s).*<a href=\"/admin/reports/sales\\?period=today\"[^>]*aria-current=\"page\".*"),
-                        containsString("class=\"report-chart__column\""), containsString("لا مبيعات في اليوم السابق للمقارنة"))));
+                        containsString("class=\"report-chart__column\""), containsString("لا مبيعات في اليوم السابق للمقارنة"),
+                        // On paper the sidebar is gone: a line only for print names the store.
+                        matchesPattern("(?s).*<p class=\"hidden text-sm text-gray-600 print:block\">[^<]+</p>\\s*<h1.*"))));
         mvc.perform(get(MAIN + "/admin/reports/products").session(owner).param("period", "today"))
                 .andExpect(content().string(allOf(containsString("وشاح"), containsString("كوب"),
                         containsString("نفد"))));

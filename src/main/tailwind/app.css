@@ -762,6 +762,11 @@
   background: var(--color-brand-600);
 }
 @media print {
+  /* Paper is the page: no grey behind the report, whatever the admin area paints on screen. */
+  body, [data-area] { background: #fff !important; }
+  /* A heading stays with what follows it; rows, charts and figures do not split across pages. */
+  main h2 { break-after: avoid; }
+  main li, main tr, main dl, .report-chart { break-inside: avoid; }
   .report-chart, .report-chart__tip { box-shadow: none; }
   .report-chart__columns, .report-chart__bar, .report-bars__track > span, .report-split, .report-split > span {
     -webkit-print-color-adjust: exact;
@@ -812,79 +817,83 @@
  * become dark tints, white surfaces become dark ones, and the dark text shades (600 to 950) of each colour become
  * light ones. Buttons keep their colour with white text (brand-600, red-700, green-700 stay as they are).
  * The storefront preview on the theme page stays light: it shows the shop as shoppers see it.
+ * On screen only: printing always uses the light palette, since printers drop backgrounds and light text would
+ * vanish on white paper.
  */
-:root[data-dark] {
-  color-scheme: dark;
-  --color-gray-50: #0d1117;
-  --color-gray-100: #1c2128;
-  --color-gray-200: #2d333b;
-  --color-gray-300: #444c56;
-  --color-gray-400: #6e7681;
-  --color-gray-500: #8b949e;
-  --color-gray-600: #9da7b3;
-  --color-gray-700: #c1c8d0;
-  --color-gray-800: #d8dde3;
-  --color-gray-900: #e6edf3;
-  --color-brand-50: #0f2a20;
-  --color-brand-100: #15402f;
-  --color-amber-50: #2a1f06;
-  --color-amber-100: #3b2a07;
-  --color-amber-200: #5a420e;
-  --color-amber-300: #7a5a12;
-  --color-red-50: #2d1215;
-  --color-red-100: #3f171b;
-  --color-red-200: #5e1f25;
-  --color-red-300: #7d2a31;
-  --color-blue-50: #0f1d33;
-  --color-blue-200: #1f3a66;
-}
-:root[data-dark] :is(.bg-white, body):not(.theme-preview, .theme-preview *) {
-  background-color: #161b22;
-}
-:root[data-dark] :is(.bg-gray-900, .border-gray-900):not(.theme-preview *) {
-  background-color: #2d333b;
-  border-color: #2d333b;
-}
-:root[data-dark] [data-area="platform"] > header.bg-gray-900 {
-  background-color: #010409;
-  border-color: #2d333b;
-}
-:root[data-dark] [data-area="platform"] > header .text-gray-300 {
-  color: #9da7b3;
-}
-:root[data-dark] :is(.text-brand-700, .text-brand-800, .hover\:text-brand-800:hover):not(.theme-preview *) {
-  color: #4fd8a4;
-}
-:root[data-dark] :is(.text-brand-100, .shop-sign__domain) {
-  color: #b9efd6;
-}
-:root[data-dark] :is(.text-amber-700, .text-amber-800, .text-amber-900, .text-amber-950) {
-  color: #f3c766;
-}
-:root[data-dark] :is(.text-red-600, .text-red-700, .text-red-800) {
-  color: #ff9d9d;
-}
-:root[data-dark] .text-blue-900 {
-  color: #a8c7fa;
-}
-:root[data-dark] .text-green-700 {
-  color: #6fdc9a;
-}
-:root[data-dark] :is(.report-chart, .report-periods, .report-chart__tip) {
-  background: #161b22;
-}
-:root[data-dark] .slip__tear::before,
-:root[data-dark] .slip__tear::after {
-  background: #161b22;
-}
-/* The storefront preview keeps the light palette. */
-:root[data-dark] .theme-preview {
-  color-scheme: light;
-  color: oklch(21% 0.034 264.665);
-  --color-gray-50: oklch(98.5% 0.002 247.839);
-  --color-gray-100: oklch(96.7% 0.003 264.542);
-  --color-gray-200: oklch(92.8% 0.006 264.531);
-  --color-gray-300: oklch(87.2% 0.01 258.338);
-  --color-gray-600: oklch(44.6% 0.03 256.802);
-  --color-gray-900: oklch(21% 0.034 264.665);
+@media screen {
+  :root[data-dark] {
+    color-scheme: dark;
+    --color-gray-50: #0d1117;
+    --color-gray-100: #1c2128;
+    --color-gray-200: #2d333b;
+    --color-gray-300: #444c56;
+    --color-gray-400: #6e7681;
+    --color-gray-500: #8b949e;
+    --color-gray-600: #9da7b3;
+    --color-gray-700: #c1c8d0;
+    --color-gray-800: #d8dde3;
+    --color-gray-900: #e6edf3;
+    --color-brand-50: #0f2a20;
+    --color-brand-100: #15402f;
+    --color-amber-50: #2a1f06;
+    --color-amber-100: #3b2a07;
+    --color-amber-200: #5a420e;
+    --color-amber-300: #7a5a12;
+    --color-red-50: #2d1215;
+    --color-red-100: #3f171b;
+    --color-red-200: #5e1f25;
+    --color-red-300: #7d2a31;
+    --color-blue-50: #0f1d33;
+    --color-blue-200: #1f3a66;
+  }
+  :root[data-dark] :is(.bg-white, body):not(.theme-preview, .theme-preview *) {
+    background-color: #161b22;
+  }
+  :root[data-dark] :is(.bg-gray-900, .border-gray-900):not(.theme-preview *) {
+    background-color: #2d333b;
+    border-color: #2d333b;
+  }
+  :root[data-dark] [data-area="platform"] > header.bg-gray-900 {
+    background-color: #010409;
+    border-color: #2d333b;
+  }
+  :root[data-dark] [data-area="platform"] > header .text-gray-300 {
+    color: #9da7b3;
+  }
+  :root[data-dark] :is(.text-brand-700, .text-brand-800, .hover\:text-brand-800:hover):not(.theme-preview *) {
+    color: #4fd8a4;
+  }
+  :root[data-dark] :is(.text-brand-100, .shop-sign__domain) {
+    color: #b9efd6;
+  }
+  :root[data-dark] :is(.text-amber-700, .text-amber-800, .text-amber-900, .text-amber-950) {
+    color: #f3c766;
+  }
+  :root[data-dark] :is(.text-red-600, .text-red-700, .text-red-800) {
+    color: #ff9d9d;
+  }
+  :root[data-dark] .text-blue-900 {
+    color: #a8c7fa;
+  }
+  :root[data-dark] .text-green-700 {
+    color: #6fdc9a;
+  }
+  :root[data-dark] :is(.report-chart, .report-periods, .report-chart__tip) {
+    background: #161b22;
+  }
+  :root[data-dark] .slip__tear::before,
+  :root[data-dark] .slip__tear::after {
+    background: #161b22;
+  }
+  /* The storefront preview keeps the light palette. */
+  :root[data-dark] .theme-preview {
+    color-scheme: light;
+    color: oklch(21% 0.034 264.665);
+    --color-gray-50: oklch(98.5% 0.002 247.839);
+    --color-gray-100: oklch(96.7% 0.003 264.542);
+    --color-gray-200: oklch(92.8% 0.006 264.531);
+    --color-gray-300: oklch(87.2% 0.01 258.338);
+    --color-gray-600: oklch(44.6% 0.03 256.802);
+    --color-gray-900: oklch(21% 0.034 264.665);
+  }
 }

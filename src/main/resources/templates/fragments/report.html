@@ -21,6 +21,9 @@
     </nav>
     <div class="flex flex-wrap items-baseline justify-between gap-3">
         <div>
+            <!--/* On paper the navigation is gone, so the report says whose it is. */-->
+            <p class="hidden text-sm text-gray-600 print:block"
+               th:text="${currentStore != null} ? ${currentStore.name().in(#locale)} : #{platform.title}">Store</p>
             <h1 class="text-2xl font-bold" th:text="#{__${reportKeys}__.__${report}__.title}">Sales</h1>
             <p class="mt-1 text-sm text-gray-600"
                th:text="${period.from() == period.to()} ? ${@dates.day(period.from())} : #{report.period.range(${@dates.day(period.from())}, ${@dates.day(period.to())})}">1 Oct 2026 to 30 Oct 2026</p>

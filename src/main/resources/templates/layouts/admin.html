@@ -62,7 +62,7 @@
 
         <!--/* Width and padding live on a wrapper: a page's own class on its <main> replaces the layout's. */-->
         <div class="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
-            <div th:if="${billingNotice != null}" role="status" class="mb-6 rounded-md border px-4 py-3 text-sm"
+            <div th:if="${billingNotice != null}" role="status" class="mb-6 rounded-md border px-4 py-3 text-sm print:hidden"
                  th:classappend="${billingNotice.kind() == 'trial'} ? 'border-blue-200 bg-blue-50 text-blue-900' : (${billingNotice.kind() == 'due'} ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-red-200 bg-red-50 text-red-800')">
                 <span th:text="#{admin.billing.notice.__${billingNotice.kind()}__(${@dates.day(billingNotice.date())})}">Notice</span>
                 <a th:if="${currentStaff.role().managesStaff()}" th:href="@{/admin/billing}" class="ms-2 font-medium underline"
@@ -74,7 +74,7 @@
                  th:text="#{admin.htmx-error}">Something went wrong.</div>
             <main id="content" layout:fragment="content"></main>
         </div>
-        <footer class="border-t border-gray-200 py-4 text-center text-xs text-gray-500" th:text="#{layout.footer}">
+        <footer class="border-t border-gray-200 py-4 text-center text-xs text-gray-500 print:hidden" th:text="#{layout.footer}">
             All rights reserved
         </footer>
     </div>

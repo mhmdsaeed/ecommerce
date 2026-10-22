@@ -1670,3 +1670,15 @@ The stores report now counts, from the history, the subscriptions that became su
 | `RlsCoverageIT` (changed) | `subscription_status_change` is a known platform table |
 
 **Live check (local profile):** V19 applied to the local database, backfilling the 12 existing subscriptions; the stores report shows "came back" and that no change is recorded yet.
+
+## After M15: Reports in dark mode and on paper (2026-10-22)
+
+Checked all eight reports (four for stores, four for the platform) in dark mode at 1280 px, and printed them to PDF with headless Edge from both light and dark. Dark mode needed nothing. Printing did:
+
+- **Dark mode printed dark** (dark paper, and with backgrounds off, light text that vanishes on white). The dark palette in app.css now applies on screen only (`@media screen`), so paper always gets the light one.
+- **Whose report it was** did not show on paper (the sidebar with the store's name is hidden). A print-only line above the title names the store, or "Platform admin".
+- **Admin chrome printed:** the trial/billing notice, the admin footer (alone on a last page) and the platform navigation bar are now hidden on paper, and the page background prints white.
+- **Figures under "Show as a table"** never printed (closed `<details>`). app.js opens them before printing and closes them after.
+- **Page breaks:** headings stay with what follows them; rows, figure blocks and charts do not split across pages.
+
+`ReportsIT` checks the print-only store line. Both demo accounts were set back to the Device scheme afterwards.

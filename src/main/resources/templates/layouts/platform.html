@@ -6,7 +6,7 @@
       layout:decorate="~{layouts/base}">
 <body>
 <div layout:fragment="body" class="flex min-h-screen flex-col bg-gray-50" data-area="platform">
-    <header class="border-b border-gray-200 bg-gray-900 text-white">
+    <header class="border-b border-gray-200 bg-gray-900 text-white print:hidden">
         <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
             <a th:href="@{/platform}" class="text-lg font-semibold" th:text="#{platform.title}">Platform admin</a>
             <nav class="flex flex-wrap items-center gap-4 text-sm">
