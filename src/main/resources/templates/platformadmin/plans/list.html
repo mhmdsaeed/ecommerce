@@ -17,27 +17,31 @@
         <table class="w-full text-sm">
             <thead class="bg-gray-50 text-gray-600">
             <tr>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.plan.code}">Code</th>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.name}">Name</th>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.plan.monthlyPrice}">Price</th>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.plan.limits}">Limits</th>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.status}">Status</th>
+                <th scope="col" class="px-3 py-3 text-start font-medium sm:px-4" th:text="#{platform.plan.code}">Code</th>
+                <th scope="col" class="px-3 py-3 text-start font-medium max-sm:hidden sm:px-4" th:text="#{platform.col.name}">Name</th>
+                <th scope="col" class="px-3 py-3 text-start font-medium sm:px-4" th:text="#{platform.plan.monthlyPrice}">Price</th>
+                <th scope="col" class="px-3 py-3 text-start font-medium sm:px-4" th:text="#{platform.plan.limits}">Limits</th>
+                <th scope="col" class="px-3 py-3 text-start font-medium max-sm:hidden sm:px-4" th:text="#{platform.col.status}">Status</th>
             </tr>
             </thead>
+            <!--/* On a phone the name, and the status of a plan no longer offered, sit under the code; each limit stays on
+                   one line. */-->
             <tbody class="divide-y divide-gray-100">
             <tr th:each="plan : ${plans}">
-                <td class="px-4 py-3" dir="ltr">
+                <td class="px-3 py-3 sm:px-4">
                     <a th:href="@{/platform/plans/{code}(code=${plan.code()})}" class="font-medium text-brand-700 hover:underline"
-                       th:text="${plan.code()}">basic</a>
+                       dir="ltr" th:text="${plan.code()}">basic</a>
+                    <span class="block text-gray-600 sm:hidden" th:text="${plan.name().in(#locale)}">Basic</span>
+                    <span th:unless="${plan.active()}" class="block text-xs text-gray-500 sm:hidden" th:text="#{platform.plan.inactive}">Not offered</span>
                 </td>
-                <td class="px-4 py-3" th:text="${plan.name().in(#locale)}">Basic</td>
-                <td class="px-4 py-3"><bdi th:text="${@money.format(plan.monthlyPrice())}">$10</bdi></td>
-                <td class="px-4 py-3 text-gray-600">
-                    <span class="block" th:text="${plan.limits().products() != null} ? #{billing.limit.products(${plan.limits().products()})} : #{billing.limit.products.none}">100 products</span>
-                    <span class="block" th:text="${plan.limits().staff() != null} ? #{billing.limit.staff(${plan.limits().staff()})} : #{billing.limit.staff.none}">3 staff</span>
-                    <span class="block" th:text="${plan.limits().ordersPerMonth() != null} ? #{billing.limit.orders(${plan.limits().ordersPerMonth()})} : #{billing.limit.orders.none}">300 orders</span>
+                <td class="px-3 py-3 max-sm:hidden sm:px-4" th:text="${plan.name().in(#locale)}">Basic</td>
+                <td class="whitespace-nowrap px-3 py-3 sm:px-4"><bdi th:text="${@money.format(plan.monthlyPrice())}">$10</bdi></td>
+                <td class="px-3 py-3 text-gray-600 sm:px-4">
+                    <span class="block whitespace-nowrap" th:text="${plan.limits().products() != null} ? #{billing.limit.products(${plan.limits().products()})} : #{billing.limit.products.none}">100 products</span>
+                    <span class="block whitespace-nowrap" th:text="${plan.limits().staff() != null} ? #{billing.limit.staff(${plan.limits().staff()})} : #{billing.limit.staff.none}">3 staff</span>
+                    <span class="block whitespace-nowrap" th:text="${plan.limits().ordersPerMonth() != null} ? #{billing.limit.orders(${plan.limits().ordersPerMonth()})} : #{billing.limit.orders.none}">300 orders</span>
                 </td>
-                <td class="px-4 py-3" th:text="${plan.active()} ? #{platform.plan.active} : #{platform.plan.inactive}">Offered</td>
+                <td class="px-3 py-3 max-sm:hidden sm:px-4" th:text="${plan.active()} ? #{platform.plan.active} : #{platform.plan.inactive}">Offered</td>
             </tr>
             </tbody>
         </table>

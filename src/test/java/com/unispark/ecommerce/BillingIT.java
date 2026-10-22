@@ -352,12 +352,16 @@ class BillingIT {
         mvc.perform(get(PLATFORM + "/platform/stores").session(admin))
                 .andExpect(content().string(allOf(containsString(slug), containsString("بانتظار الدفع"),
                         containsString("class=\"store-mark\""),
+                        // On a phone the address sits under the name instead of in its own column.
+                        matchesPattern("(?s).*<span class=\"block sm:hidden\"><bdi[^>]*>" + slug + "</bdi></span>.*"),
                         matchesPattern("(?s).*<a href=\"/platform/stores\"[^>]*aria-current=\"page\".*"))));
         mvc.perform(get(PLATFORM + "/platform/stores/" + store).session(admin))
                 .andExpect(content().string(allOf(containsString(onlyInvoice().label()),
                         containsString("تحققتُ من المالك والمتجر"))));
         mvc.perform(get(PLATFORM + "/platform/subscriptions?status=PAST_DUE").session(admin))
-                .andExpect(content().string(containsString("متجر " + slug)));
+                .andExpect(content().string(allOf(containsString("متجر " + slug),
+                        // On a phone the grace date sits under the status.
+                        matchesPattern("(?s).*المهلة حتى \\d.*"))));
         mvc.perform(get(PLATFORM + "/platform/invoices?status=OPEN").session(admin))
                 .andExpect(content().string(containsString(onlyInvoice().label())));
         mvc.perform(get(PLATFORM + "/platform/plans").session(admin))

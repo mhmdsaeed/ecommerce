@@ -20,32 +20,35 @@
     </nav>
 
     <p th:if="${stores.isEmpty()}" class="text-gray-600" th:text="#{platform.dashboard.empty}">No stores.</p>
+    <!--/* On a phone (below sm) the address sits under the name and the creation date is left out, so the name, status
+           and subscription fit at 375 px; from sm up, every column. */-->
     <div th:unless="${stores.isEmpty()}" class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
         <table class="w-full text-sm">
             <thead class="bg-gray-50 text-gray-600">
             <tr>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.name}">Name</th>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.slug}">Address</th>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.status}">Status</th>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.subscription}">Subscription</th>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.created}">Created</th>
+                <th scope="col" class="px-3 py-3 text-start font-medium sm:px-4" th:text="#{platform.col.name}">Name</th>
+                <th scope="col" class="px-3 py-3 text-start font-medium max-sm:hidden sm:px-4" th:text="#{platform.col.slug}">Address</th>
+                <th scope="col" class="px-3 py-3 text-start font-medium sm:px-4" th:text="#{platform.col.status}">Status</th>
+                <th scope="col" class="px-3 py-3 text-start font-medium sm:px-4" th:text="#{platform.col.subscription}">Subscription</th>
+                <th scope="col" class="px-3 py-3 text-start font-medium max-sm:hidden sm:px-4" th:text="#{platform.col.created}">Created</th>
             </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
             <tr th:each="store : ${stores}" th:with="subscription=${subscriptions.get(store.id())}">
-                <td class="px-4 py-3">
+                <td class="px-3 py-3 sm:px-4">
                     <a th:href="@{/platform/stores/{id}(id=${store.id()})}" class="font-medium text-brand-700 hover:underline"
                        th:text="${store.name().in(#locale)}">Name</a>
+                    <span class="block sm:hidden"><bdi class="text-xs text-gray-500" dir="ltr" th:text="${store.slug()}">slug</bdi></span>
                 </td>
-                <td class="px-4 py-3" dir="ltr" th:text="${store.slug()}">slug</td>
-                <td class="px-4 py-3"><span th:replace="~{platformadmin/fragments :: store-status(status=${store.status().name()})}"></span></td>
-                <td class="px-4 py-3">
+                <td class="px-3 py-3 max-sm:hidden sm:px-4" dir="ltr" th:text="${store.slug()}">slug</td>
+                <td class="whitespace-nowrap px-3 py-3 sm:px-4"><span th:replace="~{platformadmin/fragments :: store-status(status=${store.status().name()})}"></span></td>
+                <td class="px-3 py-3 sm:px-4">
                     <th:block th:if="${subscription != null}">
-                        <span th:text="#{billing.subscription.status.__${subscription.status()}__}">Trial</span>
+                        <span class="whitespace-nowrap" th:text="#{billing.subscription.status.__${subscription.status()}__}">Trial</span>
                         <span class="text-gray-500" dir="ltr" th:text="${subscription.planCode()}">basic</span>
                     </th:block>
                 </td>
-                <td class="px-4 py-3" th:text="${@dates.format(store.createdAt())}">date</td>
+                <td class="whitespace-nowrap px-3 py-3 max-sm:hidden sm:px-4" th:text="${@dates.format(store.createdAt())}">date</td>
             </tr>
             </tbody>
         </table>

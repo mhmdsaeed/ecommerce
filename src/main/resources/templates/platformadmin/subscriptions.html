@@ -24,23 +24,31 @@
         <table class="w-full text-sm">
             <thead class="bg-gray-50 text-gray-600">
             <tr>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.name}">Store</th>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.billing.plan.name}">Plan</th>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.col.status}">Status</th>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.subscription.period}">Period</th>
-                <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{platform.subscription.grace}">Grace until</th>
+                <th scope="col" class="px-3 py-3 text-start font-medium sm:px-4" th:text="#{platform.col.name}">Store</th>
+                <th scope="col" class="px-3 py-3 text-start font-medium max-sm:hidden sm:px-4" th:text="#{admin.billing.plan.name}">Plan</th>
+                <th scope="col" class="px-3 py-3 text-start font-medium sm:px-4" th:text="#{platform.col.status}">Status</th>
+                <th scope="col" class="px-3 py-3 text-start font-medium sm:px-4" th:text="#{platform.subscription.period}">Period</th>
+                <th scope="col" class="px-3 py-3 text-start font-medium max-sm:hidden sm:px-4" th:text="#{platform.subscription.grace}">Grace until</th>
             </tr>
             </thead>
+            <!--/* On a phone the plan sits under the store and the grace date under the status (when there is one); a
+                   period's two dates break only between them. */-->
             <tbody class="divide-y divide-gray-100">
             <tr th:each="subscription : ${subscriptions}" th:with="store=${stores.get(subscription.storeId())}">
-                <td class="px-4 py-3">
+                <td class="px-3 py-3 sm:px-4">
                     <a th:href="@{/platform/stores/{id}(id=${subscription.storeId()})}" class="font-medium text-brand-700 hover:underline"
                        th:text="${store != null} ? ${store.name().in(#locale)} : ${subscription.storeId()}">Store</a>
+                    <span class="block sm:hidden"><bdi class="text-xs text-gray-500" dir="ltr" th:text="${subscription.planCode()}">basic</bdi></span>
                 </td>
-                <td class="px-4 py-3" dir="ltr" th:text="${subscription.planCode()}">basic</td>
-                <td class="px-4 py-3" th:text="#{billing.subscription.status.__${subscription.status()}__}">Trial</td>
-                <td class="px-4 py-3" th:text="|${@dates.day(subscription.periodStart())} – ${@dates.day(subscription.periodEnd())}|">dates</td>
-                <td class="px-4 py-3" th:text="${@dates.day(subscription.graceUntil())}">date</td>
+                <td class="px-3 py-3 max-sm:hidden sm:px-4" dir="ltr" th:text="${subscription.planCode()}">basic</td>
+                <td class="px-3 py-3 sm:px-4">
+                    <span class="whitespace-nowrap" th:text="#{billing.subscription.status.__${subscription.status()}__}">Trial</span>
+                    <span th:if="${subscription.graceUntil() != null}" class="block whitespace-nowrap text-xs text-gray-500 sm:hidden"
+                          th:text="#{platform.subscription.grace.until(${@dates.day(subscription.graceUntil())})}">Grace until</span>
+                </td>
+                <td class="px-3 py-3 sm:px-4"><span class="whitespace-nowrap" th:text="|${@dates.day(subscription.periodStart())} –|">from</span>
+                    <span class="whitespace-nowrap" th:text="${@dates.day(subscription.periodEnd())}">to</span></td>
+                <td class="whitespace-nowrap px-3 py-3 max-sm:hidden sm:px-4" th:text="${@dates.day(subscription.graceUntil())}">date</td>
             </tr>
             </tbody>
         </table>

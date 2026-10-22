@@ -76,7 +76,8 @@
                 <input id="amount" name="amount" type="text" inputmode="decimal" dir="ltr" required th:value="${amount}"
                        class="w-32 rounded-md border border-gray-300 px-3 py-2">
             </div>
-            <div class="min-w-0 flex-1 space-y-1">
+            <!--/* At least 12rem wide, so on a phone it takes its own line instead of shrinking to nothing. */-->
+            <div class="min-w-0 flex-1 basis-48 space-y-1">
                 <label for="reference" class="block font-medium" th:text="#{platform.payment.reference}">Reference</label>
                 <input id="reference" name="reference" type="text" maxlength="200" dir="ltr"
                        class="w-full rounded-md border border-gray-300 px-3 py-2">
