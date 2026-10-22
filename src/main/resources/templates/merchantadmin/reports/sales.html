@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<!--/* Sales report (model: sales, StoreReports.Sales; changes, revenue change per currency against the period before
+       or null; charts, one ColumnChart per currency). Per currency: the revenue as the headline, against the period
+       before; orders and the average order as ledger lines; then sales over the period as columns, with the same
+       figures as a table underneath. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="#{report.sales.title}">Sales</title>
+</head>
+<body>
+<main layout:fragment="content" class="max-w-4xl space-y-8">
+    <div th:replace="~{merchantadmin/reports/fragments :: top}"></div>
+
+    <p th:if="${sales.totals().isEmpty()}" class="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-gray-600"
+       th:text="#{report.sales.none}">No sales in this period.</p>
+
+    <section th:each="total : ${sales.totals()}" class="report-total" th:with="change=${changes.get(total.currency())}">
+        <h2 class="text-sm font-medium text-gray-600" th:text="#{report.sales.revenue(#{currency.__${total.currency()}__})}">Sales in Syrian pounds</h2>
+        <p class="mt-1 text-4xl font-bold tabular-nums"><bdi th:text="${@money.format(total.revenue())}">1,250,000</bdi></p>
+        <p class="mt-1 text-sm"
+           th:classappend="${change == null} ? 'text-gray-500' : (${change >= 0} ? 'text-brand-700' : 'text-amber-800')"
+           th:text="${change == null} ? #{report.sales.change.none(${period.days()})}
+                    : (${change >= 0} ? #{report.sales.change.up(${change}, ${period.days()})} : #{report.sales.change.down(${-change}, ${period.days()})})">12% more than the 30 days before</p>
+        <dl class="mt-4 max-w-sm space-y-1 text-sm">
+            <div class="flex items-baseline gap-2">
+                <dt th:text="#{report.sales.orders}">Orders</dt>
+                <span aria-hidden="true" class="min-w-6 flex-1 border-b border-dotted border-gray-300"></span>
+                <dd class="tabular-nums" th:text="${#numbers.formatInteger(total.orders(), 1)}">25</dd>
+            </div>
+            <div class="flex items-baseline gap-2">
+                <dt th:text="#{report.sales.average}">Average order</dt>
+                <span aria-hidden="true" class="min-w-6 flex-1 border-b border-dotted border-gray-300"></span>
+                <dd class="tabular-nums"><bdi th:text="${@money.format(total.average())}">50,000</bdi></dd>
+            </div>
+        </dl>
+    </section>
+
+    <th:block th:each="chart : ${charts}">
+        <figure th:replace="~{merchantadmin/reports/fragments :: chart(chart=${chart}, unit=${period.unit()})}"></figure>
+        <details class="report-table-toggle">
+            <summary class="cursor-pointer text-sm text-brand-700 print:hidden" th:text="#{report.table.show}">Show as a table</summary>
+            <table class="report-table mt-3">
+                <thead>
+                <tr>
+                    <th scope="col" th:text="#{report.csv.date}">Date</th>
+                    <th scope="col" class="text-end" th:text="#{report.csv.orders}">Orders</th>
+                    <th scope="col" class="text-end" th:text="#{report.csv.revenue}">Sales</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="column : ${chart.columns()}">
+                    <td th:text="${column.detail()}">1 Oct 2026</td>
+                    <td class="text-end tabular-nums" th:text="${column.orders()}">3</td>
+                    <td class="text-end tabular-nums"><bdi th:text="${@money.format(column.revenue())}">5,000</bdi></td>
+                </tr>
+                </tbody>
+            </table>
+        </details>
+    </th:block>
+
+    <p class="text-xs text-gray-500" th:text="#{report.sales.definition}">Sales count orders placed in the period, except cancelled, refused and returned ones.</p>
+</main>
+</body>
+</html>

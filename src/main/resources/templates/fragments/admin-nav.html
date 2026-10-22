@@ -33,6 +33,7 @@
         <li th:replace="~{fragments/admin-nav :: item(key='admin.nav.inventory', href='/admin/inventory', section='inventory')}"></li>
     </ul>
     <ul th:if="${manager}" class="border-t border-gray-200 pt-3">
+        <li th:replace="~{fragments/admin-nav :: item(key='admin.nav.reports', href='/admin/reports', section='reports')}"></li>
         <li th:replace="~{fragments/admin-nav :: item(key='admin.nav.settlement', href='/admin/settlement', section='settlement')}"></li>
         <li th:replace="~{fragments/admin-nav :: item(key='admin.nav.delivery', href='/admin/delivery', section='delivery')}"></li>
     </ul>

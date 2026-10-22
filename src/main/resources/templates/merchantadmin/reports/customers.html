@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<!--/* Customers and payments report (model: customers, StoreReports.CustomersAndPayments; maxMethodOrders, the largest
+       method's order count). Who bought: new against returning, as numbers and one split bar; the top customers;
+       payments by method as bars; and what waits now: proofs to review, cash still with drivers. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="#{report.customers.title}">Customers and payments</title>
+</head>
+<body>
+<main layout:fragment="content" class="max-w-4xl space-y-10">
+    <div th:replace="~{merchantadmin/reports/fragments :: top}"></div>
+
+    <section aria-labelledby="buyers-heading" th:with="buyers=${customers.newCustomers() + customers.returning()}">
+        <h2 id="buyers-heading" class="text-lg font-semibold" th:text="#{report.customers.buyers}">Who bought</h2>
+        <p th:if="${buyers == 0}" class="report-empty" th:text="#{report.sales.none}">No sales.</p>
+        <th:block th:unless="${buyers == 0}">
+            <dl class="mt-3 flex flex-wrap gap-x-10 gap-y-3">
+                <div>
+                    <dt class="text-sm text-gray-600" th:text="#{report.customers.new}">New customers</dt>
+                    <dd class="text-3xl font-bold tabular-nums" th:text="${#numbers.formatInteger(customers.newCustomers(), 1)}">12</dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-gray-600" th:text="#{report.customers.returning}">Returning customers</dt>
+                    <dd class="text-3xl font-bold tabular-nums" th:text="${#numbers.formatInteger(customers.returning(), 1)}">8</dd>
+                </div>
+            </dl>
+            <!--/* One bar: new from the start, returning after; the numbers above say the same in words. */-->
+            <div class="report-split mt-3" aria-hidden="true">
+                <span th:style="|inline-size: ${customers.newCustomers() * 100 / buyers}%|"></span>
+            </div>
+        </th:block>
+    </section>
+
+    <section aria-labelledby="top-heading">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="top-heading" class="text-lg font-semibold" th:text="#{report.customers.top}">Top customers</h2>
+            <a th:replace="~{merchantadmin/reports/fragments :: csv(table='top')}"></a>
+        </div>
+        <p th:if="${customers.top().isEmpty()}" class="report-empty" th:text="#{report.sales.none}">No sales.</p>
+        <table th:unless="${customers.top().isEmpty()}" class="report-table mt-3">
+            <thead>
+            <tr>
+                <th scope="col" th:text="#{report.csv.customer}">Customer</th>
+                <th scope="col" th:text="#{report.csv.phone}">Phone</th>
+                <th scope="col" class="text-end" th:text="#{report.csv.orders}">Orders</th>
+                <th scope="col" class="text-end" th:text="#{report.csv.spent}">Spent</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="line : ${customers.top()}">
+                <td><a th:href="@{/admin/customers(q=${line.phone()})}" class="text-brand-700 hover:underline" th:text="${line.name()}">Name</a></td>
+                <td><bdi dir="ltr" th:text="${line.phone()}">+963</bdi></td>
+                <td class="text-end tabular-nums" th:text="${line.orders()}">3</td>
+                <td class="text-end tabular-nums font-semibold"><bdi th:text="${@money.format(line.spent())}">90,000</bdi></td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section aria-labelledby="methods-heading">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="methods-heading" class="text-lg font-semibold" th:text="#{report.customers.methods}">How customers paid</h2>
+            <a th:replace="~{merchantadmin/reports/fragments :: csv(table='methods')}"></a>
+        </div>
+        <p th:if="${customers.methods().isEmpty()}" class="report-empty" th:text="#{report.sales.none}">No sales.</p>
+        <ul th:unless="${customers.methods().isEmpty()}" class="report-bars mt-4">
+            <li th:each="line : ${customers.methods()}">
+                <span th:text="#{payment.method.__${line.method()}__}">Cash on delivery</span>
+                <span class="report-bars__track" aria-hidden="true"><span
+                      th:style="|inline-size: ${maxMethodOrders == 0 ? 0 : line.orders() * 100 / maxMethodOrders}%|"></span></span>
+                <span class="text-end">
+                    <span class="block tabular-nums font-semibold" th:with="form=${@plurals.of(line.orders())}"
+                          th:text="#{report.orders.count.__${form}__(${line.orders()})}">12 orders</span>
+                    <bdi class="block text-xs tabular-nums text-gray-600" th:text="${@money.format(line.amount())}">600,000</bdi>
+                </span>
+            </li>
+        </ul>
+    </section>
+
+    <section aria-labelledby="waiting-heading">
+        <h2 id="waiting-heading" class="text-lg font-semibold" th:text="#{report.customers.waiting}">Waiting now</h2>
+        <ul class="mt-3 divide-y divide-gray-200 overflow-hidden rounded-lg border border-gray-200 bg-white">
+            <li class="border-s-4" th:classappend="${customers.awaitingProof() > 0} ? 'border-s-amber-400' : 'border-s-transparent'">
+                <a th:href="@{/admin/orders(view='all', payment='AWAITING_VERIFICATION')}" class="flex items-baseline gap-3 px-4 py-3 hover:bg-gray-50">
+                    <span th:text="#{report.customers.proofs}">Payment proofs to review</span>
+                    <span aria-hidden="true" class="min-w-6 flex-1 border-b-2 border-dotted border-gray-300"></span>
+                    <span class="text-xl font-bold tabular-nums" th:classappend="${customers.awaitingProof() == 0} ? 'text-gray-500'"
+                          th:text="${customers.awaitingProof()}">2</span>
+                </a>
+            </li>
+            <li class="border-s-4" th:classappend="${customers.cashWithDrivers().isEmpty()} ? 'border-s-transparent' : 'border-s-amber-400'">
+                <a th:href="@{/admin/settlement}" class="flex items-baseline gap-3 px-4 py-3 hover:bg-gray-50">
+                    <span th:text="#{dashboard.cod.outstanding}">Cash held by drivers</span>
+                    <span aria-hidden="true" class="min-w-6 flex-1 border-b-2 border-dotted border-gray-300"></span>
+                    <span th:if="${customers.cashWithDrivers().isEmpty()}" class="text-gray-500" th:text="#{dashboard.cod.none}">None</span>
+                    <span th:unless="${customers.cashWithDrivers().isEmpty()}" class="flex flex-col items-end text-xl font-bold tabular-nums">
+                        <bdi th:each="money : ${customers.cashWithDrivers()}" th:text="${@money.format(money)}">5,000</bdi>
+                    </span>
+                </a>
+            </li>
+        </ul>
+    </section>
+</main>
+</body>
+</html>

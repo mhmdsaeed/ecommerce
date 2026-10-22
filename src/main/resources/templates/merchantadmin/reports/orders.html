@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<!--/* Orders and delivery report (model: orders, StoreReports.OrdersAndDelivery; statusBars, ReportsController.Bars).
+       The orders placed and how many were lost (cancelled, refused, returned); every status as a bar; how long
+       delivery takes; delivery by zone and by driver; then the lost orders with the reason given. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="#{report.orders.title}">Orders and delivery</title>
+</head>
+<body>
+<main layout:fragment="content" class="max-w-4xl space-y-10">
+    <div th:replace="~{merchantadmin/reports/fragments :: top}"></div>
+
+    <section aria-labelledby="status-heading">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="status-heading" class="text-lg font-semibold" th:text="#{report.orders.status}">Orders by status</h2>
+            <a th:replace="~{merchantadmin/reports/fragments :: csv(table='status')}"></a>
+        </div>
+        <dl class="mt-3 flex flex-wrap gap-x-10 gap-y-3">
+            <div>
+                <dt class="text-sm text-gray-600" th:text="#{report.orders.placed}">Placed</dt>
+                <dd class="text-3xl font-bold tabular-nums" th:text="${#numbers.formatInteger(orders.placed(), 1)}">40</dd>
+            </div>
+            <div>
+                <dt class="text-sm text-gray-600" th:text="#{report.orders.lost}">Cancelled, refused or returned</dt>
+                <dd class="text-3xl font-bold tabular-nums" th:classappend="${orders.lostCount() > 0} ? 'text-amber-800'">
+                    <th:block th:text="${#numbers.formatInteger(orders.lostCount(), 1)}">4</th:block>
+                    <span th:if="${orders.placed() > 0}" class="text-base font-medium text-gray-500"
+                          th:text="#{report.orders.share(${orders.lostCount() * 100 / orders.placed()})}">(10%)</span>
+                </dd>
+            </div>
+        </dl>
+        <p th:if="${statusBars.isEmpty()}" class="report-empty" th:text="#{report.orders.none}">No orders in this period.</p>
+        <ul th:unless="${statusBars.isEmpty()}" class="report-bars mt-4">
+            <li th:each="bar : ${statusBars}">
+                <span th:text="#{order.status.__${bar.key()}__}">Delivered</span>
+                <span class="report-bars__track" aria-hidden="true"><span th:style="|inline-size: ${bar.percent()}%|"
+                      th:classappend="${bar.key() == 'CANCELLED' or bar.key() == 'REFUSED' or bar.key() == 'RETURNED'} ? 'report-bars__bar--lost'"></span></span>
+                <span class="tabular-nums font-semibold" th:text="${#numbers.formatInteger(bar.count(), 1)}">12</span>
+            </li>
+        </ul>
+    </section>
+
+    <section aria-labelledby="time-heading" th:with="time=${orders.deliveryTime()}">
+        <h2 id="time-heading" class="text-lg font-semibold" th:text="#{report.orders.time}">Time to deliver</h2>
+        <p th:if="${time.delivered() == 0}" class="report-empty" th:text="#{report.orders.time.none}">Nothing delivered in this period.</p>
+        <dl th:unless="${time.delivered() == 0}" class="mt-3 flex flex-wrap gap-x-10 gap-y-3">
+            <div>
+                <dt class="text-sm text-gray-600" th:text="#{report.orders.time.median}">Usually</dt>
+                <dd class="text-3xl font-bold"><th:block th:replace="~{merchantadmin/reports/fragments :: duration(hours=${time.medianHours()})}"></th:block></dd>
+            </div>
+            <div>
+                <dt class="text-sm text-gray-600" th:text="#{report.orders.time.average}">On average</dt>
+                <dd class="text-3xl font-bold text-gray-700"><th:block th:replace="~{merchantadmin/reports/fragments :: duration(hours=${time.averageHours()})}"></th:block></dd>
+            </div>
+            <div>
+                <dt class="text-sm text-gray-600" th:text="#{report.orders.delivered}">Delivered</dt>
+                <dd class="text-3xl font-bold tabular-nums text-gray-700" th:text="${#numbers.formatInteger(time.delivered(), 1)}">30</dd>
+            </div>
+        </dl>
+        <p class="mt-2 text-xs text-gray-500" th:text="#{report.orders.time.hint}">From placing the order to delivery.</p>
+    </section>
+
+    <section aria-labelledby="zones-heading">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="zones-heading" class="text-lg font-semibold" th:text="#{report.orders.zones}">Delivery by zone</h2>
+            <a th:replace="~{merchantadmin/reports/fragments :: csv(table='zones')}"></a>
+        </div>
+        <p th:if="${orders.zones().isEmpty()}" class="report-empty" th:text="#{report.orders.time.none}">Nothing delivered.</p>
+        <table th:unless="${orders.zones().isEmpty()}" class="report-table mt-3">
+            <thead>
+            <tr>
+                <th scope="col" th:text="#{report.orders.zone}">Zone</th>
+                <th scope="col" class="text-end" th:text="#{report.csv.delivered}">Delivered</th>
+                <th scope="col" class="text-end" th:text="#{report.csv.fees}">Delivery fees</th>
+                <th scope="col" class="text-end" th:text="#{report.orders.time.median.short}">Time</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="zone : ${orders.zones()}">
+                <td th:if="${zone.governorate() == null}" class="text-gray-500" th:text="#{report.orders.zone.none}">Zone deleted</td>
+                <td th:unless="${zone.governorate() == null}">
+                    <th:block th:text="#{governorate.__${zone.governorate()}__}">Damascus</th:block><th:block th:if="${zone.city() != null}"> › <th:block th:text="${zone.city()}">Damascus</th:block></th:block><th:block th:if="${zone.area() != null}"> › <th:block th:text="${zone.area()}">Mazzeh</th:block></th:block>
+                </td>
+                <td class="text-end tabular-nums font-semibold" th:text="${zone.delivered()}">12</td>
+                <td class="text-end tabular-nums"><bdi th:text="${@money.format(zone.fees())}">24,000</bdi></td>
+                <td class="text-end"><th:block th:replace="~{merchantadmin/reports/fragments :: duration(hours=${zone.averageHours()})}"></th:block></td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section aria-labelledby="drivers-heading">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="drivers-heading" class="text-lg font-semibold" th:text="#{report.orders.drivers}">Drivers</h2>
+            <a th:replace="~{merchantadmin/reports/fragments :: csv(table='drivers')}"></a>
+        </div>
+        <p th:if="${orders.drivers().isEmpty()}" class="report-empty" th:text="#{report.orders.drivers.none}">No orders went out with a driver.</p>
+        <table th:unless="${orders.drivers().isEmpty()}" class="report-table mt-3">
+            <thead>
+            <tr>
+                <th scope="col" th:text="#{report.csv.driver}">Driver</th>
+                <th scope="col" class="text-end" th:text="#{report.csv.delivered}">Delivered</th>
+                <th scope="col" class="text-end" th:text="#{report.csv.refused}">Refused</th>
+                <th scope="col" class="text-end" th:text="#{report.orders.time.median.short}">Time</th>
+                <th scope="col" class="text-end" th:text="#{report.csv.cash}">Cash collected</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="driver : ${orders.drivers()}">
+                <td><a th:href="@{/admin/settlement/{id}(id=${driver.driverId()})}" class="text-brand-700 hover:underline"
+                       th:text="${driver.name()}">Abu Khaled</a></td>
+                <td class="text-end tabular-nums font-semibold" th:text="${driver.delivered()}">20</td>
+                <td class="text-end tabular-nums" th:classappend="${driver.refused() > 0} ? 'text-amber-800'" th:text="${driver.refused()}">1</td>
+                <td class="text-end"><th:block th:replace="~{merchantadmin/reports/fragments :: duration(hours=${driver.averageHours()})}"></th:block></td>
+                <td class="text-end tabular-nums">
+                    <span th:if="${driver.cash().isEmpty()}" class="text-gray-500">—</span>
+                    <bdi th:each="money : ${driver.cash()}" class="block" th:text="${@money.format(money)}">50,000</bdi>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section aria-labelledby="lost-heading">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="lost-heading" class="text-lg font-semibold" th:text="#{report.orders.lost.list}">Lost orders and why</h2>
+            <a th:replace="~{merchantadmin/reports/fragments :: csv(table='lost')}"></a>
+        </div>
+        <p th:if="${orders.lost().isEmpty()}" class="report-empty" th:text="#{report.orders.lost.none}">No order was lost in this period.</p>
+        <ul th:unless="${orders.lost().isEmpty()}" class="mt-3 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white text-sm">
+            <li th:each="line : ${orders.lost()}" class="grid gap-x-4 gap-y-0.5 px-4 py-2.5 sm:grid-cols-[6rem_9rem_minmax(0,1fr)]">
+                <a th:href="@{/admin/orders/{n}(n=${line.number()})}" class="font-medium text-brand-700 hover:underline"
+                   th:text="|#${line.number()}|">#1001</a>
+                <span class="text-amber-800" th:text="#{order.status.__${line.status()}__}">Cancelled</span>
+                <span class="min-w-0">
+                    <span th:if="${line.reason() != null}" th:text="${line.reason()}">Not home</span>
+                    <span th:if="${line.reason() == null}" class="text-gray-500" th:text="#{report.orders.lost.no-reason}">No reason given</span>
+                    <span class="block text-xs text-gray-500"><bdi th:text="${line.customerName()}">Name</bdi> · <bdi th:text="${@dates.format(line.placedAt())}">date</bdi></span>
+                </span>
+            </li>
+        </ul>
+    </section>
+</main>
+</body>
+</html>

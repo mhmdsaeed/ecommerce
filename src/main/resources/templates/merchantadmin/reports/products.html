@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<!--/* Products report (model: products, StoreReports.Products; lowStock, the "running low" threshold). Best sellers by
+       units sold; products on sale that sold nothing in the period; tracked variants running low, out of stock first
+       (amber). Each table downloads as CSV. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/admin}">
+<head>
+    <title th:text="#{report.products.title}">Products</title>
+</head>
+<body>
+<main layout:fragment="content" class="max-w-4xl space-y-10">
+    <div th:replace="~{merchantadmin/reports/fragments :: top}"></div>
+
+    <section aria-labelledby="best-heading">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="best-heading" class="text-lg font-semibold" th:text="#{report.products.best}">Best sellers</h2>
+            <a th:replace="~{merchantadmin/reports/fragments :: csv(table='best')}"></a>
+        </div>
+        <p th:if="${products.bestSellers().isEmpty()}" class="report-empty" th:text="#{report.sales.none}">No sales.</p>
+        <table th:unless="${products.bestSellers().isEmpty()}" class="report-table mt-3">
+            <thead>
+            <tr>
+                <th scope="col" class="w-8">#</th>
+                <th scope="col" th:text="#{report.csv.product}">Product</th>
+                <th scope="col" class="text-end" th:text="#{report.csv.quantity}">Sold</th>
+                <th scope="col" class="text-end" th:text="#{report.csv.revenue}">Sales</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="line, state : ${products.bestSellers()}">
+                <td class="tabular-nums text-gray-500" th:text="${state.count}">1</td>
+                <td>
+                    <a th:if="${line.productId() != null}" th:href="@{/admin/products/{id}(id=${line.productId()})}"
+                       class="text-brand-700 hover:underline" th:text="${line.name().in(#locale)}">Shirt</a>
+                    <span th:if="${line.productId() == null}" th:text="${line.name().in(#locale)}">Shirt</span>
+                </td>
+                <td class="text-end tabular-nums font-semibold" th:text="${#numbers.formatInteger(line.quantity(), 1)}">12</td>
+                <td class="text-end tabular-nums"><bdi th:text="${@money.format(line.revenue())}">60,000</bdi></td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section aria-labelledby="idle-heading">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="idle-heading" class="text-lg font-semibold" th:text="#{report.products.idle}">Not selling</h2>
+            <a th:replace="~{merchantadmin/reports/fragments :: csv(table='idle')}"></a>
+        </div>
+        <p class="mt-1 text-sm text-gray-600" th:with="form=${@plurals.of(products.idleCount())}"
+           th:text="#{report.products.idle.count.__${form}__(${products.idleCount()})}">3 products on sale sold nothing</p>
+        <ul th:unless="${products.idle().isEmpty()}" class="mt-3 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white text-sm">
+            <li th:each="line : ${products.idle()}" class="flex flex-wrap items-baseline justify-between gap-2 px-4 py-2.5">
+                <a th:href="@{/admin/products/{id}(id=${line.productId()})}" class="text-brand-700 hover:underline"
+                   th:text="${line.name().in(#locale)}">Mug</a>
+                <span class="text-gray-500" th:text="#{report.products.since(${@dates.format(line.since())})}">Added 1 Oct</span>
+            </li>
+        </ul>
+    </section>
+
+    <section aria-labelledby="stock-heading">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="stock-heading" class="text-lg font-semibold" th:text="#{report.products.stock}">Running low</h2>
+            <a th:replace="~{merchantadmin/reports/fragments :: csv(table='stock')}"></a>
+        </div>
+        <p class="mt-1 text-sm text-gray-600" th:text="#{report.products.stock.hint(${lowStock})}">Tracked variants with 5 or fewer available, now.</p>
+        <p th:if="${products.lowStock().isEmpty()}" class="report-empty" th:text="#{report.products.stock.none}">Nothing is running low.</p>
+        <ul th:unless="${products.lowStock().isEmpty()}" class="mt-3 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white text-sm">
+            <li th:each="line : ${products.lowStock()}" class="flex items-baseline gap-3 px-4 py-2.5 border-s-4"
+                th:classappend="${line.available() <= 0} ? 'border-s-amber-400' : 'border-s-transparent'">
+                <span class="min-w-0 flex-1">
+                    <a th:href="@{/admin/products/{id}(id=${line.productId()})}" class="text-brand-700 hover:underline"
+                       th:text="${line.name().in(#locale)}">Shirt</a>
+                    <span th:unless="${line.options().isEmpty()}" class="text-gray-500" th:text="${#strings.listJoin(line.options(), ' / ')}">M / Red</span>
+                </span>
+                <span th:if="${line.available() <= 0}" class="font-semibold text-amber-800" th:text="#{inventory.sold-out}">Out of stock</span>
+                <span th:if="${line.available() > 0}" class="tabular-nums font-semibold" th:with="form=${@plurals.of(line.available())}"
+                      th:text="#{report.products.available.__${form}__(${line.available()})}">3 left</span>
+            </li>
+        </ul>
+    </section>
+</main>
+</body>
+</html>

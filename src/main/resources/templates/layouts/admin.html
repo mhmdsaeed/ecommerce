@@ -10,7 +10,7 @@
 <body>
 <div layout:fragment="body" class="min-h-screen bg-gray-50 lg:flex" data-area="admin">
     <aside th:if="${currentStaff != null}"
-           class="hidden border-e border-gray-200 bg-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:shrink-0 lg:flex-col">
+           class="hidden border-e border-gray-200 bg-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:shrink-0 lg:flex-col print:hidden">
         <a th:href="@{/admin}" class="shop-sign shop-sign--compact block">
             <span class="shop-sign__shutter" aria-hidden="true"></span>
             <span class="block text-lg font-bold leading-snug" dir="auto"
@@ -28,7 +28,7 @@
     </aside>
 
     <div class="flex min-h-screen min-w-0 flex-1 flex-col">
-        <header th:if="${currentStaff != null}" class="relative bg-brand-700 text-white lg:hidden">
+        <header th:if="${currentStaff != null}" class="relative bg-brand-700 text-white lg:hidden print:hidden">
             <div class="flex items-center justify-between gap-3 px-4 py-3">
                 <a th:href="@{/admin}" class="min-w-0 truncate text-lg font-bold" dir="auto"
                    th:text="${currentStore != null} ? ${currentStore.name().in(#locale)} : #{app.name}">Store</a>

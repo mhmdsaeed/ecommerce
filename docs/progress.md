@@ -1601,3 +1601,28 @@ Each person chooses Device (the default), Light or Dark with a switch at the bot
 | `ColorSchemeIT` (new) | Dark is remembered across sessions; the switch goes back only to a page of the same area; unknown values change nothing; drivers and platform admins switch too; storefront and login pages carry no scheme |
 
 **Live check (local profile):** demo1 in each look at 1280 px and Grocer at 500 px; the admin dashboard, an order, the storefront settings and a driver's statement in dark; the platform store list in dark. Fixed after the screenshots: a featured product without a photo left an empty panel (now only products with photos are featured), the look drawings turned dark, the platform header's email was too faint. demo1's theme and both demo accounts' schemes were set back afterwards.
+
+## After M15: Merchant reports (2026-10-21)
+
+Part 3 of the plan agreed on 2026-10-21. Owners and managers get **Reports** in the admin navigation (money group), with four reports as tabs:
+
+- **Sales:** per currency the period's sales as the headline, against as many days just before ("12% more than the 30 days before"), orders and the average order as ledger lines; sales by day (up to a month), week (up to a quarter) or month as a column chart, the same figures as a table underneath. Sales are orders placed in the period except cancelled, refused and returned ones, in the currency the shopper paid (`total_display`); currencies are never added together.
+- **Products:** best sellers by units (with the deleted ones under the name on the order), products on sale that sold nothing, tracked variants with 5 or fewer available (out of stock in amber).
+- **Orders and delivery:** orders placed and the share lost, every status as a bar (lost ones amber), time to deliver (median as "usually", and average), delivery by zone, per driver (delivered, refused, time, cash collected), lost orders with the reason the merchant or driver wrote.
+- **Customers and payments:** new against returning buyers, top customers (linked to the customers page), payments by method, and what waits now: payment proofs to review and cash with drivers.
+
+Every report has the period picker (today, 7 days, 30 days, this month, last month, or custom dates up to a year, never past today; Damascus days), a CSV per table (`/admin/reports/<report>.csv?table=...`: UTF-8 with a byte order mark for Excel, plain numbers, the currency in its own column, typed text starting with = + - @ prefixed with an apostrophe so it never runs as a formula), and a Print button (the admin chrome and the controls hide on paper; bars print in colour). Charts are plain HTML and CSS: one series in the brand colour, 2px gaps, rounded tops, a grid at the top value (1, 2 or 5 times a power of ten) and its half, a tooltip on hover or keyboard focus, labels spaced back from the newest column; they work in dark mode.
+
+**Where the queries live:** a new read-only `report` module (`StoreReports`, `ReportPeriod`) queries the order, catalog, inventory, delivery and staff tables with SQL inside the store's tenant context, so row-level security applies; it writes nothing and adds no tables. Going through each module's API would have needed a new query per module for every figure.
+
+### Tests
+
+| Test | Checks |
+|---|---|
+| `ReportPeriodTest` (new) | Presets, the 30-day fallback, custom ranges kept within today and a year, the period before, day/week/month groups without gaps, Damascus day boundaries |
+| `ReportFormatsTest` (new) | Chart top rounding, one chart per currency, about eight labels; CSV byte order mark, quoting, formula-looking text kept as text |
+| `ReportsIT` (new) | Over real orders (two customers, a cancelled order with its reason, a driver delivery with cash): every figure of the four reports; the pages, the period in links, CSV download and an unknown table; staff get 403 and no nav link; another store sees nothing |
+
+**Live check (local profile):** the four reports on demo1 for the last 30 days at 1280 px, and a CSV download. Fixed after the screenshots: the last two chart labels collided, and a Latin customer name next to an Arabic date ran together in the lost orders list.
+
+**Noticed, not changed:** one demo1 order's cancellation reason was saved as "??????" by an earlier shell session; the data, not the report.
