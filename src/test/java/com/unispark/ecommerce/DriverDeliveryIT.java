@@ -283,6 +283,52 @@ class DriverDeliveryIT {
     }
 
     @Test
+    void pagesALongStatementWithWhatTheDriverHeldOnEveryPage() throws Exception {
+        var placed = readyFor(driver, PaymentMethod.COD, 2);
+        driverPost(placed, "start");
+        driverPost(placed, "deliver", "collected", "22000");
+        // 55 handovers of 100 after the collection, a minute apart: 56 lines, more than a page of 50.
+        TenantContext.runAs(store, () -> {
+            var owner = jdbc.queryForObject("SELECT id FROM staff_user WHERE email = ?", UUID.class,
+                    "owner@" + slug + ".test");
+            for (var minute = 1; minute <= 55; minute++) {
+                jdbc.update("""
+                        INSERT INTO cod_remittance (id, tenant_id, driver_id, amount, currency, remitted_at, received_by,
+                                                    created_at, updated_at, version)
+                        VALUES (?, ?, ?, 100, 'SYP', now() + make_interval(mins => ?), ?, now(), now(), 0)
+                        """, UUID.randomUUID(), store, driver, minute, owner);
+            }
+        });
+
+        var first = as(() -> settlement.statement(driver, 0));
+        assertThat(first.lines()).hasSize(CodSettlement.STATEMENT_ROWS);
+        assertThat(first.hasPrevious()).isFalse();
+        assertThat(first.hasNext()).isTrue();
+        // Newest first: after all 55 handovers the driver holds 22,000 - 5,500.
+        assertThat(first.lines().getFirst().heldAfter()).isEqualTo(syp("16500"));
+        assertThat(first.lines().getLast().heldAfter()).isEqualTo(syp("21400"));
+
+        var second = as(() -> settlement.statement(driver, 1));
+        assertThat(second.lines()).hasSize(6);
+        assertThat(second.hasNext()).isFalse();
+        // Worked out over the whole history, so the older page continues where the first left off.
+        assertThat(second.lines().getFirst().heldAfter()).isEqualTo(syp("21500"));
+        assertThat(second.lines().getLast().collection()).isTrue();
+        assertThat(second.lines().getLast().orderNumber()).isEqualTo(placed.number());
+        assertThat(second.lines().getLast().heldAfter()).isEqualTo(syp("22000"));
+        assertThat(as(() -> settlement.statement(driver, 2)).lines()).isEmpty();
+
+        mvc.perform(get(MAIN + "/admin/settlement/" + driver).session(owner))
+                .andExpect(content().string(allOf(containsString("الصفحة 1"),
+                        containsString("href=\"/admin/settlement/" + driver + "?page=1\""),
+                        not(containsString("rel=\"prev\"")))));
+        mvc.perform(get(MAIN + "/admin/settlement/" + driver).session(owner).param("page", "1"))
+                .andExpect(content().string(allOf(containsString("الصفحة 2"), containsString("#" + placed.number()),
+                        containsString("href=\"/admin/settlement/" + driver + "?page=0\""),
+                        not(containsString("rel=\"next\"")))));
+    }
+
+    @Test
     void remitFormStartsOnTheCurrencyStillOutstanding() throws Exception {
         for (var collected : List.of("12000", "50")) {
             var placed = readyFor(driver, PaymentMethod.COD, 1);

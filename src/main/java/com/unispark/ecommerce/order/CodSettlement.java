@@ -23,8 +23,17 @@ public interface CodSettlement {
     /** What drivers still hold in total, per currency, for the dashboard. */
     List<Money> outstanding();
 
-    /** One driver's balances and their latest collections and remittances, newest first. */
-    Statement statement(UUID driverId);
+    /**
+     * One driver's balances and a page of their statement: collections and remittances together, newest first,
+     * {@link #STATEMENT_ROWS} to a page (0 is the newest). Every line carries what the driver held after it, worked
+     * out over their whole history, so it is right on every page.
+     */
+    Statement statement(UUID driverId, int page);
+
+    /** The first page. */
+    default Statement statement(UUID driverId) {
+        return statement(driverId, 0);
+    }
 
     /**
      * Records cash a driver handed over, received by {@code receivedBy}. It may not exceed what the driver holds in
@@ -45,14 +54,23 @@ public interface CodSettlement {
         }
     }
 
-    record Statement(UUID driverId, List<Balance> balances, List<Collection> collections,
-            List<Remittance> remittances) {
+    /** @param hasNext older lines follow on the next page */
+    record Statement(UUID driverId, List<Balance> balances, List<Line> lines, int page, boolean hasNext) {
+
+        public boolean hasPrevious() {
+            return page > 0;
+        }
     }
 
-    record Collection(int orderNumber, Money amount, Instant collectedAt) {
-    }
+    /**
+     * A collection for an order ({@code orderNumber} set) or cash handed over to {@code receivedBy} (with an
+     * optional note), and what the driver held in that currency after it.
+     */
+    record Line(Instant at, Integer orderNumber, Money amount, UUID receivedBy, String note, Money heldAfter) {
 
-    record Remittance(Money amount, Instant remittedAt, UUID receivedBy, String note) {
+        public boolean collection() {
+            return orderNumber != null;
+        }
     }
 
     sealed interface RemitResult {

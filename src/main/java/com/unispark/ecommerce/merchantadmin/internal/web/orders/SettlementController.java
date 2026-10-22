@@ -54,16 +54,17 @@ class SettlementController {
 
     @GetMapping("/{driverId}")
     String statement(@PathVariable UUID driverId, @RequestParam(required = false) String done,
-            @RequestParam(required = false) String error, Model model) {
+            @RequestParam(required = false) String error, @RequestParam(name = "page", required = false) String page,
+            Model model) {
         var driver = staff.find(driverId).filter(card -> card.role() == StaffRole.DRIVER)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         model.addAttribute("driver", driver);
-        var statement = settlement.statement(driverId);
+        var statement = settlement.statement(driverId, ListParams.page(page));
         model.addAttribute("statement", statement);
         // The remit form starts on the first currency the driver still holds, empty when everything is handed over.
         model.addAttribute("due", statement.balances().stream()
                 .filter(balance -> balance.outstanding().isPositive()).findFirst().orElse(null));
-        model.addAttribute("lines", SettlementViews.lines(statement, names()));
+        model.addAttribute("names", names());
         model.addAttribute("currencies", Currency.values());
         model.addAttribute("done", "remitted".equals(done) ? "settlement.done.remitted" : null);
         model.addAttribute("error", error != null && Set.of("amount", "too-much").contains(error)

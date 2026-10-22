@@ -1648,3 +1648,12 @@ Part 4, the last of the plan agreed on 2026-10-21. The platform admin gets **Rep
 **Live check (local profile):** the four platform reports for the last 30 days at 1280 px. Fixed after the screenshots: the signups chart labelled its half-way line "3" for a top of 5, and storage under 1 MB read "0.0 MB" (now KB).
 
 **Fixed on the way (part 1):** reset requests made in quick succession for one member created their links on parallel background threads, which raced to close the same older link; one lost on the version check and its email was never sent (seen once as a failure of `limitsResetRequestsPerAccount` in a full run). Making a link now locks the member's row first (`StaffUserRepository.lockById`), so requests for one member take turns; the test also checks that no background work failed and that exactly one link stays open.
+
+## After M15: Paging the driver statement (2026-10-22)
+
+The settlement page's statement showed the latest 50 collections and 50 handovers, merged in the web layer and cut where the shorter history ran out; older lines could not be reached. It now pages: `CodSettlement.statement(driverId, page)` returns 50 lines a page, collections and handovers together, newest first, from one SQL query (a union of `cod_collection` and `cod_remittance`). What the driver held after each line is a running sum per currency over their whole history (a collection before a handover at the same moment), so it is exact on every page. The page has Newer and Older links with the page number under the statement (hidden when printing). `SettlementViews` keeps only the driver list; the unused repository finders and `settlement.statement.earlier` are gone.
+
+| Test | Checks |
+|---|---|
+| `DriverDeliveryIT` (changed) | New `pagesALongStatementWithWhatTheDriverHeldOnEveryPage`: a collection and 55 handovers make two pages of 50 and 6, held-after continues across the pages, an empty third page, the links in both directions |
+| `SettlementViewsTest` (changed) | The merge and cutoff tests went with the code they tested |

@@ -11,7 +11,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 
-import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,10 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.unispark.ecommerce.identity.StaffDirectory;
 import com.unispark.ecommerce.identity.StaffRole;
 import com.unispark.ecommerce.order.CodSettlement;
-import com.unispark.ecommerce.order.internal.persistence.CodCollectionRepository;
 import com.unispark.ecommerce.order.internal.persistence.CodRemittance;
 import com.unispark.ecommerce.order.internal.persistence.CodRemittanceRepository;
-import com.unispark.ecommerce.order.internal.persistence.ShopOrderRepository;
 import com.unispark.ecommerce.shared.Amounts;
 import com.unispark.ecommerce.shared.Currency;
 import com.unispark.ecommerce.shared.Money;
@@ -36,19 +33,39 @@ import com.unispark.ecommerce.shared.TenantContext;
 @Transactional
 class CodSettlementService implements CodSettlement {
 
+    /**
+     * The driver's collections (+) and remittances (-) in one list. held_after is the running sum per currency over
+     * their whole history in time order (a collection before a remittance at the same moment, then by id), so it is
+     * exact on every page; the page is then cut newest first in the reverse of that order.
+     */
+    private static final String STATEMENT_LINES = """
+            WITH lines AS (
+                SELECT c.collected_at AS at, c.id, o.number AS order_number, c.amount, c.currency,
+                       NULL::uuid AS received_by, NULL::text AS note, 1 AS sign
+                FROM cod_collection c
+                JOIN shop_order o ON o.tenant_id = c.tenant_id AND o.id = c.order_id
+                WHERE c.driver_id = :driver
+                UNION ALL
+                SELECT r.remitted_at, r.id, NULL, r.amount, r.currency, r.received_by, r.note, -1
+                FROM cod_remittance r
+                WHERE r.driver_id = :driver),
+            running AS (
+                SELECT lines.*, sum(sign * amount) OVER (PARTITION BY currency ORDER BY at, sign DESC, id
+                                                         ROWS UNBOUNDED PRECEDING) AS held_after
+                FROM lines)
+            SELECT * FROM running
+            ORDER BY at DESC, sign, id DESC
+            LIMIT :rows OFFSET :skip
+            """;
+
     private final JdbcClient jdbc;
-    private final CodCollectionRepository collections;
     private final CodRemittanceRepository remittances;
-    private final ShopOrderRepository orders;
     private final StaffDirectory staff;
     private final Clock clock;
 
-    CodSettlementService(JdbcClient jdbc, CodCollectionRepository collections, CodRemittanceRepository remittances,
-            ShopOrderRepository orders, StaffDirectory staff, Clock clock) {
+    CodSettlementService(JdbcClient jdbc, CodRemittanceRepository remittances, StaffDirectory staff, Clock clock) {
         this.jdbc = jdbc;
-        this.collections = collections;
         this.remittances = remittances;
-        this.orders = orders;
         this.staff = staff;
         this.clock = clock;
     }
@@ -83,22 +100,24 @@ class CodSettlementService implements CodSettlement {
 
     @Override
     @Transactional(readOnly = true)
-    public Statement statement(UUID driverId) {
+    public Statement statement(UUID driverId, int page) {
         var balances = balances(driverId, sums("cod_collection", driverId), sums("cod_remittance", driverId));
-        var page = PageRequest.of(0, STATEMENT_ROWS);
-        var numbers = new HashMap<UUID, Integer>();
-        var collectedRows = collections.findByDriverIdOrderByCollectedAtDesc(driverId, page);
-        orders.findAllById(collectedRows.stream().map(row -> row.getOrderId()).toList())
-                .forEach(order -> numbers.put(order.getId(), order.getNumber()));
-        var collected = collectedRows.stream()
-                .map(row -> new Collection(numbers.getOrDefault(row.getOrderId(), 0),
-                        Money.of(row.getAmount(), row.getCurrency()), row.getCollectedAt()))
-                .toList();
-        var remitted = remittances.findByDriverIdOrderByRemittedAtDesc(driverId, page).stream()
-                .map(row -> new Remittance(Money.of(row.getAmount(), row.getCurrency()), row.getRemittedAt(),
-                        row.getReceivedBy(), row.getNote()))
-                .toList();
-        return new Statement(driverId, balances, collected, remitted);
+        var current = Math.max(page, 0);
+        // One more than a page, to know whether an older page follows.
+        var lines = jdbc.sql(STATEMENT_LINES)
+                .param("driver", driverId)
+                .param("rows", STATEMENT_ROWS + 1)
+                .param("skip", (long) current * STATEMENT_ROWS)
+                .query((row, index) -> {
+                    var currency = Currency.valueOf(row.getString("currency"));
+                    return new Line(row.getTimestamp("at").toInstant(), row.getObject("order_number", Integer.class),
+                            Money.of(row.getBigDecimal("amount"), currency), row.getObject("received_by", UUID.class),
+                            row.getString("note"), Money.of(row.getBigDecimal("held_after"), currency));
+                })
+                .list();
+        var hasNext = lines.size() > STATEMENT_ROWS;
+        return new Statement(driverId, balances, hasNext ? List.copyOf(lines.subList(0, STATEMENT_ROWS)) : lines,
+                current, hasNext);
     }
 
     @Override
