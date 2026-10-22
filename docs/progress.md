@@ -1700,3 +1700,12 @@ Checked all eight reports at 375 px. Headless Edge will not size a window below 
 The platform admin's header wrapped onto four lines on a phone. It now works like the merchant admin's: below the `lg` breakpoint, the title and a Menu button that opens a panel with the sections as a list (the current one marked), then the account (email, log out, light or dark, language); from `lg` up, everything in one row as before. The sections and the account are one fragment used in both places (`fragments/platform-nav.html`). Signed out (the login page), the header has the title and the languages only. In dark mode the panel matches the near-black header.
 
 `PlatformReportsIT` checks that both placements mark the current section and that the login page has no menu. **Live check:** 375 px with the menu closed and open, the signed-out header, and 1024 and 1280 px.
+
+## After M15: Merchant admin at phone width (2026-10-22)
+
+Every merchant admin page was checked at 375 px as the demo1 owner: dashboard, setup, orders and an order, products, a product (with and without variants), a new product, categories and editing one, inventory, customers, delivery zones and editing one, cash collection and a driver's statement, the five settings tabs, staff and editing a member, billing and account. Two pages needed changes:
+
+- **Product variants and prices** was a five-column table that scrolled sideways, so the "was" price, the SKU and the on-sale box were off screen. Below `md` each variant now stacks: its name, then price and "was" side by side, then SKU and on sale, each with its own label (the price label carries the currency). From `md` up it is the same table as before.
+- **Customers** was a table whose actions wrapped word by word ("حظر / الزبون"). It is now a list like staff and delivery zones: name and phone, then the delivered and refused counts with new, returning or blocked beside them, then the actions; from `md` up the same items sit in columns. A blocked customer has a red edge (`OrderManagementIT` checks it).
+
+The rest already worked: lists stack as cards, the tabs scroll sideways, forms take the full width.

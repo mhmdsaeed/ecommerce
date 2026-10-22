@@ -330,7 +330,7 @@ class OrderManagementIT {
                 .isEqualTo(Rejected.because(Reason.BLOCKED));
 
         mvc.perform(get(MAIN + "/admin/customers").session(staff))
-                .andExpect(content().string(allOf(containsString("+963933111006"), containsString("محظور"),
+                .andExpect(content().string(allOf(containsString("+963933111006"), containsString("محظور"), containsString("border-s-red-400"),
                         not(containsString("رفع الحظر")))));
         mvc.perform(post(MAIN + "/admin/customers/" + order(placed).customerId() + "/block").session(owner).with(csrf())
                         .header("HX-Request", "true").param("blocked", "false"))

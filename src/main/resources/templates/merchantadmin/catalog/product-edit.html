@@ -109,9 +109,11 @@
                 <th:block th:if="${#fields.hasErrors('variants')}">
                     <div th:replace="~{fragments/forms :: alert(kind='error', message=${#fields.errors('variants')[0]})}"></div>
                 </th:block>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead class="text-gray-600">
+                <!--/* A table from md up; on phones each variant stacks: its name, then price and "was", then SKU and on
+                       sale, each with its own label. */-->
+                <div class="md:overflow-x-auto">
+                    <table class="w-full text-sm max-md:block">
+                        <thead class="text-gray-600 max-md:hidden">
                         <tr>
                             <th scope="col" class="px-2 py-2 text-start font-medium" th:text="#{product.variants.col.variant}">Variant</th>
                             <th scope="col" class="px-2 py-2 text-start font-medium">
@@ -123,36 +125,43 @@
                             <th scope="col" class="px-2 py-2 text-start font-medium" th:text="#{product.variants.col.active}">On sale</th>
                         </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100">
-                        <tr th:each="row, state : *{variants}" class="align-top">
-                            <td class="px-2 py-2">
+                        <tbody class="divide-y divide-gray-100 max-md:block">
+                        <tr th:each="row, state : *{variants}" class="align-top max-md:grid max-md:grid-cols-2 max-md:gap-x-3 max-md:gap-y-2 max-md:py-3">
+                            <td class="px-2 py-2 max-md:col-span-2 max-md:p-0">
                                 <input type="hidden" th:field="*{variants[__${state.index}__].id}">
                                 <span class="font-medium" th:text="${#strings.isEmpty(row.label)} ? #{product.variants.default} : ${row.label}">M / Red</span>
                             </td>
-                            <td class="px-2 py-2">
+                            <td class="px-2 py-2 max-md:p-0">
+                                <span class="mb-1 block text-xs text-gray-600 md:hidden"
+                                      th:text="|#{product.variants.col.price} (#{currency.__${product.priceCurrency()}__})|">Price (SYP)</span>
                                 <input type="text" inputmode="decimal" dir="ltr" th:field="*{variants[__${state.index}__].price}"
-                                       class="w-32 rounded-md border px-2 py-1"
+                                       class="w-32 max-md:w-full rounded-md border px-2 py-1"
                                        th:classappend="${#fields.hasErrors('variants[__${state.index}__].price')} ? 'border-red-500' : 'border-gray-300'"
                                        th:attr="aria-label=#{product.variants.col.price}">
                                 <p th:if="${#fields.hasErrors('variants[__${state.index}__].price')}" th:errors="*{variants[__${state.index}__].price}" class="text-xs text-red-600"></p>
                             </td>
-                            <td class="px-2 py-2">
+                            <td class="px-2 py-2 max-md:p-0">
+                                <span class="mb-1 block text-xs text-gray-600 md:hidden" th:text="#{product.variants.col.compareAt}">Was</span>
                                 <input type="text" inputmode="decimal" dir="ltr" th:field="*{variants[__${state.index}__].compareAtPrice}"
-                                       class="w-32 rounded-md border px-2 py-1"
+                                       class="w-32 max-md:w-full rounded-md border px-2 py-1"
                                        th:classappend="${#fields.hasErrors('variants[__${state.index}__].compareAtPrice')} ? 'border-red-500' : 'border-gray-300'"
                                        th:attr="aria-label=#{product.variants.col.compareAt}">
                                 <p th:if="${#fields.hasErrors('variants[__${state.index}__].compareAtPrice')}" th:errors="*{variants[__${state.index}__].compareAtPrice}" class="text-xs text-red-600"></p>
                             </td>
-                            <td class="px-2 py-2">
+                            <td class="px-2 py-2 max-md:p-0">
+                                <span class="mb-1 block text-xs text-gray-600 md:hidden" th:text="#{product.variants.col.sku}">SKU</span>
                                 <input type="text" dir="ltr" th:field="*{variants[__${state.index}__].sku}"
-                                       class="w-36 rounded-md border px-2 py-1"
+                                       class="w-36 max-md:w-full rounded-md border px-2 py-1"
                                        th:classappend="${#fields.hasErrors('variants[__${state.index}__].sku')} ? 'border-red-500' : 'border-gray-300'"
                                        th:attr="aria-label=#{product.variants.col.sku}">
                                 <p th:if="${#fields.hasErrors('variants[__${state.index}__].sku')}" th:errors="*{variants[__${state.index}__].sku}" class="text-xs text-red-600"></p>
                             </td>
-                            <td class="px-2 py-2">
-                                <input type="checkbox" th:field="*{variants[__${state.index}__].active}" class="h-5 w-5"
-                                       th:attr="aria-label=#{product.variants.col.active}">
+                            <td class="px-2 py-2 max-md:self-end max-md:p-0">
+                                <label class="flex items-center gap-2 max-md:pb-2">
+                                    <input type="checkbox" th:field="*{variants[__${state.index}__].active}" class="h-5 w-5"
+                                           th:attr="aria-label=#{product.variants.col.active}">
+                                    <span class="text-xs text-gray-600 md:hidden" aria-hidden="true" th:text="#{product.variants.col.active}">On sale</span>
+                                </label>
                             </td>
                         </tr>
                         </tbody>

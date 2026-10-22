@@ -22,32 +22,26 @@
         <p th:if="${customers.rows().isEmpty()}" class="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-gray-600"
            th:text="${q == null or q.isBlank()} ? #{admin.customers.empty} : #{admin.customers.no-match}">No customers yet.</p>
 
-        <div th:unless="${customers.rows().isEmpty()}" class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50 text-gray-600">
-                <tr>
-                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.customer}">Customer</th>
-                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.customers.col.history}">Orders</th>
-                    <th scope="col" class="px-4 py-3 text-start font-medium" th:text="#{admin.orders.col.status}">Status</th>
-                    <th scope="col" class="px-4 py-3"><span class="sr-only" th:text="#{admin.customers.col.actions}">Actions</span></th>
-                </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                <tr th:each="customer : ${customers.rows()}">
-                    <td class="px-4 py-3">
+        <!--/* A list like staff and zones: on phones each customer stacks (name and phone; their delivered and refused
+               counts with new, returning or blocked beside them; the actions), from md up the same in columns.
+               A blocked customer has a red edge. */-->
+        <ul th:unless="${customers.rows().isEmpty()}" class="divide-y divide-gray-200 overflow-hidden rounded-lg border border-gray-200 bg-white text-sm">
+            <li th:each="customer : ${customers.rows()}" class="border-s-4"
+                th:classappend="${customer.blocked()} ? 'border-s-red-400' : 'border-s-transparent'">
+                <div class="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 gap-y-1.5 px-4 py-3 md:grid-cols-[minmax(0,1fr)_11rem_7rem_auto] md:items-center">
+                    <div class="col-span-2 md:col-span-1">
                         <div class="font-medium" th:text="${customer.name() != null} ? ${customer.name()} : '—'">Name</div>
-                        <div class="text-xs text-gray-500" dir="ltr" th:text="${customer.phone()}">+963</div>
-                    </td>
-                    <td class="px-4 py-3 text-gray-600"
-                        th:text="#{admin.customers.counts(${customer.orderCount()}, ${customer.refusedCount()})}">Delivered 0, refused 0</td>
-                    <td class="px-4 py-3">
+                        <bdi class="inline-block text-xs text-gray-500" dir="ltr" th:text="${customer.phone()}">+963</bdi>
+                    </div>
+                    <div class="text-gray-600" th:text="#{admin.customers.counts(${customer.orderCount()}, ${customer.refusedCount()})}">Delivered 0, refused 0</div>
+                    <div class="justify-self-end md:justify-self-start">
                         <span th:if="${customer.blocked()}" class="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-800"
                               th:text="#{admin.customers.blocked}" th:title="${customer.blockReason()}">Blocked</span>
-                        <span th:unless="${customer.blocked()}" class="text-xs text-gray-500"
+                        <span th:unless="${customer.blocked()}" class="whitespace-nowrap text-xs text-gray-500"
                               th:text="${customer.isNew()} ? #{admin.customers.new} : #{admin.customers.returning}">New</span>
-                    </td>
-                    <td class="px-4 py-3">
-                        <div class="flex flex-wrap items-center justify-end gap-3">
+                    </div>
+                    <div class="col-span-2 md:col-span-1">
+                        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 md:justify-end">
                             <a th:href="@{/admin/customers/{id}/orders(id=${customer.id()})}" class="text-brand-700 hover:underline"
                                th:text="#{admin.customers.orders}">Orders</a>
                             <form th:if="${currentStaff.role().managesStaff()}" method="post"
@@ -60,11 +54,10 @@
                                         th:text="${customer.blocked()} ? #{admin.customers.unblock} : #{admin.customers.block}">Block</button>
                             </form>
                         </div>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
+                    </div>
+                </div>
+            </li>
+        </ul>
 
         <nav th:if="${customers.page() > 0 or customers.hasNext()}" class="mt-4 flex justify-between text-sm" th:attr="aria-label=#{admin.orders.pages}">
             <a th:if="${customers.page() > 0}" th:href="@{/admin/customers(q=${q}, page=${customers.page() - 1})}"
