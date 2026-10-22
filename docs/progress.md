@@ -1742,4 +1742,4 @@ The check found a real problem: an order paid by Sham Cash whose money never arr
 
 Tests: `OrderManagementIT` (cancel only, a refused confirm, the proof prompt, confirming once approved), `DriverDeliveryIT` (the driver's warning, no setting off; the transfer delivery test now approves the payment first), `OrderStateMachineTest` (which steps need payment). **Live check:** demo1 order 1006 (Sham Cash, unpaid) on the merchant's page and the driver's, at 375 px; it was assigned to the driver for the check and unassigned after.
 
-**Also noticed:** a driver can record a refusal without a reason; it is optional by design, but the form does not say so.
+**Also noticed:** a driver can record a refusal without a reason; it is optional by design, and the form labels it "السبب (اختياري)".
