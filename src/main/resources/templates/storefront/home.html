@@ -29,6 +29,7 @@
             <img th:if="${key != null}" th:with="medium=${@shopImages.medium(key)}, large=${@shopImages.large(key)}"
                  th:src="${medium}" th:srcset="|${medium} 640w, ${large} 1024w|" sizes="(min-width: 768px) 60vw, 100vw"
                  width="640" height="480" alt="" fetchpriority="high" class="h-full w-full object-contain">
+            <th:block th:if="${key == null}"><span th:replace="~{storefront/fragments/catalog :: no-photo}"></span></th:block>
         </a>
         <div class="showroom-feature__text">
             <p class="text-sm font-medium text-brand-700" th:text="#{shop.newest.latest}">Just in</p>

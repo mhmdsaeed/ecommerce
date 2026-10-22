@@ -3,6 +3,15 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
+<!--/* Where a product has no photo: a price tag in the store's colour on its palest tint, filling the photo's place,
+       so it reads as "no photo yet" rather than a picture that failed to load. (Tag icon: Heroicons, MIT.) */-->
+<span th:fragment="no-photo" class="no-photo" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z"/>
+        <path d="M6 6h.008v.008H6V6Z"/>
+    </svg>
+</span>
+
 <!--/* Products as the store's look lays them out (layouts/storefront.html sets data-look): rows with a quick add
        button for a grocer, cards for the others, whose columns, photo shape and price style app.css sets per look. */-->
 <th:block th:fragment="product-grid(products, eagerCount)">
@@ -12,6 +21,7 @@
                 <img th:if="${card.image() != null}" th:with="small=${@shopImages.small(card.image().storageKey())}"
                      th:src="${small}" width="80" height="80" alt=""
                      th:attr="loading=${state.index < eagerCount} ? 'eager' : 'lazy'" class="h-full w-full object-contain">
+                <th:block th:if="${card.image() == null}"><span th:replace="~{storefront/fragments/catalog :: no-photo}"></span></th:block>
             </a>
             <div class="min-w-0">
                 <h3 class="line-clamp-2 font-medium text-gray-900">
@@ -50,6 +60,7 @@
                      width="320" height="320" alt=""
                      th:attr="loading=${state.index < eagerCount} ? 'eager' : 'lazy'"
                      class="h-full w-full object-contain transition group-hover:opacity-90">
+                <th:block th:if="${card.image() == null}"><span th:replace="~{storefront/fragments/catalog :: no-photo}"></span></th:block>
             </div>
             <h3 class="product-card__name mt-2 line-clamp-2 text-sm font-medium text-gray-900" th:text="${card.name().in(#locale)}">Product</h3>
             <!--/* The price on a tag in the store's colour, like a price sticker (plain text in a boutique). */-->

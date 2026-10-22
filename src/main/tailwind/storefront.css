@@ -209,3 +209,19 @@
 .showroom-tile:hover {
   background: var(--color-brand-100);
 }
+
+/* A product without a photo (fragments/catalog.html, no-photo): a price tag in the store's colour on its palest tint,
+   filling the photo's place, whatever its size and shape. */
+.no-photo {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  background: var(--color-brand-50);
+  color: var(--color-brand-500);
+}
+.no-photo svg {
+  width: 30%;
+  min-width: 1.75rem;
+  max-width: 6rem;
+}

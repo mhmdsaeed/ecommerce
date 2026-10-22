@@ -21,7 +21,9 @@
     </nav>
 
     <div class="mt-4 grid gap-8 md:grid-cols-2 md:items-start">
-        <div th:if="${product.images().isEmpty()}" class="aspect-square rounded-lg bg-gray-100"></div>
+        <div th:if="${product.images().isEmpty()}" class="aspect-square overflow-hidden rounded-lg">
+            <span th:replace="~{storefront/fragments/catalog :: no-photo}"></span>
+        </div>
         <div th:unless="${product.images().isEmpty()}" x-data="gallery" class="min-w-0 space-y-3 md:sticky md:top-4"
              th:with="count=${product.images().size()}">
             <ul x-ref="strip" class="flex snap-x snap-mandatory overflow-x-auto rounded-lg bg-gray-100 [scrollbar-width:none]"

@@ -139,6 +139,8 @@ class StorefrontIT {
                         containsString("535 ل.س"),
                         // Variants with different prices show "from" the lowest.
                         containsString("من</span>"),
+                        // Products without photos show the placeholder in their photo's place.
+                        containsString("class=\"no-photo\""),
                         // The store's sign in the header carries the page's h1: the store's name.
                         matchesPattern("(?s).*<header>.*<h1[^>]*>متجر الورد</h1>.*</header>.*"))));
 
@@ -153,8 +155,8 @@ class StorefrontIT {
                         containsString("x-data=\"variantPicker\""),
                         containsString("&quot;price&quot;:&quot;1,200 ل.س&quot;"),
                         containsString("&quot;compareAt&quot;:&quot;1,500 ل.س&quot;"),
-                        // The price on its swing tag, the photo strip's place, the description under its heading.
-                        containsString("class=\"swing-tag\""), containsString("عن المنتج"),
+                        // The price on its swing tag, the description under its heading, no photos: the placeholder.
+                        containsString("class=\"swing-tag\""), containsString("عن المنتج"), containsString("class=\"no-photo\""),
                         containsString("x-model.number=\"quantity\""),
                         // No delivery zones or payment methods yet: nothing to say about them.
                         not(containsString("التوصيل إلى")))));

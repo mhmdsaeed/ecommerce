@@ -1725,3 +1725,7 @@ Every storefront page was checked at 375 px on demo1: home, a category, a produc
 One wording fix: in Arabic the order page (the shopper's and the merchant's) labelled both the subtotal and the grand total "المجموع". The grand total is now "الإجمالي" (`CheckoutWebIT` checks both words).
 
 **Noticed, not changed:** a product without a photo shows an empty grey square.
+
+## After M15: A placeholder for products without photos (2026-10-22)
+
+A product without a photo showed an empty grey square, which looked like a picture that failed to load. It now shows a price tag drawn in the store's colour on its palest tint (`fragments/catalog.html :: no-photo`, styled in `storefront.css`), filling the photo's place on product cards, grocer rows, the product page, the showroom feature and cart lines. A cart line whose product is no longer sold keeps the plain grey square. `StorefrontIT` checks the placeholder on the home and product pages. **Live check:** at 375 px, the home page, the product page, the cart and the grocer look.

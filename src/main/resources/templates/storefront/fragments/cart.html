@@ -27,7 +27,9 @@
                     <!--/* URL attributes may not call beans directly, so compute the URL first. */-->
                     <img th:if="${line.image() != null}" th:with="url=${@shopImages.small(line.image().storageKey())}" th:src="${url}" alt=""
                          width="64" height="64" loading="lazy" class="h-16 w-16 shrink-0 rounded bg-gray-100 object-contain">
-                    <span th:if="${line.image() == null}" class="h-16 w-16 shrink-0 rounded bg-gray-100" aria-hidden="true"></span>
+                    <span th:if="${line.image() == null}" class="h-16 w-16 shrink-0 overflow-hidden rounded">
+                        <span th:replace="~{storefront/fragments/catalog :: no-photo}"></span>
+                    </span>
                     <div class="min-w-0 flex-1 space-y-1">
                         <a th:href="@{/p/{slug}(slug=${line.productSlug()})}" class="font-medium hover:text-brand-700"
                            th:text="${line.productName().in(#locale)}">Product</a>
