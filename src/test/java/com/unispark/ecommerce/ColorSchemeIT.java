@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -119,13 +120,19 @@ class ColorSchemeIT {
 
     @Test
     void storefrontsAndLoginPagesHaveNoScheme() throws Exception {
-        mvc.perform(get(TestAccounts.storefront(slug) + "/"))
-                .andExpect(content().string(allOf(not(containsString("data-scheme")),
-                        // and browsers that darken every site leave shops light.
-                        containsString("<meta name=\"color-scheme\" content=\"only light\">"))));
-        mvc.perform(get(MAIN + "/admin/login"))
-                .andExpect(content().string(not(containsString("data-scheme"))));
+        // No switch, and browsers that darken every site leave these pages light.
+        for (var page : List.of(TestAccounts.storefront(slug) + "/", MAIN + "/admin/login", MAIN + "/driver/login",
+                MAIN + "/signup", MAIN + "/admin/password/forgot", PLATFORM + "/platform/login")) {
+            mvc.perform(get(page))
+                    .andExpect(content().string(allOf(not(containsString("data-scheme")), containsString(ONLY_LIGHT))));
+        }
+        // Signed in, the person's own choice applies instead.
+        var owner = TestAccounts.logIn(mvc, slug, "owner@" + slug + ".test");
+        mvc.perform(get(MAIN + "/admin").session(owner))
+                .andExpect(content().string(allOf(containsString("data-scheme"), not(containsString(ONLY_LIGHT)))));
     }
+
+    private static final String ONLY_LIGHT = "<meta name=\"color-scheme\" content=\"only light\">";
 
     private static org.hamcrest.Matcher<String> pressed(String scheme) {
         return matchesPattern("(?s).*value=\"" + scheme + "\" aria-pressed=\"true\".*");

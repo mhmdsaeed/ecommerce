@@ -24,6 +24,9 @@
             })(document.documentElement);
         </script>
     </th:block>
+    <!--/* Every other page (shops, as the merchant designed them; sign-in and sign-up) is always light: browsers that
+           darken every site on their own (Chrome's auto dark) leave a page alone that says it is only light. */-->
+    <meta th:unless="${colorScheme != null}" name="color-scheme" content="only light">
     <title layout:title-pattern="$CONTENT_TITLE · $LAYOUT_TITLE" th:text="#{app.name}">App</title>
     <!--/* No favicon yet (store logos may become one): an empty icon stops browsers requesting /favicon.ico. */-->
     <link rel="icon" href="data:,">
