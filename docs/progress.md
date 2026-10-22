@@ -1717,3 +1717,11 @@ A change-frequency check over the git history put `src/main/tailwind/app.css` (9
 ## After M15: app.js split by area (2026-10-22)
 
 `app.js` (changed in 12 of 49 commits) held every page's behaviour, so the storefront downloaded the admin's look preview and the admin the storefront's variant picker. It is now three files: `app.js` for every page (CSRF for HTMX, the error banner, the shop sign on sign-in pages), `storefront.js` (cart badge, checkout slip, variant picker, photos; `layouts/storefront.html`) and `admin.js` (look preview, printing reports; `layouts/admin.html`). Alpine starts as soon as it runs, so it moved to the end of `<body>` in `layouts/base.html`: deferred scripts run in document order, which puts every area's script before it. `PageScriptsIT` checks which page loads which script, and the order.
+
+## After M15: Storefront at phone width (2026-10-22)
+
+Every storefront page was checked at 375 px on demo1: home, a category, a product with and without options, search with and without results, the cart empty and full, checkout with and without errors, and an order waiting for its Sham Cash payment (order 1010, placed for this check, stays in the demo data). Home, category and product were also checked in the boutique, grocer and showroom looks, and home and product in English. Everything fits: no sideways scrolling, nothing cut off, the header's search and languages share one row, the cart's quantity buttons and checkout's payment choices stay full width.
+
+One wording fix: in Arabic the order page (the shopper's and the merchant's) labelled both the subtotal and the grand total "المجموع". The grand total is now "الإجمالي" (`CheckoutWebIT` checks both words).
+
+**Noticed, not changed:** a product without a photo shows an empty grey square.

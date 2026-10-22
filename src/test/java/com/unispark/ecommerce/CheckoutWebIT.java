@@ -141,6 +141,8 @@ class CheckoutWebIT {
                 .andExpect(content().string(allOf(containsString("طلب رقم 1001"), containsString("بانتظار التأكيد"),
                         containsString("ادفع 22,000 ل.س نقداً عند استلام طلبك."), containsString("2 × وشاح"),
                         containsString("قرب الجامع"), not(containsString("name=\"reference\"")),
+                        // The subtotal and the grand total under different words.
+                        matchesPattern("(?s).*>المجموع<.*>الإجمالي<.*"),
                         // The first of the order's steps is the current one.
                         matchesPattern("(?s).*<li[^>]*aria-current=\"step\">.*?بانتظار التأكيد.*"))));
         // A repeated submit (back button, double click) lands on the same order.
