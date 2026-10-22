@@ -74,6 +74,13 @@ class OrderStateMachineTest {
     }
 
     @Test
+    void goingAheadNeedsATransferPaidFirst() {
+        // SPEC 6.2: confirming, preparing and sending out; never cancelling, nor what happens at the door.
+        assertThat(EnumSet.allOf(OrderStatus.class).stream().filter(OrderStateMachine::needsPayment))
+                .containsExactly(CONFIRMED, PREPARING, OUT_FOR_DELIVERY);
+    }
+
+    @Test
     void openOrdersAreTheOnesStillOnTheirWay() {
         assertThat(EnumSet.allOf(OrderStatus.class).stream().filter(OrderStatus::isOpen))
                 .containsExactly(PENDING_CONFIRMATION, CONFIRMED, PREPARING, OUT_FOR_DELIVERY);

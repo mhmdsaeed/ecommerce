@@ -16,6 +16,7 @@ import com.unispark.ecommerce.order.Orders;
 import com.unispark.ecommerce.order.Orders.OrderView;
 import com.unispark.ecommerce.order.internal.persistence.ShopOrder;
 import com.unispark.ecommerce.order.internal.persistence.ShopOrderRepository;
+import com.unispark.ecommerce.payment.PaymentStatus;
 import com.unispark.ecommerce.shared.Amounts;
 import com.unispark.ecommerce.shared.Money;
 
@@ -54,6 +55,9 @@ class DriverDeliveryService implements DriverDeliveries {
     @Override
     public DriverResult startDelivery(UUID driverId, int number) {
         return step(driverId, number, OrderStatus.PREPARING, order -> {
+            if (order.getPaymentMethod().isTransfer() && order.getPaymentStatus() != PaymentStatus.PAID) {
+                return new AwaitingTransfer();
+            }
             orderService.changeStatus(order.getId(), OrderStatus.OUT_FOR_DELIVERY, Actor.staff(driverId));
             return new Done();
         });

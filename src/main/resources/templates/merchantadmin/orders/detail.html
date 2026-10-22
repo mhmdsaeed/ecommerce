@@ -29,7 +29,7 @@
     <!--/* The next step: the actions the order's state allows, with what the decision needs beside them. While the
            order waits on the merchant (to be confirmed, or a transfer proof to check) the panel has an amber edge. */-->
     <section class="space-y-4 rounded-lg border border-gray-200 border-s-4 bg-white p-4" aria-labelledby="status-heading"
-             th:classappend="${order.status().name() == 'PENDING_CONFIRMATION' or order.pendingProof().isPresent()} ? 'border-s-amber-400' : 'border-s-brand-600'">
+             th:classappend="${order.status().name() == 'PENDING_CONFIRMATION' or order.pendingProof().isPresent() or (order.awaitsTransfer() and order.status().isOpen())} ? 'border-s-amber-400' : 'border-s-brand-600'">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 id="status-heading" class="text-lg font-semibold">
                 <span th:text="#{order.status}">Status</span>:
@@ -56,6 +56,12 @@
                   th:classappend="${customer.refusedCount() > 0} ? 'rounded bg-amber-100 px-1.5 font-semibold text-amber-900' : 'text-gray-600'"
                   th:text="#{admin.customers.counts(${customer.orderCount()}, ${customer.refusedCount()})}">Delivered 0, refused 0</span>
         </div>
+
+        <!--/* A transfer not approved yet: the order cannot go ahead (nextStatuses leaves those steps out), so say why and
+               what to do: check the proof below, or wait for the shopper to send one. */-->
+        <p th:if="${order.awaitsTransfer() and order.status().isOpen()}" role="status"
+           class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900"
+           th:text="${order.pendingProof().isPresent()} ? #{admin.orders.transfer.check} : #{admin.orders.transfer.waiting}">Waiting for the transfer.</p>
 
         <div th:unless="${order.nextStatuses().isEmpty()}" class="flex flex-wrap items-start gap-3">
             <form th:each="target : ${order.nextStatuses()}" th:unless="${target.name() == 'CANCELLED'}" method="post"

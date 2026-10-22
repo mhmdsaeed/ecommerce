@@ -52,6 +52,14 @@ public final class OrderStateMachine {
         return ALLOWED.get(from).contains(to);
     }
 
+    /**
+     * The steps that go ahead with an order: confirming, preparing and sending it out. An order paid by transfer takes
+     * them only once the merchant approved the payment (SPEC 6.2), so goods never leave before the money arrives.
+     */
+    public static boolean needsPayment(OrderStatus to) {
+        return to == CONFIRMED || to == PREPARING || to == OUT_FOR_DELIVERY;
+    }
+
     /** @throws IllegalOrderTransitionException for any change not listed above */
     public static void check(OrderStatus from, OrderStatus to) {
         if (!canTransition(from, to)) {

@@ -7,7 +7,11 @@ public class IllegalOrderTransitionException extends RuntimeException {
     private final OrderStatus to;
 
     public IllegalOrderTransitionException(OrderStatus from, OrderStatus to) {
-        super("An order cannot go from " + from + " to " + to);
+        this(from, to, "An order cannot go from " + from + " to " + to);
+    }
+
+    protected IllegalOrderTransitionException(OrderStatus from, OrderStatus to, String message) {
+        super(message);
         this.from = from;
         this.to = to;
     }

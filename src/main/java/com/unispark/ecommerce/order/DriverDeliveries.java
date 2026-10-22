@@ -19,7 +19,7 @@ public interface DriverDeliveries {
     /** The order, if it is given to this driver. */
     Optional<OrderView> find(UUID driverId, int number);
 
-    /** Picked up: PREPARING to OUT_FOR_DELIVERY. */
+    /** Picked up: PREPARING to OUT_FOR_DELIVERY; not while a transfer awaits the merchant's approval. */
     DriverResult startDelivery(UUID driverId, int number);
 
     /**
@@ -47,5 +47,9 @@ public interface DriverDeliveries {
 
     /** Cash on delivery needs the amount collected, above zero. */
     record InvalidAmount() implements DriverResult {
+    }
+
+    /** Paid by transfer, and the merchant has not approved the payment yet: the order stays at the store. */
+    record AwaitingTransfer() implements DriverResult {
     }
 }

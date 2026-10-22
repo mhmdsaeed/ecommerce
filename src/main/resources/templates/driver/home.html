@@ -48,8 +48,10 @@
                 <span class="block px-4 py-3">
                     <span th:unless="${order.paymentMethod().isTransfer()}" class="block text-lg font-bold tabular-nums"
                           th:text="#{driver.collect(${@money.format(order.total())})}">Collect 5,000</span>
-                    <span th:if="${order.paymentMethod().isTransfer()}" class="block text-gray-600"
+                    <span th:if="${order.paymentMethod().isTransfer() and !order.awaitsTransfer()}" class="block text-gray-600"
                           th:text="#{driver.prepaid}">Paid by transfer</span>
+                    <span th:if="${order.awaitsTransfer()}" class="block font-bold text-amber-900"
+                          th:text="#{driver.unpaid}">Not paid yet</span>
                 </span>
             </a>
         </li>

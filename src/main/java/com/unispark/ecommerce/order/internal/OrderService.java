@@ -28,6 +28,7 @@ import com.unispark.ecommerce.order.Actor;
 import com.unispark.ecommerce.order.OrderStateMachine;
 import com.unispark.ecommerce.order.OrderStatus;
 import com.unispark.ecommerce.order.Orders;
+import com.unispark.ecommerce.order.UnpaidTransferException;
 import com.unispark.ecommerce.order.internal.persistence.OrderEventRepository;
 import com.unispark.ecommerce.order.internal.persistence.OrderItem;
 import com.unispark.ecommerce.order.internal.persistence.PaymentProof;
@@ -135,6 +136,10 @@ class OrderService implements Orders {
         var order = found.get();
         var from = order.getStatus();
         OrderStateMachine.check(from, target);
+        if (OrderStateMachine.needsPayment(target) && order.getPaymentMethod().isTransfer()
+                && order.getPaymentStatus() != PaymentStatus.PAID) {
+            throw new UnpaidTransferException(from, target);
+        }
         switch (target) {
             case CANCELLED, RETURNED -> inventory.release(quantities(order));
             case DELIVERED -> {

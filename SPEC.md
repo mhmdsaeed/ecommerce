@@ -200,6 +200,8 @@ OUT_FOR_DELIVERY → REFUSED (customer refused at door) → RETURNED
 | Wallet (Syriatel Cash, Sham Cash, MTN Cash) | Show account id, name, QR, instructions; shopper submits transaction ref and/or screenshot | Merchant approves proof |
 | Bank transfer | Same as wallet | Merchant approves proof |
 
+An order paid by wallet or bank transfer goes ahead (`CONFIRMED`, `PREPARING`, `OUT_FOR_DELIVERY`) only once it is PAID, so goods never leave before the money arrives. Until then the merchant can only cancel it, and the order page says what is missing; a driver given such an order is told not to hand it over.
+
 ### 6.3 PaymentProvider SPI
 
 ```java

@@ -294,6 +294,33 @@ class OrderManagementIT {
     }
 
     @Test
+    void aTransferOrderGoesAheadOnlyOncePaid() throws Exception {
+        var placed = place("0933 111 006", "سارة", PaymentMethod.SHAM_CASH, 1);
+        var page = MAIN + "/admin/orders/" + placed.number();
+
+        // No money yet: the page says so, and the only way on is cancelling.
+        mvc.perform(get(page).session(staff))
+                .andExpect(content().string(allOf(containsString("لم يصل التحويل بعد"),
+                        not(containsString("name=\"target\" value=\"CONFIRMED\"")), containsString("value=\"CANCELLED\""))));
+        // A button from an older page, or a hand-made request, changes nothing.
+        step(page, "CONFIRMED").andExpect(redirectedUrl("/admin/orders/" + placed.number() + "?error=unpaid"));
+        assertThat(as(() -> orders.findByNumber(placed.number())).orElseThrow().status())
+                .isEqualTo(OrderStatus.PENDING_CONFIRMATION);
+
+        // A proof arrived: the page asks the merchant to check it first.
+        as(() -> orders.submitProof(placed.number(), placed.trackingToken(), "TX-7", null));
+        mvc.perform(get(page).session(staff))
+                .andExpect(content().string(allOf(containsString("تأكد من وصول المبلغ إلى حسابك"),
+                        not(containsString("name=\"target\" value=\"CONFIRMED\"")))));
+
+        mvc.perform(post(page + "/proof").session(staff).with(csrf()).param("decision", "approve"));
+        mvc.perform(get(page).session(staff))
+                .andExpect(content().string(allOf(not(containsString("لم يصل التحويل بعد")),
+                        not(containsString("تأكد من وصول المبلغ إلى حسابك")), containsString("name=\"target\" value=\"CONFIRMED\""))));
+        step(page, "CONFIRMED").andExpect(redirectedUrl("/admin/orders/" + placed.number() + "?done=CONFIRMED"));
+    }
+
+    @Test
     void aRejectedProofCanBeSentAgain() throws Exception {
         var placed = place("0933 111 005", "سارة", PaymentMethod.SHAM_CASH, 1);
         as(() -> orders.submitProof(placed.number(), placed.trackingToken(), "TX-1", null));

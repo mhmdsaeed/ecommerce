@@ -226,6 +226,23 @@ class DriverDeliveryIT {
     }
 
     @Test
+    void anUnpaidTransferStaysAtTheStore() throws Exception {
+        var placed = place(PaymentMethod.SHAM_CASH, 1);
+        as(() -> orders.assignDriver(placed.orderId(), driver, Actor.system()));
+
+        // Given early, before the money arrived: the driver is told not to hand it over, not that it is paid.
+        mvc.perform(get(MAIN + "/driver").session(driverSession))
+                .andExpect(content().string(allOf(containsString("لم يصل التحويل بعد"), not(containsString("مدفوع بالتحويل")))));
+        mvc.perform(get(MAIN + "/driver/orders/" + placed.number()).session(driverSession))
+                .andExpect(content().string(allOf(containsString("لم يصل التحويل بعد"), not(containsString("مدفوع بالتحويل")))));
+
+        // An order that got as far as preparing unpaid (before the rule) cannot set off.
+        as(() -> jdbc.update("UPDATE shop_order SET status = 'PREPARING' WHERE id = ?", placed.orderId()));
+        driverPost(placed, "start").andExpect(redirectedUrl("/driver/orders/" + placed.number() + "?error=unpaid"));
+        assertThat(order(placed).status()).isEqualTo(OrderStatus.PREPARING);
+    }
+
+    @Test
     void stepsHappenOnceAndInOrder() throws Exception {
         var placed = readyFor(driver, PaymentMethod.COD, 1);
 
@@ -377,10 +394,14 @@ class DriverDeliveryIT {
         assertThat(as(() -> settlement.outstanding())).containsExactly(syp("12000"));
     }
 
-    /** A placed order, confirmed, being prepared and given to the driver. */
+    /** A placed order (its transfer approved, if paid by one), confirmed, being prepared and given to the driver. */
     private Placed readyFor(UUID driverId, PaymentMethod method, int quantity) {
         var placed = place(method, quantity);
         as(() -> {
+            if (method.isTransfer()) {
+                orders.submitProof(placed.number(), placed.trackingToken(), "TX-" + placed.number(), null);
+                orders.reviewProof(placed.orderId(), true, null, Actor.system());
+            }
             orders.changeStatus(placed.orderId(), OrderStatus.CONFIRMED, Actor.system());
             orders.changeStatus(placed.orderId(), OrderStatus.PREPARING, Actor.system());
             return orders.assignDriver(placed.orderId(), driverId, Actor.system());

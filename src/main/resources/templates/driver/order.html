@@ -62,7 +62,9 @@
         <div class="p-4">
             <p th:unless="${order.paymentMethod().isTransfer()}" class="text-2xl font-bold tabular-nums"
                th:text="#{driver.collect(${@money.format(order.total())})}">Collect 5,000</p>
-            <p th:if="${order.paymentMethod().isTransfer()}" class="text-lg text-gray-600" th:text="#{driver.prepaid}">Paid by transfer</p>
+            <p th:if="${order.paymentMethod().isTransfer() and !order.awaitsTransfer()}" class="text-lg text-gray-600" th:text="#{driver.prepaid}">Paid by transfer</p>
+            <!--/* Given to the driver before its transfer was approved: the store has no money yet. */-->
+            <p th:if="${order.awaitsTransfer()}" class="rounded-md bg-amber-50 p-3 text-lg font-bold text-amber-900" th:text="#{driver.unpaid}">Not paid yet</p>
         </div>
     </section>
 

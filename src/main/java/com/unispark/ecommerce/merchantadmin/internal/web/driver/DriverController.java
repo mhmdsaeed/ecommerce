@@ -20,6 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.unispark.ecommerce.identity.StaffPrincipal;
 import com.unispark.ecommerce.order.CodSettlement;
 import com.unispark.ecommerce.order.DriverDeliveries;
+import com.unispark.ecommerce.order.DriverDeliveries.AwaitingTransfer;
 import com.unispark.ecommerce.order.DriverDeliveries.Done;
 import com.unispark.ecommerce.order.DriverDeliveries.DriverResult;
 import com.unispark.ecommerce.order.DriverDeliveries.InvalidAmount;
@@ -38,7 +39,7 @@ class DriverController {
 
     /** Outcomes the pages announce (?done=, ?error=); anything else in the URL is ignored. */
     static final Set<String> DONE = Set.of("started", "delivered", "refused");
-    static final Set<String> ERRORS = Set.of("step", "amount");
+    static final Set<String> ERRORS = Set.of("step", "amount", "unpaid");
 
     private final DriverDeliveries deliveries;
     private final CodSettlement settlement;
@@ -98,6 +99,7 @@ class DriverController {
             case Done ok -> "redirect:/driver/orders/" + number + "?done=" + done;
             case WrongStep wrong -> "redirect:/driver/orders/" + number + "?error=step";
             case InvalidAmount invalid -> "redirect:/driver/orders/" + number + "?error=amount";
+            case AwaitingTransfer unpaid -> "redirect:/driver/orders/" + number + "?error=unpaid";
             case NotYours notYours -> throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         };
     }

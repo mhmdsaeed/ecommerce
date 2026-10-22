@@ -41,6 +41,7 @@ import com.unispark.ecommerce.order.Orders.OrderFilter;
 import com.unispark.ecommerce.order.Orders.OrderNotFound;
 import com.unispark.ecommerce.order.Orders.OrderView;
 import com.unispark.ecommerce.order.Orders.ProofReviewed;
+import com.unispark.ecommerce.order.UnpaidTransferException;
 import com.unispark.ecommerce.payment.PaymentStatus;
 import com.unispark.ecommerce.payment.Payments;
 import com.unispark.ecommerce.shared.Htmx;
@@ -70,7 +71,7 @@ class OrderController {
     /** Outcomes the detail page announces after an action (?done=, ?error=); anything else is ignored. */
     static final Set<String> DONE = Set.of("CONFIRMED", "PREPARING", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED",
             "CANCELLED", "REFUSED", "RETURNED", "driver", "approved", "rejected", "blocked", "unblocked");
-    static final Set<String> ERRORS = Set.of("changed", "driver", "closed");
+    static final Set<String> ERRORS = Set.of("changed", "driver", "closed", "unpaid");
 
     private final Orders orders;
     private final Payments payments;
@@ -139,6 +140,8 @@ class OrderController {
         var order = find(number);
         try {
             orders.changeStatus(order.id(), target, Actor.staff(actor.staffId()), note);
+        } catch (UnpaidTransferException e) {
+            return redirect(number, "error=unpaid");
         } catch (IllegalOrderTransitionException e) {
             // Someone else moved the order first (another tab, another staff member): show it as it is now.
             return redirect(number, "error=changed");

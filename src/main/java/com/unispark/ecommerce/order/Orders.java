@@ -47,6 +47,8 @@ public interface Orders {
      *
      * @param note why, as staff wrote it (a cancellation reason), kept in the event; null for none
      * @throws IllegalOrderTransitionException when the state machine does not allow it; nothing changes
+     * @throws UnpaidTransferException when it would go ahead with an order whose transfer is not approved yet
+     *                                 ({@link OrderStateMachine#needsPayment}); nothing changes
      */
     Optional<OrderView> changeStatus(UUID orderId, OrderStatus target, Actor actor, String note);
 
@@ -98,9 +100,18 @@ public interface Orders {
             UUID customerId, String customerName, String customerPhone, Address address, String notes,
             UUID driverId, Money codCollected, List<Item> items, List<Event> events, List<Proof> proofs) {
 
-        /** The statuses staff can move it to now. */
+        /** The statuses staff can move it to now: while a transfer awaits approval, cancelling only. */
         public Set<OrderStatus> nextStatuses() {
-            return OrderStateMachine.next(status);
+            var next = OrderStateMachine.next(status);
+            if (awaitsTransfer()) {
+                next.removeIf(OrderStateMachine::needsPayment);
+            }
+            return next;
+        }
+
+        /** Paid by transfer, and the merchant has not approved the payment yet: the order cannot go ahead. */
+        public boolean awaitsTransfer() {
+            return paymentMethod.isTransfer() && paymentStatus != PaymentStatus.PAID;
         }
 
         public boolean cancellable() {
