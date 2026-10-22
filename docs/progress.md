@@ -1754,3 +1754,5 @@ The platform admin's pages were checked at 375 px (the reports and the header we
 - **An invoice's payment form:** the reference field shrank to nothing beside method and amount; it now takes its own line on a phone.
 
 Wide layouts are unchanged (checked at 1100 px). `BillingIT` checks the address under the name and the grace date under the status. An invoice was created for demo1 to see an invoice page, then voided (INV-1001).
+
+The new invoice form's store picker was labelled "الاسم" (the table column's word); it is now "المتجر" (`platform.invoice.store`, checked in `BillingIT`).

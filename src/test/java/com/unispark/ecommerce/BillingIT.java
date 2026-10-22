@@ -372,7 +372,8 @@ class BillingIT {
                         .param("store", store.toString()).param("amount", "0").param("currency", "USD"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(allOf(containsString("اكتب ما تخص الفاتورة"),
-                        containsString("أدخل مبلغاً أكبر من صفر"), containsString("اختر تاريخ الاستحقاق"))));
+                        containsString("أدخل مبلغاً أكبر من صفر"), containsString("اختر تاريخ الاستحقاق"),
+                        matchesPattern("(?s).*<label for=\"store\"[^>]*>المتجر</label>.*"))));
         mvc.perform(post(PLATFORM + "/platform/invoices").session(admin).with(csrf())
                         .param("store", store.toString()).param("description", "Setup and product upload")
                         .param("amount", "150,000").param("currency", "SYP").param("dueDate", today.toString()))
