@@ -31,6 +31,9 @@
         <meta name="twitter:card" th:content="${seo.image() != null} ? 'summary_large_image' : 'summary'">
     </th:block>
     <meta th:if="${storePreview != null}" name="robots" content="noindex">
+    <!--/* Shops are always light, as the merchant designed them: browsers that darken every site on their own
+           (Chrome's auto dark, Samsung Internet) leave a page alone that says it is only light. */-->
+    <meta name="color-scheme" content="only light">
 </head>
 <body>
 <div layout:fragment="body" class="flex min-h-screen flex-col" data-area="storefront" th:attr="data-look=${look}">

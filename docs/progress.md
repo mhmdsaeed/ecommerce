@@ -1773,3 +1773,9 @@ Every platform admin page was checked in dark mode at 1280 px (overview, stores 
 - **Left-to-right text on the wrong side** (light mode too): a block element with `dir="ltr"` lines up on the left of a right-to-left page. The invoice number heading, the store's address and plan on its page, and the plan code on its form now put the direction on a `<bdi>` inside, as do two found by searching: the customer's phone in the merchant's orders list and the transfer account number on the shopper's order page (`BillingIT` checks the invoice heading).
 
 `ApplicationSmokeIT` checks the stylesheet has the dark rule. **Live check:** the stores list in dark and light, the invoice, a store and a plan in dark, the merchant's orders.
+
+## After M15: Driver pages and storefront in dark mode (2026-10-22)
+
+**Driver pages:** checked in dark mode at 375 px: the deliveries list (cash held, an order being prepared, one on the way, one paid by transfer, one whose transfer hasn't arrived), the menu open, and an order in each of those states, with the refusal form open. Everything reads well; nothing changed. The sign-in page has no scheme and stays light.
+
+**Storefront:** shops have no dark mode by design and stayed light with the device set to dark. But browsers that darken every site on their own (Chrome's auto dark for web contents, Samsung Internet's dark mode) repainted them: near-black page, dark cart button with green text, dark tints behind prices and photos. Readable, but no longer the merchant's design. The storefront layout now says `<meta name="color-scheme" content="only light">`, which those browsers respect; headless Edge with forced dark left the page fully light with it. `ColorSchemeIT` checks shops carry it.

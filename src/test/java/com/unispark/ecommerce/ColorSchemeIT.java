@@ -120,7 +120,9 @@ class ColorSchemeIT {
     @Test
     void storefrontsAndLoginPagesHaveNoScheme() throws Exception {
         mvc.perform(get(TestAccounts.storefront(slug) + "/"))
-                .andExpect(content().string(not(containsString("data-scheme"))));
+                .andExpect(content().string(allOf(not(containsString("data-scheme")),
+                        // and browsers that darken every site leave shops light.
+                        containsString("<meta name=\"color-scheme\" content=\"only light\">"))));
         mvc.perform(get(MAIN + "/admin/login"))
                 .andExpect(content().string(not(containsString("data-scheme"))));
     }
