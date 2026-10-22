@@ -5,18 +5,33 @@
       layout:decorate="~{layouts/base}">
 <body>
 <div layout:fragment="body" class="flex min-h-screen flex-col" data-area="driver">
-    <header class="border-b border-gray-200">
-        <div class="mx-auto flex max-w-xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-            <span class="text-lg font-semibold"
+    <!--/* One row, so the deliveries start high on a phone: the store's name and, signed in, a Menu button that opens
+           what a driver rarely needs mid-round (languages, light or dark, log out) as a panel under the header (a
+           <details>, no script), like the merchant admin's. Signed out (the login page), the name and the languages. */-->
+    <header class="relative border-b border-gray-200">
+        <div class="mx-auto flex max-w-xl items-center justify-between gap-3 px-4 py-3">
+            <span class="min-w-0 truncate text-lg font-semibold" dir="auto"
                   th:text="${currentStore != null} ? ${currentStore.name().in(#locale)} : #{app.name}">App</span>
-            <nav class="flex flex-wrap items-center gap-4 text-sm">
-                <form th:if="${currentStaff != null}" th:action="@{/driver/logout}" method="post">
-                    <button type="submit" class="text-brand-700 hover:underline"
-                            th:text="#{auth.logout}">Log out</button>
-                </form>
+            <details th:if="${currentStaff != null}" class="shrink-0">
+                <summary class="flex cursor-pointer list-none items-center rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium hover:bg-gray-50 [&::-webkit-details-marker]:hidden"
+                         th:text="#{admin.nav.menu}">Menu</summary>
+                <div class="absolute inset-x-0 top-full z-20 border-b border-gray-200 bg-white shadow-lg">
+                    <div class="mx-auto max-w-xl space-y-4 px-4 py-4 text-sm">
+                        <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+                            <a th:href="@{''(lang='ar')}" lang="ar" th:text="#{lang.ar}">العربية</a>
+                            <a th:href="@{''(lang='en')}" lang="en" th:text="#{lang.en}">English</a>
+                            <form th:replace="~{fragments/scheme :: switch(action=@{/driver/scheme})}"></form>
+                        </div>
+                        <form th:action="@{/driver/logout}" method="post" class="border-t border-gray-200 pt-4">
+                            <button type="submit" class="font-medium text-brand-700 hover:underline"
+                                    th:text="#{auth.logout}">Log out</button>
+                        </form>
+                    </div>
+                </div>
+            </details>
+            <nav th:unless="${currentStaff != null}" class="flex shrink-0 items-center gap-4 text-sm" th:attr="aria-label=#{shop.language}">
                 <a th:href="@{''(lang='ar')}" lang="ar" th:text="#{lang.ar}">العربية</a>
                 <a th:href="@{''(lang='en')}" lang="en" th:text="#{lang.en}">English</a>
-                <th:block th:if="${currentStaff != null}"><form th:replace="~{fragments/scheme :: switch(action=@{/driver/scheme})}"></form></th:block>
             </nav>
         </div>
     </header>

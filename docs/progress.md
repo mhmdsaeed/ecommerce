@@ -1756,3 +1756,7 @@ The platform admin's pages were checked at 375 px (the reports and the header we
 Wide layouts are unchanged (checked at 1100 px). `BillingIT` checks the address under the name and the grace date under the status. An invoice was created for demo1 to see an invoice page, then voided (INV-1001).
 
 The new invoice form's store picker was labelled "الاسم" (the table column's word); it is now "المتجر" (`platform.invoice.store`, checked in `BillingIT`).
+
+## After M15: Driver header in one row (2026-10-22)
+
+On a phone the driver's header took three lines (about 130 px) before the first delivery: the store's name, then log out and the languages, then the light or dark switch. It is now one row, the store's name and a Menu button opening a panel with the languages, light or dark, and log out (a `<details>`, like the merchant admin's and the platform's), about 60 px. Signed out, the login page has the name and the languages. `DriverDeliveryIT` checks that log out sits behind the menu; `SecurityChainsIT` that the login page has none. **Live check:** 375 px with the menu closed and open, open in dark mode, and the login page.

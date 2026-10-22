@@ -145,7 +145,9 @@ class DriverDeliveryIT {
 
         mvc.perform(get(MAIN + "/driver").session(driverSession))
                 .andExpect(content().string(allOf(containsString("#" + placed.number()), containsString("سارة"),
-                        containsString("حصّل 22,000 ل.س نقداً"), not(containsString("المبلغ النقدي الذي معك")))));
+                        containsString("حصّل 22,000 ل.س نقداً"), not(containsString("المبلغ النقدي الذي معك")),
+                        // One header row: logging out, languages and light or dark wait behind the Menu button.
+                        matchesPattern("(?s).*<details[^>]*>\\s*<summary[^>]*>القائمة</summary>.*/driver/logout.*</details>.*"))));
         mvc.perform(get(MAIN + "/driver/orders/" + placed.number()).session(driverSession))
                 .andExpect(content().string(allOf(containsString("tel:+963933111001"),
                         containsString("https://wa.me/963933111001"), containsString("google.com/maps/search"),

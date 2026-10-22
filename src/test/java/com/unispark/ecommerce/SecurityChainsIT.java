@@ -8,6 +8,7 @@ import static com.unispark.ecommerce.TestAccounts.fromNewAddress;
 import static com.unispark.ecommerce.TestAccounts.storefront;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -100,7 +101,9 @@ class SecurityChainsIT {
                 .andExpect(content().string(containsString("name=\"_csrf\"")));
         mvc.perform(get(MAIN + "/driver/login"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("دخول السائق")));
+                .andExpect(content().string(containsString("دخول السائق")))
+                // Signed out, the driver header has the languages and no menu.
+                .andExpect(content().string(not(containsString("<summary"))));
         mvc.perform(get(PLATFORM + "/platform/login"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("إدارة المنصة")));
