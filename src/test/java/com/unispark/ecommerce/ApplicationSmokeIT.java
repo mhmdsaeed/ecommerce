@@ -45,7 +45,9 @@ class ApplicationSmokeIT {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).contains("tailwindcss")
                 // Dark admin screens relight the brand text a pseudo-element carries too: a file input's button.
-                .contains(":root[data-dark] .file\\:text-brand-700::file-selector-button{color:#4fd8a4}");
+                .contains(":root[data-dark] .file\\:text-brand-700::file-selector-button{color:#4fd8a4}")
+                // and a chosen filter stands out as it does in light mode.
+                .contains(":root[data-dark] main a[aria-current=page].bg-gray-900{");
     }
 
     @Test

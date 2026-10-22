@@ -11,7 +11,8 @@
 <main layout:fragment="content" class="max-w-3xl space-y-6">
     <div>
         <a th:href="@{/platform/invoices}" class="text-sm text-brand-700 hover:underline" th:text="#{platform.nav.invoices}">Invoices</a>
-        <h1 class="mt-2 text-2xl font-bold" dir="ltr" th:text="${invoice.label()}">INV-1001</h1>
+        <!--/* The label reads left to right, but the heading keeps the page's side: the direction goes on a bdi inside. */-->
+        <h1 class="mt-2 text-2xl font-bold"><bdi dir="ltr" th:text="${invoice.label()}">INV-1001</bdi></h1>
         <a th:if="${store != null}" th:href="@{/platform/stores/{id}(id=${store.id()})}" class="text-brand-700 hover:underline"
            th:text="${store.name().in(#locale)}">Store</a>
     </div>

@@ -41,6 +41,13 @@
     background-color: #2d333b;
     border-color: #2d333b;
   }
+  /* The chosen filter (platform lists): near black on light in light mode, so light on dark here, not one grey
+     among the outlined others. */
+  :root[data-dark] main a[aria-current="page"].bg-gray-900 {
+    background-color: #e6edf3;
+    border-color: #e6edf3;
+    color: #0d1117;
+  }
   :root[data-dark] [data-area="platform"] > header.bg-gray-900,
   :root[data-dark] [data-area="platform"] > header .bg-gray-900 {
     background-color: #010409;

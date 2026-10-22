@@ -1764,3 +1764,12 @@ On a phone the driver's header took three lines (about 130 px) before the first 
 ## After M15: Merchant admin in dark mode (2026-10-22)
 
 Every merchant admin page was checked in dark mode at 1280 px as the demo1 owner (30 pages: dashboard, setup, orders and two orders, products and two products, a new product, categories and one, inventory, customers, delivery zones and one, cash collection and a driver's statement, the five settings tabs, staff and a member, billing, account, and the four reports). One thing was hard to read: the QR code upload buttons on the payment methods page showed dark green text on the dark green tint. Their colour comes from `file:text-brand-700`, which styles the file input's button (a pseudo-element) and so escaped the rule that relights brand text in dark mode; `dark.css` now covers it. Everything else reads well: amber and red notices, badges, the order steps, the delivery slip, the cash track, charts and tables. `ApplicationSmokeIT` checks the built stylesheet has the rule.
+
+## After M15: Platform admin in dark mode (2026-10-22)
+
+Every platform admin page was checked in dark mode at 1280 px (overview, stores and a store, subscriptions, invoices, an invoice and a new one, plans, a plan and a new one, the four reports). Most read well. Fixed:
+
+- **The chosen filter** on stores, subscriptions and invoices (near black on light in light mode) was one grey among outlined pills in dark mode. It is now light on dark there (`dark.css`), and every page marks it with `aria-current="page"`, so it is no longer told by colour alone (`BillingIT`).
+- **Left-to-right text on the wrong side** (light mode too): a block element with `dir="ltr"` lines up on the left of a right-to-left page. The invoice number heading, the store's address and plan on its page, and the plan code on its form now put the direction on a `<bdi>` inside, as do two found by searching: the customer's phone in the merchant's orders list and the transfer account number on the shopper's order page (`BillingIT` checks the invoice heading).
+
+`ApplicationSmokeIT` checks the stylesheet has the dark rule. **Live check:** the stores list in dark and light, the invoice, a store and a plan in dark, the merchant's orders.

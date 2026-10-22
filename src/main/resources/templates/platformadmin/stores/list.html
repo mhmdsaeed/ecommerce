@@ -13,9 +13,11 @@
     <nav class="flex flex-wrap gap-2 text-sm" th:aria-label="#{platform.filter}">
         <a th:href="@{/platform/stores}" class="rounded-full border px-3 py-1"
            th:classappend="${status == null} ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 bg-white'"
+           th:attr="aria-current=${status == null} ? 'page'"
            th:text="#{platform.filter.all}">All</a>
         <a th:each="option : ${statuses}" th:href="@{/platform/stores(status=${option})}" class="rounded-full border px-3 py-1"
            th:classappend="${status == option} ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 bg-white'"
+           th:attr="aria-current=${status == option} ? 'page'"
            th:text="#{store.status.__${option}__}">Active</a>
     </nav>
 

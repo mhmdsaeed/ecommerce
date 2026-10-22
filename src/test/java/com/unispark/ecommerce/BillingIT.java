@@ -190,7 +190,9 @@ class BillingIT {
         assertThat(subscription().graceUntil()).isNull();
         mvc.perform(get(storefront(slug) + "/")).andExpect(status().isOk());
         mvc.perform(get(PLATFORM + "/platform/invoices/" + invoice.id()).session(admin))
-                .andExpect(content().string(allOf(containsString("مدفوعة"), containsString("SC-123"))));
+                .andExpect(content().string(allOf(containsString("مدفوعة"), containsString("SC-123"),
+                        // The label reads left to right inside a heading that keeps the page's side.
+                        matchesPattern("(?s).*<h1 class=\"[^\"]*\"><bdi dir=\"ltr\">INV-\\d+</bdi></h1>.*"))));
     }
 
     @Test
@@ -361,7 +363,10 @@ class BillingIT {
         mvc.perform(get(PLATFORM + "/platform/subscriptions?status=PAST_DUE").session(admin))
                 .andExpect(content().string(allOf(containsString("متجر " + slug),
                         // On a phone the grace date sits under the status.
-                        matchesPattern("(?s).*المهلة حتى \\d.*"))));
+                        matchesPattern("(?s).*المهلة حتى \\d.*"),
+                        // The chosen filter says so (not by colour alone), and only that one.
+                        matchesPattern("(?s).*<a href=\"/platform/subscriptions\\?status=PAST_DUE\"[^>]*aria-current=\"page\".*"),
+                        not(matchesPattern("(?s).*<a href=\"/platform/subscriptions\" class=\"rounded-full[^>]*aria-current=\"page\".*")))));
         mvc.perform(get(PLATFORM + "/platform/invoices?status=OPEN").session(admin))
                 .andExpect(content().string(containsString(onlyInvoice().label())));
         mvc.perform(get(PLATFORM + "/platform/plans").session(admin))

@@ -20,7 +20,7 @@
                    class="w-full rounded-md border border-gray-300 px-3 py-2">
             <th:block th:unless="${creating}">
                 <input type="hidden" th:field="*{code}">
-                <p dir="ltr" class="font-semibold" th:text="*{code}">basic</p>
+                <p class="font-semibold"><bdi dir="ltr" th:text="*{code}">basic</bdi></p>
             </th:block>
             <p class="text-xs text-gray-500" th:text="#{platform.plan.code.hint}">Lowercase letters, digits and dashes.</p>
             <p th:if="${errors.containsKey('code')}" class="text-red-600" th:text="#{${errors.get('code')}}">Error</p>
