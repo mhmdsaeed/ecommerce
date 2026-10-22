@@ -29,9 +29,7 @@
     <link rel="icon" href="data:,">
     <link rel="stylesheet" th:href="@{/css/app.css}">
     <script th:src="@{/js/htmx.min.js}" defer></script>
-    <!--/* app.js before Alpine: Alpine starts as soon as its script runs, so components must be registered first. */-->
     <script th:src="@{/js/app.js}" defer></script>
-    <script th:src="@{/js/alpine.min.js}" defer></script>
 </head>
 <!--/* hx-headers carries the CSRF token on every HTMX request. Storefront browse pages (storefrontPage) skip it:
        reading the token creates a session, which every anonymous visit would then pay for. The cart (M6) adds
@@ -42,5 +40,9 @@
 <a href="#content" class="sr-only focus:not-sr-only focus:absolute focus:start-2 focus:top-2"
    th:text="#{layout.skip-to-content}">Skip to content</a>
 <div layout:fragment="body"></div>
+<!--/* Alpine last: it starts as soon as its script runs, so components must be registered first. Deferred scripts
+       run in document order, so app.js and an area's own file (storefront.js, admin.js, placed by its layout inside
+       the body) come before it. */-->
+<script th:src="@{/js/alpine.min.js}" defer></script>
 </body>
 </html>

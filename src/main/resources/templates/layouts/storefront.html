@@ -45,7 +45,7 @@
                     <span layout:fragment="sign-name" class="truncate text-xl font-bold sm:text-2xl" dir="auto"
                           th:text="${shop != null} ? ${shop.name().in(#locale)} : #{app.name}">Store</span>
                 </a>
-                <!--/* The count comes from the cart_count cookie (app.js: cartBadge), so the page is the same for everyone. */-->
+                <!--/* The count comes from the cart_count cookie (storefront.js: cartBadge), so the page is the same for everyone. */-->
                 <a th:if="${shop != null}" th:href="@{/cart}" x-data="cartBadge"
                    x-on:cart-changed.window="refresh()" x-on:pageshow.window="refresh()"
                    class="store-sign__cart inline-flex shrink-0 items-center gap-1.5 rounded-md bg-white px-3 py-2 font-semibold text-brand-700 hover:bg-brand-50 sm:order-last">
@@ -101,6 +101,7 @@
         <span th:text="${shop != null} ? ${shop.name().in(#locale)} : #{app.name}">Store</span> ·
         <span th:text="#{layout.footer}">All rights reserved</span>
     </footer>
+    <script th:src="@{/js/storefront.js}" defer></script>
 </div>
 </body>
 </html>

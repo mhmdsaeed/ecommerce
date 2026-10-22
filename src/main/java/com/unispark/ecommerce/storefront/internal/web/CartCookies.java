@@ -25,7 +25,7 @@ import com.unispark.ecommerce.delivery.Governorate;
  * The cart cookies, per store host:
  * <ul>
  *   <li>{@value #TOKEN}: the cart token. HttpOnly; scripts never need it.
- *   <li>{@value #COUNT}: the number of items, read by the header badge (app.js). So pages stay the same for
+ *   <li>{@value #COUNT}: the number of items, read by the header badge (storefront.js). So pages stay the same for
  *       everyone and cacheable, and showing the badge costs no database query.
  *   <li>{@value #DESTINATION}: where the shopper last asked delivery to go, so the cart keeps showing the fee
  *       after every change (and checkout can start from it). Base64url, HttpOnly.

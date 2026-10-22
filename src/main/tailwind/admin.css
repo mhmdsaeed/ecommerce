@@ -65,7 +65,7 @@
   background: var(--color-brand-600);
 }
 
-/* Storefront look settings (merchantadmin/settings/theme.html): the preview's colours, set inline by app.js
+/* Storefront look settings (merchantadmin/settings/theme.html): the preview's colours, set inline by admin.js
    (themePreview) from the colour being picked; the platform's own colours until then. */
 .theme-preview {
   --p-50: var(--color-brand-50);
