@@ -43,7 +43,9 @@ class ApplicationSmokeIT {
         var response = http.getForEntity("/css/app.css", String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).contains("tailwindcss");
+        assertThat(response.getBody()).contains("tailwindcss")
+                // Dark admin screens relight the brand text a pseudo-element carries too: a file input's button.
+                .contains(":root[data-dark] .file\\:text-brand-700::file-selector-button{color:#4fd8a4}");
     }
 
     @Test

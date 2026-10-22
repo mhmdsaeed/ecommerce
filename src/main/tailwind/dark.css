@@ -52,6 +52,10 @@
   :root[data-dark] :is(.text-brand-700, .text-brand-800, .hover\:text-brand-800:hover):not(.theme-preview *) {
     color: #4fd8a4;
   }
+  /* A file input's button (payment QR codes): file:text-brand-700 colours a pseudo-element the rule above misses. */
+  :root[data-dark] .file\:text-brand-700::file-selector-button {
+    color: #4fd8a4;
+  }
   :root[data-dark] :is(.text-brand-100, .shop-sign__domain) {
     color: #b9efd6;
   }
