@@ -6,24 +6,32 @@
       layout:decorate="~{layouts/base}">
 <body>
 <div layout:fragment="body" class="flex min-h-screen flex-col bg-gray-50" data-area="platform">
-    <header class="border-b border-gray-200 bg-gray-900 text-white print:hidden">
-        <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-            <a th:href="@{/platform}" class="text-lg font-semibold" th:text="#{platform.title}">Platform admin</a>
-            <nav class="flex flex-wrap items-center gap-4 text-sm">
-                <th:block sec:authorize="hasRole('PLATFORM_ADMIN')">
-                    <!--/* The current section (platformSection, PlatformModelAdvice) is underlined and aria-current. */-->
-                    <a th:each="link : ${ {'dashboard', 'stores', 'subscriptions', 'invoices', 'plans', 'reports'} }"
-                       th:href="${link == 'dashboard'} ? @{/platform} : @{/platform/{section}(section=${link})}"
-                       th:attr="aria-current=${platformSection == link} ? 'page'"
-                       class="underline-offset-8 hover:underline"
-                       th:classappend="${platformSection == link} ? 'font-semibold underline decoration-2'"
-                       th:text="${link == 'dashboard'} ? #{platform.dashboard.title} : #{platform.nav.__${link}__}">Stores</a>
-                    <span class="text-gray-300" sec:authentication="name">admin@example.com</span>
-                    <form th:action="@{/platform/logout}" method="post">
-                        <button type="submit" class="hover:underline" th:text="#{auth.logout}">Log out</button>
-                    </form>
-                    <form th:replace="~{fragments/scheme :: switch(action=@{/platform/scheme})}"></form>
-                </th:block>
+    <!--/* Wide screens: the title, the sections and the account in one row. Phones: the title and a Menu button that
+           opens the sections as a list, then the account (fragments/platform-nav.html), like the merchant admin. */-->
+    <header class="relative border-b border-gray-200 bg-gray-900 text-white print:hidden">
+        <div class="mx-auto flex max-w-6xl items-center justify-between gap-x-6 gap-y-3 px-4 py-3">
+            <a th:href="@{/platform}" class="shrink-0 text-lg font-semibold" th:text="#{platform.title}">Platform admin</a>
+            <th:block sec:authorize="hasRole('PLATFORM_ADMIN')">
+                <nav class="hidden min-w-0 flex-1 text-sm lg:block" th:attr="aria-label=#{platform.nav.label}">
+                    <ul th:replace="~{fragments/platform-nav :: links(stacked=false)}"></ul>
+                </nav>
+                <div class="hidden text-sm lg:block">
+                    <div th:replace="~{fragments/platform-nav :: account}"></div>
+                </div>
+                <details class="lg:hidden">
+                    <summary class="flex cursor-pointer list-none items-center gap-2 rounded-md border border-white/50 px-3 py-1.5 text-sm font-medium hover:bg-white/10 [&::-webkit-details-marker]:hidden"
+                             th:text="#{admin.nav.menu}">Menu</summary>
+                    <div class="absolute inset-x-0 top-full z-20 space-y-4 border-t border-white/20 bg-gray-900 px-4 py-4 text-sm shadow-lg">
+                        <nav th:attr="aria-label=#{platform.nav.label}">
+                            <ul th:replace="~{fragments/platform-nav :: links(stacked=true)}"></ul>
+                        </nav>
+                        <div class="border-t border-white/20 pt-4">
+                            <div th:replace="~{fragments/platform-nav :: account}"></div>
+                        </div>
+                    </div>
+                </details>
+            </th:block>
+            <nav sec:authorize="!hasRole('PLATFORM_ADMIN')" class="flex gap-4 text-sm" th:attr="aria-label=#{shop.language}">
                 <a th:href="@{''(lang='ar')}" lang="ar" th:text="#{lang.ar}">العربية</a>
                 <a th:href="@{''(lang='en')}" lang="en" th:text="#{lang.en}">English</a>
             </nav>

@@ -1694,3 +1694,9 @@ Checked all eight reports at 375 px. Headless Edge will not size a window below 
 `ChartAndCsvTest` checks which labels a phone leaves out.
 
 **Noticed, not changed:** the platform admin's header wraps onto four lines on a phone (its layout, not the reports).
+
+## After M15: Platform header on phones (2026-10-22)
+
+The platform admin's header wrapped onto four lines on a phone. It now works like the merchant admin's: below the `lg` breakpoint, the title and a Menu button that opens a panel with the sections as a list (the current one marked), then the account (email, log out, light or dark, language); from `lg` up, everything in one row as before. The sections and the account are one fragment used in both places (`fragments/platform-nav.html`). Signed out (the login page), the header has the title and the languages only. In dark mode the panel matches the near-black header.
+
+`PlatformReportsIT` checks that both placements mark the current section and that the login page has no menu. **Live check:** 375 px with the menu closed and open, the signed-out header, and 1024 and 1280 px.

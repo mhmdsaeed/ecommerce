@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -21,6 +22,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -206,9 +208,18 @@ class PlatformReportsIT {
     @Test
     void platformAdminsSeeThePagesAndCsv() throws Exception {
         mvc.perform(get(PLATFORM + "/platform/reports/revenue")).andExpect(redirectedUrlPattern("**/platform/login"));
+        // Signed out: the header has the title and the languages, no menu.
+        mvc.perform(get(PLATFORM + "/platform/login"))
+                .andExpect(content().string(not(containsString("<details class=\"lg:hidden\">"))));
         var admin = platformAdmin();
         mvc.perform(get(PLATFORM + "/platform/reports").session(admin))
                 .andExpect(redirectedUrl("/platform/reports/revenue"));
+        var revenuePage = mvc.perform(get(PLATFORM + "/platform/reports/revenue").session(admin))
+                .andReturn().getResponse().getContentAsString();
+        // The sections twice, in the header for wide screens and in the Menu panel for phones; both mark this one.
+        assertThat(revenuePage).contains("<details class=\"lg:hidden\">");
+        assertThat(Pattern.compile("<a href=\"/platform/reports\"[^>]*aria-current=\"page\"")
+                .matcher(revenuePage).results().count()).isEqualTo(2);
         mvc.perform(get(PLATFORM + "/platform/reports/revenue").session(admin))
                 .andExpect(status().isOk())
                 .andExpect(content().string(allOf(containsString("الإيراد الشهري المتكرر"),

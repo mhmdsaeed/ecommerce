@@ -866,7 +866,8 @@
     background-color: #2d333b;
     border-color: #2d333b;
   }
-  :root[data-dark] [data-area="platform"] > header.bg-gray-900 {
+  :root[data-dark] [data-area="platform"] > header.bg-gray-900,
+  :root[data-dark] [data-area="platform"] > header .bg-gray-900 {
     background-color: #010409;
     border-color: #2d333b;
   }
