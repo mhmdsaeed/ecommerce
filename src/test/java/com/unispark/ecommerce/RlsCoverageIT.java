@@ -27,6 +27,8 @@ class RlsCoverageIT {
             "flyway_schema_history", "event_publication", "store", "platform_user",
             // Billing (V15): rows name their store; merchants only see their own through the billing module.
             "plan", "subscription", "invoice", "invoice_payment",
+            // V19: every subscription status change, written by a trigger.
+            "subscription_status_change",
             // JobRunr (V13): jobs carry their store in the payload.
             "jobrunr_migrations", "jobrunr_jobs", "jobrunr_recurring_jobs", "jobrunr_backgroundjobservers",
             "jobrunr_metadata");

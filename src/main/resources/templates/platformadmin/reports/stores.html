@@ -45,14 +45,22 @@
     <section aria-labelledby="stopped-heading">
         <ul class="divide-y divide-gray-200 overflow-hidden rounded-lg border border-gray-200 bg-white">
             <li class="border-s-4" th:classappend="${stores.stopped() > 0} ? 'border-s-amber-400' : 'border-s-transparent'">
-                <a th:href="@{/platform/subscriptions(status='CANCELLED')}" class="flex items-baseline gap-3 px-4 py-3 hover:bg-gray-50">
+                <a th:href="@{/platform/subscriptions(status='SUSPENDED')}" class="flex items-baseline gap-3 px-4 py-3 hover:bg-gray-50">
                     <span id="stopped-heading" th:text="#{platform.report.stores.stopped}">Stopped in this period</span>
                     <span aria-hidden="true" class="min-w-6 flex-1 border-b-2 border-dotted border-gray-300"></span>
                     <span class="text-xl font-bold tabular-nums" th:classappend="${stores.stopped() == 0} ? 'text-gray-500'" th:text="${stores.stopped()}">1</span>
                 </a>
             </li>
+            <li class="border-s-4 border-s-transparent">
+                <a th:href="@{/platform/subscriptions(status='ACTIVE')}" class="flex items-baseline gap-3 px-4 py-3 hover:bg-gray-50">
+                    <span th:text="#{platform.report.stores.reopened}">Came back in this period</span>
+                    <span aria-hidden="true" class="min-w-6 flex-1 border-b-2 border-dotted border-gray-300"></span>
+                    <span class="text-xl font-bold tabular-nums" th:classappend="${stores.reopened() == 0} ? 'text-gray-500'" th:text="${stores.reopened()}">0</span>
+                </a>
+            </li>
         </ul>
-        <p class="mt-1 text-xs text-gray-500" th:text="#{platform.report.stores.stopped.hint}">Subscriptions cancelled or suspended whose last change falls in the period.</p>
+        <p class="mt-1 text-xs text-gray-500" th:text="${stores.recordedSince() == null} ? #{platform.report.stores.stopped.hint.none}
+                : #{platform.report.stores.stopped.hint(${@dates.day(stores.recordedSince())})}">Subscriptions that were suspended or cancelled in the period, each counted once. Status changes are recorded from 22 Oct 2026.</p>
     </section>
 
     <section aria-labelledby="trials-heading">

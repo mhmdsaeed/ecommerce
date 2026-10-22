@@ -1657,3 +1657,16 @@ The settlement page's statement showed the latest 50 collections and 50 handover
 |---|---|
 | `DriverDeliveryIT` (changed) | New `pagesALongStatementWithWhatTheDriverHeldOnEveryPage`: a collection and 55 handovers make two pages of 50 and 6, held-after continues across the pages, an empty third page, the links in both directions |
 | `SettlementViewsTest` (changed) | The merge and cutoff tests went with the code they tested |
+
+## After M15: Subscription status history (2026-10-22)
+
+The platform stores report counted "stopped" subscriptions by their last update, which was wrong for a subscription changed again later. `V19__subscription_status_history.sql` adds `subscription_status_change` (a platform table, like `subscription`): a trigger on `subscription` writes a row when one is created (from NULL) and whenever its status actually changes, so no code path can skip it; rows are append-only (a trigger refuses updates and deletes, except the cascade when a subscription is deleted). Existing subscriptions got one row each with their status then, marked `backfilled`: a snapshot, not a change, so it never counts.
+
+The stores report now counts, from the history, the subscriptions that became suspended or cancelled in the period (each once, however often) and the ones that came back, and says from which day changes are recorded ("none recorded yet" before the first).
+
+| Test | Checks |
+|---|---|
+| `PlatformReportsIT` (changed) | New `countsStoppedSubscriptionsFromTheirStatusHistory`: creation and each real change recorded, a repeated status not; stopped and came back counted once each; the history refuses updates |
+| `RlsCoverageIT` (changed) | `subscription_status_change` is a known platform table |
+
+**Live check (local profile):** V19 applied to the local database, backfilling the 12 existing subscriptions; the stores report shows "came back" and that no change is recorded yet.

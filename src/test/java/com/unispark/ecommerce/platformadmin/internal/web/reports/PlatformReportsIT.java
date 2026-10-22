@@ -4,6 +4,7 @@ import static com.unispark.ecommerce.TestAccounts.PASSWORD;
 import static com.unispark.ecommerce.TestAccounts.PLATFORM;
 import static com.unispark.ecommerce.TestAccounts.fromNewAddress;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -129,6 +130,35 @@ class PlatformReportsIT {
             assertThat(trial.slug()).isEqualTo(slug);
             assertThat(trial.ends()).isEqualTo(today.plusDays(14));
         });
+    }
+
+    @Test
+    void countsStoppedSubscriptionsFromTheirStatusHistory() {
+        var before = queries.stores(period, today);
+
+        // Suspended, suspended again (no change), back to active, suspended once more.
+        for (var status : List.of("SUSPENDED", "SUSPENDED", "ACTIVE", "SUSPENDED")) {
+            jdbc.update("UPDATE subscription SET status = ? WHERE store_id = ?", status, store);
+        }
+
+        var history = jdbc.query("""
+                SELECT coalesce(c.from_status, '-') || '>' || c.to_status FROM subscription_status_change c
+                JOIN subscription s ON s.id = c.subscription_id
+                WHERE s.store_id = ? AND NOT c.backfilled ORDER BY c.changed_at, c.id
+                """, (rows, i) -> rows.getString(1), store);
+        assertThat(history).containsExactlyInAnyOrder("->TRIAL", "TRIAL>SUSPENDED", "SUSPENDED>ACTIVE",
+                "ACTIVE>SUSPENDED");
+        var after = queries.stores(period, today);
+        // Counted once however often it stopped.
+        assertThat(after.stopped() - before.stopped()).isEqualTo(1);
+        assertThat(after.reopened() - before.reopened()).isEqualTo(1);
+        assertThat(after.recordedSince()).isNotNull().isBeforeOrEqualTo(today);
+        // Nothing before the period counts: the day before has none of these changes.
+        var yesterday = ReportPeriod.of("custom", today.minusDays(1).toString(), today.minusDays(1).toString(), today);
+        assertThat(queries.stores(yesterday, today).stopped()).isLessThanOrEqualTo(after.stopped() - 1);
+
+        assertThatThrownBy(() -> jdbc.update("UPDATE subscription_status_change SET to_status = 'ACTIVE'"
+                + " WHERE store_id = ?", store)).hasMessageContaining("append-only");
     }
 
     @Test

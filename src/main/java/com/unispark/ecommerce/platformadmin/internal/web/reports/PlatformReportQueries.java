@@ -132,10 +132,13 @@ class PlatformReportQueries {
      * @param byStatus  every store, now, by status
      * @param signups   stores created in the period, per group
      * @param cohort    the period's new stores by where their subscription is now: trying, paying, stopped
-     * @param stopped   subscriptions cancelled or suspended whose last change falls in the period
+     * @param stopped   subscriptions that became suspended or cancelled in the period (each counted once)
+     * @param reopened  subscriptions that left suspended or cancelled in the period
+     * @param recordedSince the day of the first recorded status change (Damascus): earlier days count nothing;
+     *                      null before any
      */
     record Stores(Map<String, Long> byStatus, long created, List<Entry> signups, Map<String, Long> cohort,
-            long stopped, List<TrialEnding> trialsEnding) {
+            long stopped, long reopened, LocalDate recordedSince, List<TrialEnding> trialsEnding) {
     }
 
     record TrialEnding(UUID storeId, String slug, LocalizedText name, LocalDate ends, String plan) {
@@ -176,12 +179,24 @@ class PlatformReportQueries {
                 .query(rows -> {
                     cohort.put(rows.getString("stage"), rows.getLong("stores"));
                 });
-        var stopped = jdbc().sql("""
-                        SELECT count(*) FROM subscription
-                        WHERE status IN ('CANCELLED', 'SUSPENDED') AND updated_at >= :start AND updated_at < :end
+        // From the recorded status changes (V19); rows the migration wrote for older subscriptions are a snapshot of
+        // their status then, not a change, so they never count.
+        var changes = jdbc().sql("""
+                        SELECT count(DISTINCT subscription_id) FILTER (
+                                   WHERE to_status IN ('SUSPENDED', 'CANCELLED')) AS stopped,
+                               count(DISTINCT subscription_id) FILTER (
+                                   WHERE from_status IN ('SUSPENDED', 'CANCELLED')
+                                     AND to_status NOT IN ('SUSPENDED', 'CANCELLED')) AS reopened
+                        FROM subscription_status_change
+                        WHERE NOT backfilled AND changed_at >= :start AND changed_at < :end
                         """)
                 .param("start", Timestamp.from(period.start())).param("end", Timestamp.from(period.end()))
-                .query(Long.class).single();
+                .query((rows, i) -> new long[] {rows.getLong("stopped"), rows.getLong("reopened")})
+                .single();
+        var recordedSince = jdbc().sql("SELECT min(changed_at) FROM subscription_status_change WHERE NOT backfilled")
+                .query((rows, i) -> rows.getTimestamp("min") == null ? null
+                        : rows.getTimestamp("min").toInstant().atZone(ReportPeriod.ZONE).toLocalDate())
+                .list().getFirst();
         var trials = jdbc().sql("""
                         SELECT st.id, st.slug, st.name ->> 'ar' AS name_ar, st.name ->> 'en' AS name_en,
                                s.current_period_end, s.plan_code
@@ -196,7 +211,7 @@ class PlatformReportQueries {
                         rows.getString("plan_code")))
                 .list();
         return new Stores(Collections.unmodifiableMap(byStatus), created, signups,
-                Collections.unmodifiableMap(cohort), stopped, trials);
+                Collections.unmodifiableMap(cohort), changes[0], changes[1], recordedSince, trials);
     }
 
     // Activity
