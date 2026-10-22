@@ -1,0 +1,242 @@
+/* Pieces of the merchant admin, driver and platform pages. */
+
+/* Driver view (driver/*.html): a delivery slip's tear line, a dashed rule with a notch cut into each edge,
+   between where to go and what to collect. */
+.slip__tear {
+  position: relative;
+  border-top: 2px dashed var(--color-gray-300);
+}
+.slip__tear::before,
+.slip__tear::after {
+  content: "";
+  position: absolute;
+  top: -10px;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 2px solid var(--color-gray-300);
+}
+.slip__tear::before {
+  inset-inline-start: -11px;
+}
+.slip__tear::after {
+  inset-inline-end: -11px;
+}
+/* Platform admin (platformadmin/fragments.html): a store's status as a tiny shopfront next to its label. A sign over
+   a lit doorway when the store trades; the shutter down, in grey, when it is suspended or closed. */
+.store-mark {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 0.875rem;
+  vertical-align: -0.125em;
+  border: 1px solid var(--color-brand-700);
+  border-radius: 2px;
+  background: linear-gradient(to bottom, var(--color-brand-700) 0 35%, var(--color-brand-50) 35%);
+}
+.store-mark--closed {
+  border-color: var(--color-gray-600);
+  background:
+    linear-gradient(to bottom, var(--color-gray-600) 0 35%, transparent 35%),
+    repeating-linear-gradient(to bottom, var(--color-gray-400) 0 2px, var(--color-gray-600) 2px 3px);
+}
+
+/* Product page (merchantadmin/catalog/product-edit.html): the product's card on a shop shelf. The photo stands on the
+   shelf board, which runs a little wider than it; the name and price tag hang below the board like a shelf label. */
+.shelf__board {
+  height: 0.625rem;
+  margin-inline: -0.75rem;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, var(--color-gray-200), var(--color-gray-400));
+  box-shadow: 0 7px 6px -5px rgb(0 0 0 / 0.3);
+}
+
+/* Settlement (merchantadmin/settlement/list.html): a driver's cash track. The whole bar is what they collected; the
+   green part, from the start, what they handed over; the hatched amber rest is still with them. */
+.cash-track {
+  display: flex;
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: repeating-linear-gradient(-45deg, var(--color-amber-300) 0 4px, var(--color-amber-100) 4px 8px);
+}
+.cash-track__handed {
+  background: var(--color-brand-600);
+}
+
+/* Storefront look settings (merchantadmin/settings/theme.html): the preview's colours, set inline by app.js
+   (themePreview) from the colour being picked; the platform's own colours until then. */
+.theme-preview {
+  --p-50: var(--color-brand-50);
+  --p-600: var(--color-brand-600);
+  --p-700: var(--color-brand-700);
+}
+.theme-preview__sign {
+  background: var(--p-700);
+}
+.theme-preview__cart {
+  color: var(--p-700);
+}
+.theme-preview__tagline {
+  color: var(--p-50);
+}
+.theme-preview__tag {
+  background: var(--p-50);
+  color: var(--p-700);
+}
+.theme-preview__button {
+  background: var(--p-600);
+}
+/* The preview follows the look being picked (data-look), like the storefront does. */
+.theme-preview[data-look="boutique"] .theme-preview__sign {
+  background: #fff;
+  color: var(--color-gray-900);
+  border-bottom: 3px solid var(--p-600);
+}
+.theme-preview[data-look="boutique"] .theme-preview__cart {
+  background: var(--p-600);
+  color: #fff;
+}
+.theme-preview[data-look="boutique"] .theme-preview__tagline {
+  color: var(--color-gray-600);
+}
+.theme-preview[data-look="boutique"] .theme-preview__photo {
+  aspect-ratio: 4 / 5;
+}
+.theme-preview[data-look="boutique"] .theme-preview__tag {
+  background: none;
+  padding: 0;
+}
+.theme-preview[data-look="grocer"] .theme-preview__sign {
+  padding-block: 0.5rem;
+}
+.theme-preview[data-look="grocer"] .theme-preview__items {
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+.theme-preview[data-look="grocer"] .theme-preview__item {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+.theme-preview[data-look="grocer"] .theme-preview__name {
+  margin-top: 0;
+}
+.theme-preview[data-look="grocer"] .theme-preview__tag {
+  margin-top: 0;
+}
+.theme-preview[data-look="showroom"] .theme-preview__sign {
+  background: var(--color-gray-950);
+  border-bottom: 4px solid var(--p-600);
+}
+.theme-preview[data-look="showroom"] .theme-preview__cart {
+  background: var(--p-600);
+  color: #fff;
+}
+.theme-preview[data-look="showroom"] .theme-preview__tagline {
+  color: var(--color-gray-300);
+}
+.theme-preview[data-look="showroom"] .theme-preview__item {
+  padding: 0.5rem;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+}
+.theme-preview[data-look="showroom"] .theme-preview__photo {
+  aspect-ratio: 4 / 3;
+}
+.theme-preview[data-look="showroom"] .theme-preview__tag {
+  background: none;
+  padding: 0;
+  color: var(--color-gray-900);
+}
+
+/* The look picker's sketches (settings/theme.html): a tiny page per look, its header band on top and its products
+   below, drawn in the platform's colour, light even on a dark admin (they show the storefront). */
+.look-sketch {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 3.5rem;
+  height: 4rem;
+  overflow: hidden;
+  border: 1px solid #d1d5db;
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+.look-sketch__sign {
+  height: 0.875rem;
+  background: var(--color-brand-700);
+}
+.look-sketch__body {
+  flex: 1;
+  margin: 0.3rem;
+  background:
+    linear-gradient(#e5e7eb, #e5e7eb) 0 0 / 46% 46% no-repeat,
+    linear-gradient(#e5e7eb, #e5e7eb) 100% 0 / 46% 46% no-repeat,
+    linear-gradient(#e5e7eb, #e5e7eb) 0 100% / 46% 46% no-repeat,
+    linear-gradient(#e5e7eb, #e5e7eb) 100% 100% / 46% 46% no-repeat;
+}
+.look-sketch--boutique .look-sketch__sign {
+  height: 0.75rem;
+  background: #fff;
+  border-bottom: 2px solid var(--color-brand-600);
+}
+.look-sketch--boutique .look-sketch__body {
+  background:
+    linear-gradient(#e5e7eb, #e5e7eb) 0 0 / 44% 100% no-repeat,
+    linear-gradient(#e5e7eb, #e5e7eb) 100% 0 / 44% 100% no-repeat;
+}
+.look-sketch--grocer .look-sketch__sign {
+  height: 0.5rem;
+}
+.look-sketch--grocer .look-sketch__body {
+  background: repeating-linear-gradient(to bottom, #e5e7eb 0 0.3rem, transparent 0.3rem 0.55rem);
+}
+.look-sketch--showroom .look-sketch__sign {
+  background: #111827;
+  border-bottom: 2px solid var(--color-brand-600);
+}
+.look-sketch--showroom .look-sketch__body {
+  background:
+    linear-gradient(#e5e7eb, #e5e7eb) 0 0 / 100% 55% no-repeat,
+    linear-gradient(#cdeee0, #cdeee0) 0 100% / 46% 35% no-repeat,
+    linear-gradient(#cdeee0, #cdeee0) 100% 100% / 46% 35% no-repeat;
+}
+
+/* The Light / Dark / Device switch (fragments/scheme.html): three joined buttons, the pressed one filled. */
+.scheme-switch {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+}
+.scheme-switch button {
+  padding: 0.25rem 0.625rem;
+  color: var(--color-gray-700);
+}
+.scheme-switch button + button {
+  border-inline-start: 1px solid var(--color-gray-300);
+}
+.scheme-switch button:hover {
+  background: var(--color-gray-100);
+}
+.scheme-switch button[aria-pressed="true"] {
+  background: var(--color-brand-600);
+  color: #fff;
+}
+.scheme-switch button:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: -2px;
+}
+[data-area="platform"] header .scheme-switch {
+  border-color: var(--color-gray-600);
+}
+[data-area="platform"] header .scheme-switch button {
+  color: #fff;
+}
+[data-area="platform"] header .scheme-switch button:hover {
+  background: rgb(255 255 255 / 0.12);
+}

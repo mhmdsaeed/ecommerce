@@ -1709,3 +1709,7 @@ Every merchant admin page was checked at 375 px as the demo1 owner: dashboard, s
 - **Customers** was a table whose actions wrapped word by word ("حظر / الزبون"). It is now a list like staff and delivery zones: name and phone, then the delivered and refused counts with new, returning or blocked beside them, then the actions; from `md` up the same items sit in columns. A blocked customer has a red edge (`OrderManagementIT` checks it).
 
 The rest already worked: lists stack as cards, the tabs scroll sideways, forms take the full width.
+
+## After M15: app.css split by area (2026-10-22)
+
+A change-frequency check over the git history put `src/main/tailwind/app.css` (913 lines, changed in 16 of 49 commits) at the top: nearly every UI change touched it. It is now an entry file (Tailwind import, sources, theme, `x-cloak`) that imports one file per area, in cascade order: `signs.css` (the shop sign wherever it appears), `storefront.css` (price tag, product grid, looks), `admin.css` (merchant admin, driver and platform pieces), `reports.css` (charts, tables, print) and `dark.css` (the dark palette, last because it overrides the others). The built CSS has exactly the same rules as before (same size, identical sorted rule set); only sections with unrelated selectors changed places.

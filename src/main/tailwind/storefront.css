@@ -1,0 +1,211 @@
+/* The storefront: the price tag, the product grid and the looks a merchant picks. */
+
+/* Storefront product page (storefront/product.html): the price on a swing tag in the store's colour, its end cut to
+   a point and punched with a hole, on the side where the tag would be tied (the start). */
+.swing-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding-block: 0.25rem;
+  padding-inline: 2rem 1rem;
+  background: var(--color-brand-600);
+  color: #fff;
+  border-radius: 4px;
+  clip-path: polygon(1rem 0, 100% 0, 100% 100%, 1rem 100%, 0 50%);
+  -webkit-mask: radial-gradient(circle at 1.125rem 50%, transparent 0.25rem, #000 0.3rem);
+  mask: radial-gradient(circle at 1.125rem 50%, transparent 0.25rem, #000 0.3rem);
+}
+[dir="rtl"] .swing-tag {
+  clip-path: polygon(0 0, calc(100% - 1rem) 0, 100% 50%, calc(100% - 1rem) 100%, 0 100%);
+  -webkit-mask: radial-gradient(circle at calc(100% - 1.125rem) 50%, transparent 0.25rem, #000 0.3rem);
+  mask: radial-gradient(circle at calc(100% - 1.125rem) 50%, transparent 0.25rem, #000 0.3rem);
+}
+
+/*
+ * Storefront looks (layouts/storefront.html sets data-look from the store's theme). Each keeps the store's colour,
+ * logo and font; what changes is the header, the product grid and the home page.
+ *   souq      the store's sign in its colour, price tags, two to four columns (the default)
+ *   boutique  a quiet white header with a coloured rule, fewer and taller photos, prices as plain text
+ *   grocer    a compact sign, products as rows with the price large and a quick add button
+ *   showroom  a dark header with a coloured rule, the newest product large, categories as tiles
+ */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+@media (min-width: 40rem) {
+  .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 64rem) {
+  .product-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.product-card__photo {
+  aspect-ratio: 1 / 1;
+}
+
+[data-look="boutique"] .store-sign {
+  background: #fff;
+  color: var(--color-gray-900);
+  border-bottom: 3px solid var(--color-brand-600);
+}
+[data-look="boutique"] .store-sign__bar {
+  padding-block: 1.75rem;
+}
+[data-look="boutique"] .store-sign__name {
+  letter-spacing: 0.01em;
+  font-weight: 600;
+}
+[data-look="boutique"] .store-sign__cart {
+  background: var(--color-brand-600);
+  color: #fff;
+}
+[data-look="boutique"] .store-sign__text {
+  color: var(--color-gray-600);
+}
+[data-look="boutique"] .product-grid {
+  column-gap: 1.5rem;
+  row-gap: 2.5rem;
+}
+@media (min-width: 64rem) {
+  [data-look="boutique"] .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+[data-look="boutique"] .product-card__photo {
+  aspect-ratio: 4 / 5;
+  border-radius: 2px;
+}
+[data-look="boutique"] .product-card__name {
+  font-size: 1rem;
+  font-weight: 400;
+}
+[data-look="boutique"] .product-card__price {
+  background: none;
+  padding: 0;
+  font-weight: 600;
+}
+.boutique-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.75rem;
+  font-size: 1.0625rem;
+}
+.boutique-links a {
+  border-bottom: 1px solid var(--color-gray-300);
+  padding-bottom: 0.125rem;
+}
+.boutique-links a:hover {
+  border-color: var(--color-brand-600);
+  color: var(--color-brand-700);
+}
+
+[data-look="grocer"] .store-sign__bar {
+  padding-block: 0.625rem;
+}
+.grocer-list {
+  display: grid;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  background: #fff;
+}
+@media (min-width: 64rem) {
+  .grocer-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.5rem; padding-inline: 1rem; }
+}
+.grocer-row {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--color-gray-100);
+}
+.grocer-row:first-child {
+  border-top: 0;
+}
+@media (min-width: 64rem) {
+  .grocer-row { padding-inline: 0; }
+  .grocer-row:nth-child(2) { border-top: 0; }
+}
+.grocer-row__photo {
+  display: block;
+  width: 4.5rem;
+  height: 4.5rem;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-gray-100);
+}
+
+[data-look="showroom"] .store-sign {
+  background: var(--color-gray-950);
+  border-bottom: 4px solid var(--color-brand-600);
+}
+[data-look="showroom"] .store-sign__cart {
+  background: var(--color-brand-600);
+  color: #fff;
+}
+[data-look="showroom"] .store-sign__text {
+  color: var(--color-gray-300);
+}
+[data-look="showroom"] .product-card > a {
+  height: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  background: #fff;
+}
+[data-look="showroom"] .product-card > a:hover {
+  border-color: var(--color-brand-600);
+}
+[data-look="showroom"] .product-card__photo {
+  aspect-ratio: 4 / 3;
+  background: #fff;
+}
+[data-look="showroom"] .product-card__price {
+  background: none;
+  padding: 0;
+  font-size: 1.0625rem;
+  color: var(--color-gray-900);
+}
+@media (min-width: 64rem) {
+  [data-look="showroom"] .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.showroom-feature {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  background: #fff;
+}
+@media (min-width: 48rem) {
+  .showroom-feature { grid-template-columns: 3fr 2fr; align-items: center; }
+}
+.showroom-feature__photo {
+  display: block;
+  aspect-ratio: 4 / 3;
+  background: var(--color-gray-50);
+}
+.showroom-feature__text {
+  padding: 1.5rem;
+}
+.showroom-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+@media (min-width: 48rem) {
+  .showroom-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.showroom-tile {
+  display: flex;
+  align-items: flex-end;
+  min-height: 6rem;
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+  background: var(--color-brand-50);
+  color: var(--color-brand-800);
+  font-size: 1.125rem;
+  font-weight: 700;
+  border-inline-start: 4px solid var(--color-brand-600);
+}
+.showroom-tile:hover {
+  background: var(--color-brand-100);
+}
