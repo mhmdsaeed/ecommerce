@@ -103,7 +103,7 @@
                 <th scope="col" th:text="#{report.csv.driver}">Driver</th>
                 <th scope="col" class="text-end" th:text="#{report.csv.delivered}">Delivered</th>
                 <th scope="col" class="text-end" th:text="#{report.csv.refused}">Refused</th>
-                <th scope="col" class="text-end" th:text="#{report.orders.time.median.short}">Time</th>
+                <th scope="col" class="text-end max-sm:hidden" th:text="#{report.orders.time.median.short}">Time</th>
                 <th scope="col" class="text-end" th:text="#{report.csv.cash}">Cash collected</th>
             </tr>
             </thead>
@@ -113,7 +113,7 @@
                        th:text="${driver.name()}">Abu Khaled</a></td>
                 <td class="text-end tabular-nums font-semibold" th:text="${driver.delivered()}">20</td>
                 <td class="text-end tabular-nums" th:classappend="${driver.refused() > 0} ? 'text-amber-800'" th:text="${driver.refused()}">1</td>
-                <td class="text-end"><th:block th:replace="~{fragments/report :: duration(hours=${driver.averageHours()})}"></th:block></td>
+                <td class="text-end max-sm:hidden"><th:block th:replace="~{fragments/report :: duration(hours=${driver.averageHours()})}"></th:block></td>
                 <td class="text-end tabular-nums">
                     <span th:if="${driver.cash().isEmpty()}" class="text-gray-500">—</span>
                     <bdi th:each="money : ${driver.cash()}" class="block" th:text="${@money.format(money)}">50,000</bdi>

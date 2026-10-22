@@ -1682,3 +1682,15 @@ Checked all eight reports (four for stores, four for the platform) in dark mode 
 - **Page breaks:** headings stay with what follows them; rows, figure blocks and charts do not split across pages.
 
 `ReportsIT` checks the print-only store line. Both demo accounts were set back to the Device scheme afterwards.
+
+## After M15: Reports at phone width (2026-10-22)
+
+Checked all eight reports at 375 px. Headless Edge will not size a window below about 492 px, so each saved page was loaded in a 375 px iframe of a local wrapper page (local files carry no X-Frame-Options), which lays it out at true phone width.
+
+- **Period picker** broke onto a second line inside its joined border; it now stays one row and scrolls sideways like the tabs above it.
+- **Chart labels** (about eight) touched each other under a 260 px plot; on phones every other one is hidden, still counting back from the newest column (`Chart.Column.minor`).
+- **Tables** wrapped figures mid-value ("3.3" above "يوم") and pushed the key column off screen. Figures no longer wrap; on phones the secondary columns hide (`max-sm:hidden`): the customer's phone (the name links to the customer) and the drivers' delivery time (also under "Time to deliver"). Every report table now fits at 375 px.
+
+`ChartAndCsvTest` checks which labels a phone leaves out.
+
+**Noticed, not changed:** the platform admin's header wraps onto four lines on a phone (its layout, not the reports).

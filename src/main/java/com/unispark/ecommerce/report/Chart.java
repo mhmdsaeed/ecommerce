@@ -30,9 +30,10 @@ public record Chart(Currency currency, BigDecimal top, BigDecimal half, List<Col
      * @param count   orders, payments or signups in the column
      * @param value   the amount, or the count again for a chart of counts
      * @param percent the column's height, 0 to 100
+     * @param minor   a label a phone leaves out: every other one, counting back from the newest
      */
     public record Column(String label, String detail, long count, BigDecimal value, int percent, boolean labelled,
-            Currency currency) {
+            boolean minor, Currency currency) {
 
         /** The amount with its currency; null on a chart of counts. */
         public Money money() {
@@ -74,8 +75,9 @@ public record Chart(Currency currency, BigDecimal top, BigDecimal half, List<Col
             var entry = series.get(i);
             var percent = top.signum() == 0 ? 0 : entry.value().multiply(BigDecimal.valueOf(100))
                     .divide(top, 0, RoundingMode.HALF_UP).intValue();
+            var back = series.size() - 1 - i;
             columns.add(new Column(shortFormat.format(entry.group()), longFormat.format(entry.group()),
-                    entry.count(), entry.value(), percent, (series.size() - 1 - i) % every == 0, currency));
+                    entry.count(), entry.value(), percent, back % every == 0, back % (2 * every) == every, currency));
         }
         var half = top.divide(BigDecimal.valueOf(2), currency == null ? 1 : Money.SCALE, RoundingMode.HALF_UP);
         return new Chart(currency, top, half, List.copyOf(columns));

@@ -93,7 +93,8 @@
                     <bdi th:if="${amounts}" class="block tabular-nums" th:text="${value}">5,000</bdi>
                     <span class="block" th:text="#{__${countKey}__.__${form}__(${column.count()})}">3 orders</span>
                 </span>
-                <span class="report-chart__label" aria-hidden="true" th:text="${column.labelled()} ? ${column.label()} : ''">1/10</span>
+                <span class="report-chart__label" aria-hidden="true" th:classappend="${column.minor()} ? 'report-chart__label--minor'"
+                      th:text="${column.labelled()} ? ${column.label()} : ''">1/10</span>
             </li>
         </ol>
     </div>

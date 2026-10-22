@@ -45,6 +45,9 @@ class ChartAndCsvTest {
         // Labels are spaced back from the newest column, which always has one.
         assertThat(pounds.columns().getLast().labelled()).isTrue();
         assertThat(pounds.columns().stream().filter(Chart.Column::labelled).count()).isEqualTo(8);
+        // A phone shows every other one: the newest keeps its label.
+        assertThat(pounds.columns().stream().filter(Chart.Column::minor).count()).isEqualTo(4);
+        assertThat(pounds.columns().getLast().minor()).isFalse();
     }
 
     @Test

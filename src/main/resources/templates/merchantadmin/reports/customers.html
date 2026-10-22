@@ -43,7 +43,7 @@
             <thead>
             <tr>
                 <th scope="col" th:text="#{report.csv.customer}">Customer</th>
-                <th scope="col" th:text="#{report.csv.phone}">Phone</th>
+                <th scope="col" class="max-sm:hidden" th:text="#{report.csv.phone}">Phone</th>
                 <th scope="col" class="text-end" th:text="#{report.csv.orders}">Orders</th>
                 <th scope="col" class="text-end" th:text="#{report.csv.spent}">Spent</th>
             </tr>
@@ -51,7 +51,7 @@
             <tbody>
             <tr th:each="line : ${customers.top()}">
                 <td><a th:href="@{/admin/customers(q=${line.phone()})}" class="text-brand-700 hover:underline" th:text="${line.name()}">Name</a></td>
-                <td><bdi dir="ltr" th:text="${line.phone()}">+963</bdi></td>
+                <td class="max-sm:hidden"><bdi dir="ltr" th:text="${line.phone()}">+963</bdi></td>
                 <td class="text-end tabular-nums" th:text="${line.orders()}">3</td>
                 <td class="text-end tabular-nums font-semibold"><bdi th:text="${@money.format(line.spent())}">90,000</bdi></td>
             </tr>
