@@ -1626,3 +1626,25 @@ Every report has the period picker (today, 7 days, 30 days, this month, last mon
 **Live check (local profile):** the four reports on demo1 for the last 30 days at 1280 px, and a CSV download. Fixed after the screenshots: the last two chart labels collided, and a Latin customer name next to an Arabic date ran together in the lost orders list.
 
 **Noticed, not changed:** one demo1 order's cancellation reason was saved as "??????" by an earlier shell session; the data, not the report.
+
+## After M15: Platform reports (2026-10-22)
+
+Part 4, the last of the plan agreed on 2026-10-21. The platform admin gets **Reports** in its navigation with four reports, the same period picker, CSV per table and print view as the store reports:
+
+- **Revenue:** monthly recurring revenue (paying subscriptions, active or past due, at their plan's monthly price) by plan with trials beside it; invoices issued in the period by status and currency; what is overdue now (amber); payments received over the period as a column chart per currency.
+- **Stores:** every store by status now (with the store mark); new stores over the period as a chart of counts; where the period's new stores are now (paying, still trying, stopped); subscriptions stopped in the period (by their last change, since status history is not kept); trials ending in the next 14 days.
+- **Activity (totals only):** sales and orders across every store, how many stores sold, the busiest stores, trading stores without an order for 30 days. No customer name, phone or address appears.
+- **Operations:** messages per channel (sent, failed, waiting) with the latest failures and their error, never the recipient; background jobs by state with the latest failed ones; events no listener finished within an hour; image storage per store from the bucket (`ImageStore.usageByStore`, listed on demand; "could not be read" when storage is down).
+
+**Where the queries live:** platform reports read across stores, so they use `PlatformDatabase` (the RLS-bypassing role) and live in the platform admin module (`platformadmin.internal.web.reports`), which `TenancyArchitectureTests` allows; the store reports stay on the tenant-bound database. The chart model, the CSV writer and the report page fragment are shared: `report.Chart` (amounts per currency or plain counts), `report.Csv`, `fragments/report.html` (with `reportBase` and `reportKeys` for the two areas).
+
+### Tests
+
+| Test | Checks |
+|---|---|
+| `ChartAndCsvTest` (moved and extended from `ReportFormatsTest`) | Charts of counts (no currency, a half of 2.5 for a top of 5), labels anchored at the newest column |
+| `PlatformReportsIT` (new) | Over a shared database (each check finds its own store or compares before and after): an invoice and a payment move revenue; the new store's trial ends in 14 days; a store 40 days old without orders is quiet; a failed text shows its error and not its recipient; storage counts an uploaded image; login is required; pages and a CSV, unknown table 404 |
+
+**Live check (local profile):** the four platform reports for the last 30 days at 1280 px. Fixed after the screenshots: the signups chart labelled its half-way line "3" for a top of 5, and storage under 1 MB read "0.0 MB" (now KB).
+
+**Fixed on the way (part 1):** reset requests made in quick succession for one member created their links on parallel background threads, which raced to close the same older link; one lost on the version check and its email was never sent (seen once as a failure of `limitsResetRequestsPerAccount` in a full run). Making a link now locks the member's row first (`StaffUserRepository.lockById`), so requests for one member take turns; the test also checks that no background work failed and that exactly one link stays open.

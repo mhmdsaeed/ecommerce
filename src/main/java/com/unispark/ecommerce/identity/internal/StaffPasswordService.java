@@ -112,7 +112,9 @@ class StaffPasswordService implements StaffPasswords {
                 if (user.isEmpty() || !user.get().isActive()) {
                     return null;
                 }
-                // Only the newest link works: asking again closes the ones before it.
+                // Only the newest link works: asking again closes the ones before it. The member's row is locked first,
+                // so two requests at once take turns instead of both closing the same link.
+                staff.lockById(user.get().getId());
                 passwordChanges.closeLinks(user.get().getId());
                 var token = SecretTokens.newToken();
                 resets.save(new PasswordReset(user.get().getId(), SecretTokens.hash(token),

@@ -10,7 +10,7 @@
 </head>
 <body>
 <main layout:fragment="content" class="max-w-4xl space-y-10">
-    <div th:replace="~{merchantadmin/reports/fragments :: top}"></div>
+    <div th:replace="~{fragments/report :: top}"></div>
 
     <section aria-labelledby="buyers-heading" th:with="buyers=${customers.newCustomers() + customers.returning()}">
         <h2 id="buyers-heading" class="text-lg font-semibold" th:text="#{report.customers.buyers}">Who bought</h2>
@@ -36,7 +36,7 @@
     <section aria-labelledby="top-heading">
         <div class="flex flex-wrap items-baseline justify-between gap-2">
             <h2 id="top-heading" class="text-lg font-semibold" th:text="#{report.customers.top}">Top customers</h2>
-            <a th:replace="~{merchantadmin/reports/fragments :: csv(table='top')}"></a>
+            <a th:replace="~{fragments/report :: csv(table='top')}"></a>
         </div>
         <p th:if="${customers.top().isEmpty()}" class="report-empty" th:text="#{report.sales.none}">No sales.</p>
         <table th:unless="${customers.top().isEmpty()}" class="report-table mt-3">
@@ -62,7 +62,7 @@
     <section aria-labelledby="methods-heading">
         <div class="flex flex-wrap items-baseline justify-between gap-2">
             <h2 id="methods-heading" class="text-lg font-semibold" th:text="#{report.customers.methods}">How customers paid</h2>
-            <a th:replace="~{merchantadmin/reports/fragments :: csv(table='methods')}"></a>
+            <a th:replace="~{fragments/report :: csv(table='methods')}"></a>
         </div>
         <p th:if="${customers.methods().isEmpty()}" class="report-empty" th:text="#{report.sales.none}">No sales.</p>
         <ul th:unless="${customers.methods().isEmpty()}" class="report-bars mt-4">

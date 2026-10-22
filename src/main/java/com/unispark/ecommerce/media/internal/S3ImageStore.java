@@ -5,7 +5,10 @@ import java.io.InputStream;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -124,6 +127,34 @@ class S3ImageStore implements ImageStore {
     @Override
     public String url(String key, ImageSize size) {
         return properties.publicBase() + "/" + objectKey(key, size);
+    }
+
+    /** Keys are public/&lt;store&gt;/... and private/&lt;store&gt;/...; anything else is not counted. */
+    @Override
+    public Optional<Map<UUID, Usage>> usageByStore() {
+        var usage = new HashMap<UUID, Usage>();
+        try {
+            for (var prefix : List.of(PUBLIC_PREFIX, PRIVATE_PREFIX)) {
+                s3.listObjectsV2Paginator(list -> list.bucket(properties.bucket()).prefix(prefix)).contents()
+                        .forEach(object -> storeOf(object.key(), prefix).ifPresent(store -> usage.merge(store,
+                                new Usage(1, object.size()), (one, other) -> new Usage(one.objects() + other.objects(),
+                                        one.bytes() + other.bytes()))));
+            }
+            return Optional.of(Map.copyOf(usage));
+        } catch (SdkException e) {
+            log.warn("Could not list bucket {} for storage use", properties.bucket(), e);
+            return Optional.empty();
+        }
+    }
+
+    private static Optional<UUID> storeOf(String objectKey, String prefix) {
+        var rest = objectKey.substring(prefix.length());
+        var slash = rest.indexOf('/');
+        try {
+            return slash < 0 ? Optional.empty() : Optional.of(UUID.fromString(rest.substring(0, slash)));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
     }
 
     /**

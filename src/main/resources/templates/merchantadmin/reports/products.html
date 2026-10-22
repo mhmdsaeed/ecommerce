@@ -10,12 +10,12 @@
 </head>
 <body>
 <main layout:fragment="content" class="max-w-4xl space-y-10">
-    <div th:replace="~{merchantadmin/reports/fragments :: top}"></div>
+    <div th:replace="~{fragments/report :: top}"></div>
 
     <section aria-labelledby="best-heading">
         <div class="flex flex-wrap items-baseline justify-between gap-2">
             <h2 id="best-heading" class="text-lg font-semibold" th:text="#{report.products.best}">Best sellers</h2>
-            <a th:replace="~{merchantadmin/reports/fragments :: csv(table='best')}"></a>
+            <a th:replace="~{fragments/report :: csv(table='best')}"></a>
         </div>
         <p th:if="${products.bestSellers().isEmpty()}" class="report-empty" th:text="#{report.sales.none}">No sales.</p>
         <table th:unless="${products.bestSellers().isEmpty()}" class="report-table mt-3">
@@ -45,7 +45,7 @@
     <section aria-labelledby="idle-heading">
         <div class="flex flex-wrap items-baseline justify-between gap-2">
             <h2 id="idle-heading" class="text-lg font-semibold" th:text="#{report.products.idle}">Not selling</h2>
-            <a th:replace="~{merchantadmin/reports/fragments :: csv(table='idle')}"></a>
+            <a th:replace="~{fragments/report :: csv(table='idle')}"></a>
         </div>
         <p class="mt-1 text-sm text-gray-600" th:with="form=${@plurals.of(products.idleCount())}"
            th:text="#{report.products.idle.count.__${form}__(${products.idleCount()})}">3 products on sale sold nothing</p>
@@ -61,7 +61,7 @@
     <section aria-labelledby="stock-heading">
         <div class="flex flex-wrap items-baseline justify-between gap-2">
             <h2 id="stock-heading" class="text-lg font-semibold" th:text="#{report.products.stock}">Running low</h2>
-            <a th:replace="~{merchantadmin/reports/fragments :: csv(table='stock')}"></a>
+            <a th:replace="~{fragments/report :: csv(table='stock')}"></a>
         </div>
         <p class="mt-1 text-sm text-gray-600" th:text="#{report.products.stock.hint(${lowStock})}">Tracked variants with 5 or fewer available, now.</p>
         <p th:if="${products.lowStock().isEmpty()}" class="report-empty" th:text="#{report.products.stock.none}">Nothing is running low.</p>

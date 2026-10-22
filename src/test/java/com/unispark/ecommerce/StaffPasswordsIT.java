@@ -292,6 +292,12 @@ class StaffPasswordsIT {
 
         var out = awaitOutput(output, text -> count(text, "Email to " + clerkEmail) >= 3);
         assertThat(count(out, "Email to " + clerkEmail)).isEqualTo(3);
+        // The requests' links are made at the same time in the background; they take turns, so none is lost and
+        // only the newest stays open.
+        assertThat(out).doesNotContain("Password work in the background failed");
+        assertThat(TenantContext.callAs(store, () -> jdbc.queryForObject(
+                "SELECT count(*) FROM password_reset WHERE staff_id = ? AND used_at IS NULL", Long.class, clerkId)))
+                .isEqualTo(1);
     }
 
     @Test

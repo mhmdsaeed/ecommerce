@@ -2,6 +2,8 @@ package com.unispark.ecommerce.media;
 
 import java.io.InputStream;
 import java.time.Duration;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -29,6 +31,15 @@ public interface ImageStore {
 
     /** A link to a private image that works for {@code validFor}, then expires. */
     String signedUrl(String key, Duration validFor);
+
+    /**
+     * What each store's images take in storage, every rendition counted, for the platform admin. Lists the whole
+     * bucket, so it is slow on a large one: call it on demand, not per request. Empty when storage is unreachable.
+     */
+    Optional<Map<UUID, Usage>> usageByStore();
+
+    record Usage(long objects, long bytes) {
+    }
 
     sealed interface StoreResult {
     }

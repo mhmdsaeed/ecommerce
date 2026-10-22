@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<!--/* Report building blocks (model: report, reports, period, presets, periodQuery).
-       "top": the reports as tabs, the period picker (presets as one joined row, custom dates folded away), Print, and
-       a heading that only shows on paper. "csv": a download link for one table. "duration": hours, or days past 48 h.
-       "chart": one column chart (ColumnChart); hover or focus a column for its date, sales and orders. */-->
+<!--/* Report building blocks for the merchant and platform reports (model: report, reports, reportBase, period, presets,
+       periodQuery; reportBase is /admin/reports or /platform/reports).
+       "top": the reports as tabs, the period picker (presets as one joined row, custom dates folded away), Print.
+       "csv": a download link for one table. "duration": hours, or days past 48 h.
+       "chart": one column chart (report.Chart) of amounts or of counts; hover or focus a column for its date and
+       figures. countKey names the plural messages of what the columns count (report.orders.count, ...). */-->
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
@@ -10,16 +12,16 @@
     <nav class="-mx-4 overflow-x-auto px-4 print:hidden" th:attr="aria-label=#{report.title}">
         <ul class="flex min-w-max gap-1 border-b border-gray-200 text-sm">
             <li th:each="tab : ${reports}">
-                <a th:href="@{|/admin/reports/${tab}?${periodQuery}|}" th:attr="aria-current=${report == tab} ? 'page'"
+                <a th:href="@{|${reportBase}/${tab}?${periodQuery}|}" th:attr="aria-current=${report == tab} ? 'page'"
                    class="-mb-px block border-b-2 px-3 py-2 whitespace-nowrap"
                    th:classappend="${report == tab} ? 'border-brand-600 font-semibold text-gray-900' : 'border-transparent text-gray-600 hover:text-gray-900'"
-                   th:text="#{report.__${tab}__.title}">Sales</a>
+                   th:text="#{__${reportKeys}__.__${tab}__.title}">Sales</a>
             </li>
         </ul>
     </nav>
     <div class="flex flex-wrap items-baseline justify-between gap-3">
         <div>
-            <h1 class="text-2xl font-bold" th:text="#{report.__${report}__.title}">Sales</h1>
+            <h1 class="text-2xl font-bold" th:text="#{__${reportKeys}__.__${report}__.title}">Sales</h1>
             <p class="mt-1 text-sm text-gray-600"
                th:text="${period.from() == period.to()} ? ${@dates.day(period.from())} : #{report.period.range(${@dates.day(period.from())}, ${@dates.day(period.to())})}">1 Oct 2026 to 30 Oct 2026</p>
         </div>
@@ -29,7 +31,7 @@
     </div>
     <div class="flex flex-wrap items-start gap-3 print:hidden">
         <nav class="report-periods" th:attr="aria-label=#{report.period}">
-            <a th:each="preset : ${presets}" th:href="@{|/admin/reports/${report}?period=${preset}|}"
+            <a th:each="preset : ${presets}" th:href="@{|${reportBase}/${report}?period=${preset}|}"
                th:attr="aria-current=${period.preset() == preset} ? 'page'"
                th:text="#{report.period.__${preset}__}">30 days</a>
         </nav>
@@ -37,7 +39,7 @@
             <summary class="cursor-pointer list-none rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-50 [&::-webkit-details-marker]:hidden"
                      th:classappend="${period.preset() == 'custom'} ? 'border-brand-600 font-semibold'"
                      th:text="#{report.period.custom}">Dates…</summary>
-            <form method="get" th:action="@{|/admin/reports/${report}|}" class="mt-2 flex flex-wrap items-end gap-2 text-sm">
+            <form method="get" th:action="@{|${reportBase}/${report}|}" class="mt-2 flex flex-wrap items-end gap-2 text-sm">
                 <input type="hidden" name="period" value="custom">
                 <label class="space-y-1">
                     <span class="block text-gray-700" th:text="#{report.period.from}">From</span>
@@ -56,37 +58,37 @@
     </div>
 </div>
 
-<a th:fragment="csv(table)" th:href="@{|/admin/reports/${report}.csv?table=${table}&${periodQuery}|}"
+<a th:fragment="csv(table)" th:href="@{|${reportBase}/${report}.csv?table=${table}&${periodQuery}|}"
    class="text-sm font-medium text-brand-700 hover:underline print:hidden" th:text="#{report.csv}" download>Download CSV</a>
 
 <th:block th:fragment="duration(hours)"><th:block th:if="${hours == null}">—</th:block><th:block th:if="${hours != null and hours < 48}"
           th:text="#{report.duration.hours(${#numbers.formatDecimal(hours, 1, 1)})}">5.5 hours</th:block><th:block th:if="${hours != null and hours >= 48}"
           th:text="#{report.duration.days(${#numbers.formatDecimal(hours / 24, 1, 1)})}">2.5 days</th:block></th:block>
 
-<figure th:fragment="chart(chart, unit)" class="report-chart">
+<figure th:fragment="chart(chart, title, table, countKey)" class="report-chart" th:with="amounts=${chart.currency() != null}">
     <figcaption class="flex flex-wrap items-baseline justify-between gap-2">
-        <span class="font-semibold" th:text="#{report.sales.chart.__${unit}__(#{currency.__${chart.currency()}__})}">Sales by day</span>
-        <th:block th:replace="~{merchantadmin/reports/fragments :: csv(table='days')}"></th:block>
+        <span class="font-semibold" th:text="${title}">Sales by day</span>
+        <a th:replace="~{fragments/report :: csv(table=${table})}"></a>
     </figcaption>
     <p th:if="${chart.empty()}" class="mt-3 rounded-lg border border-dashed border-gray-300 p-6 text-center text-gray-600"
-       th:text="#{report.sales.none}">No sales in this period.</p>
+       th:text="#{report.chart.none}">Nothing in this period.</p>
     <div th:unless="${chart.empty()}" class="report-chart__plot">
         <div class="report-chart__axis" aria-hidden="true">
-            <bdi th:text="${@money.format(chart.top())}">100,000</bdi>
-            <bdi th:text="${@money.format(chart.half())}">50,000</bdi>
+            <bdi th:text="${amounts} ? ${@money.format(chart.topMoney())} : ${#numbers.formatInteger(chart.top(), 1)}">100,000</bdi>
+            <bdi th:text="${amounts} ? ${@money.format(chart.halfMoney())} : ${chart.half().stripTrailingZeros().toPlainString()}">50,000</bdi>
             <bdi>0</bdi>
         </div>
         <ol class="report-chart__columns">
             <li th:each="column : ${chart.columns()}" class="report-chart__column" tabindex="0"
-                th:with="revenue=${@money.format(column.revenue())}"
-                th:attr="aria-label=#{report.sales.column(${column.detail()}, ${revenue}, ${column.orders()})}">
+                th:with="value=${amounts} ? ${@money.format(column.money())} : ${#numbers.formatInteger(column.count(), 1)},
+                         form=${@plurals.of(column.count())}"
+                th:attr="aria-label=#{report.chart.column(${column.detail()}, ${value})}">
                 <span class="report-chart__bar" th:style="|block-size: ${column.percent()}%|"
                       th:classappend="${column.percent() == 0} ? 'report-chart__bar--none'"></span>
                 <span class="report-chart__tip" aria-hidden="true">
                     <span class="block font-semibold" th:text="${column.detail()}">1 Oct 2026</span>
-                    <bdi class="block tabular-nums" th:text="${revenue}">5,000</bdi>
-                    <span class="block" th:with="form=${@plurals.of(column.orders())}"
-                          th:text="#{report.orders.count.__${form}__(${column.orders()})}">3 orders</span>
+                    <bdi th:if="${amounts}" class="block tabular-nums" th:text="${value}">5,000</bdi>
+                    <span class="block" th:text="#{__${countKey}__.__${form}__(${column.count()})}">3 orders</span>
                 </span>
                 <span class="report-chart__label" aria-hidden="true" th:text="${column.labelled()} ? ${column.label()} : ''">1/10</span>
             </li>

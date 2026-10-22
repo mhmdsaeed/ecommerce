@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<!--/* Activity across stores (model: activity, PlatformReportQueries.Activity; charts, sales per currency; quietDays).
+       Totals only: sales and orders across every store, how many stores sold, the busiest stores, and the trading
+       stores that have gone quiet. No customer appears here. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/platform}">
+<head>
+    <title th:text="#{platform.report.activity.title}">Activity</title>
+</head>
+<body>
+<main layout:fragment="content" class="max-w-4xl space-y-10">
+    <div th:replace="~{fragments/report :: top}"></div>
+
+    <section aria-labelledby="totals-heading">
+        <h2 id="totals-heading" class="text-lg font-semibold" th:text="#{platform.report.activity.totals}">Sales across stores</h2>
+        <p th:if="${activity.totals().isEmpty()}" class="report-empty" th:text="#{report.sales.none}">No sales.</p>
+        <dl th:unless="${activity.totals().isEmpty()}" class="mt-3 flex flex-wrap gap-x-10 gap-y-3">
+            <div th:each="total : ${activity.totals()}">
+                <dt class="text-sm text-gray-600" th:with="form=${@plurals.of(total.orders())}"
+                    th:text="#{report.orders.count.__${form}__(${total.orders()})}">40 orders</dt>
+                <dd class="text-3xl font-bold tabular-nums"><bdi th:text="${@money.format(total.sales())}">1,000,000</bdi></dd>
+            </div>
+            <div>
+                <dt class="text-sm text-gray-600" th:text="#{platform.report.activity.selling}">Stores that sold</dt>
+                <dd class="text-3xl font-bold tabular-nums" th:text="${activity.storesSelling()}">12</dd>
+            </div>
+        </dl>
+    </section>
+
+    <th:block th:each="chart : ${charts}"><figure th:replace="~{fragments/report :: chart(chart=${chart},
+            title=#{report.sales.chart.__${period.unit()}__(#{currency.__${chart.currency()}__})},
+            table='busiest', countKey='report.orders.count')}"></figure></th:block>
+
+    <section aria-labelledby="busiest-heading">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="busiest-heading" class="text-lg font-semibold" th:text="#{platform.report.activity.busiest}">Busiest stores</h2>
+            <a th:replace="~{fragments/report :: csv(table='busiest')}"></a>
+        </div>
+        <p th:if="${activity.busiest().isEmpty()}" class="report-empty" th:text="#{report.sales.none}">No sales.</p>
+        <table th:unless="${activity.busiest().isEmpty()}" class="report-table mt-3">
+            <thead>
+            <tr>
+                <th scope="col" th:text="#{platform.report.csv.store}">Store</th>
+                <th scope="col" class="text-end" th:text="#{report.csv.orders}">Orders</th>
+                <th scope="col" class="text-end" th:text="#{report.csv.revenue}">Sales</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="line : ${activity.busiest()}">
+                <td><a th:href="@{/platform/stores/{id}(id=${line.storeId()})}" class="text-brand-700 hover:underline"
+                       th:text="${line.name().in(#locale)}">Store</a></td>
+                <td class="text-end tabular-nums font-semibold" th:text="${line.orders()}">20</td>
+                <td class="text-end tabular-nums"><bdi th:each="money : ${line.sales()}" class="block" th:text="${@money.format(money)}">100,000</bdi></td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section aria-labelledby="quiet-heading">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="quiet-heading" class="text-lg font-semibold" th:text="#{platform.report.activity.quiet(${quietDays})}">No orders in 30 days</h2>
+            <a th:replace="~{fragments/report :: csv(table='quiet')}"></a>
+        </div>
+        <p class="mt-1 text-sm text-gray-600" th:text="#{platform.report.activity.quiet.hint}">Trading stores, now, the longest quiet first.</p>
+        <p th:if="${activity.quiet().isEmpty()}" class="report-empty" th:text="#{platform.report.activity.quiet.none}">Every trading store had an order lately.</p>
+        <ul th:unless="${activity.quiet().isEmpty()}" class="mt-3 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white text-sm">
+            <li th:each="store : ${activity.quiet()}" class="flex flex-wrap items-baseline justify-between gap-2 px-4 py-2.5">
+                <span>
+                    <a th:href="@{/platform/stores/{id}(id=${store.storeId()})}" class="font-medium text-brand-700 hover:underline"
+                       th:text="${store.name().in(#locale)}">Store</a>
+                    <bdi dir="ltr" class="text-gray-500" th:text="${store.slug()}">slug</bdi>
+                </span>
+                <span class="text-gray-600" th:text="${store.lastOrderAt() == null} ? #{platform.report.activity.never(${@dates.format(store.createdAt())})}
+                        : #{platform.report.activity.last(${@dates.format(store.lastOrderAt())})}">Last order 1 Sep</span>
+            </li>
+        </ul>
+    </section>
+</main>
+</body>
+</html>

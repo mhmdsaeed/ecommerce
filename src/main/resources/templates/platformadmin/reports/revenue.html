@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<!--/* Platform revenue (model: revenue, PlatformReportQueries.Revenue; charts, payments received per currency).
+       What the subscriptions are worth each month, by plan; the period's invoices by status and what is overdue now;
+       then the money received over the period. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/platform}">
+<head>
+    <title th:text="#{platform.report.revenue.title}">Revenue</title>
+</head>
+<body>
+<main layout:fragment="content" class="max-w-4xl space-y-10">
+    <div th:replace="~{fragments/report :: top}"></div>
+
+    <section aria-labelledby="monthly-heading">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="monthly-heading" class="text-sm font-medium text-gray-600" th:text="#{platform.report.revenue.monthly}">Monthly recurring revenue</h2>
+            <a th:replace="~{fragments/report :: csv(table='plans')}"></a>
+        </div>
+        <p class="mt-1 text-4xl font-bold tabular-nums"><bdi th:text="${@money.format(revenue.monthly())}">$120</bdi></p>
+        <p class="mt-1 text-sm text-gray-500" th:text="#{platform.report.revenue.monthly.hint}">Paying subscriptions (active or past due) at their plan's monthly price, now.</p>
+        <table class="report-table mt-4">
+            <thead>
+            <tr>
+                <th scope="col" th:text="#{platform.report.csv.plan}">Plan</th>
+                <th scope="col" class="text-end" th:text="#{platform.report.csv.paying}">Paying</th>
+                <th scope="col" class="text-end" th:text="#{platform.report.csv.trials}">Trying</th>
+                <th scope="col" class="text-end" th:text="#{platform.report.csv.monthly}">Each month</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="plan : ${revenue.plans()}">
+                <td th:text="${plan.name().in(#locale)}">Basic</td>
+                <td class="text-end tabular-nums font-semibold" th:text="${plan.paying()}">12</td>
+                <td class="text-end tabular-nums" th:text="${plan.trials()}">4</td>
+                <td class="text-end tabular-nums"><bdi th:text="${@money.format(plan.monthly())}">$120</bdi></td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section aria-labelledby="invoices-heading">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="invoices-heading" class="text-lg font-semibold" th:text="#{platform.report.revenue.invoices}">Invoices issued</h2>
+            <a th:replace="~{fragments/report :: csv(table='invoices')}"></a>
+        </div>
+        <p th:if="${revenue.invoices().isEmpty()}" class="report-empty" th:text="#{platform.report.revenue.invoices.none}">No invoices issued in this period.</p>
+        <ul th:unless="${revenue.invoices().isEmpty()}" class="mt-3 divide-y divide-gray-200 overflow-hidden rounded-lg border border-gray-200 bg-white">
+            <li th:each="line : ${revenue.invoices()}">
+                <a th:href="@{/platform/invoices(status=${line.status()})}" class="flex items-baseline gap-3 px-4 py-3 hover:bg-gray-50">
+                    <span th:text="#{billing.invoice.status.__${line.status()}__}">Paid</span>
+                    <span class="text-sm text-gray-500" th:text="#{platform.report.invoices.count(${line.count()})}">(3)</span>
+                    <span aria-hidden="true" class="min-w-6 flex-1 border-b-2 border-dotted border-gray-300"></span>
+                    <bdi class="text-xl font-bold tabular-nums" th:text="${@money.format(line.amount())}">$30</bdi>
+                </a>
+            </li>
+        </ul>
+        <ul th:unless="${revenue.overdue().isEmpty()}" class="mt-3 overflow-hidden rounded-lg border border-gray-200 bg-white">
+            <li th:each="line : ${revenue.overdue()}" class="border-s-4 border-s-amber-400">
+                <a th:href="@{/platform/invoices(status='OPEN')}" class="flex items-baseline gap-3 px-4 py-3 hover:bg-gray-50">
+                    <span class="font-medium text-amber-800" th:text="#{platform.report.revenue.overdue}">Overdue now</span>
+                    <span class="text-sm text-gray-500" th:text="#{platform.report.invoices.count(${line.count()})}">(2)</span>
+                    <span aria-hidden="true" class="min-w-6 flex-1 border-b-2 border-dotted border-gray-300"></span>
+                    <bdi class="text-xl font-bold tabular-nums" th:text="${@money.format(line.amount())}">$20</bdi>
+                </a>
+            </li>
+        </ul>
+    </section>
+
+    <p th:if="${charts.isEmpty()}" class="report-empty" th:text="#{platform.report.revenue.payments.none}">No payments received in this period.</p>
+    <th:block th:each="chart : ${charts}"><figure th:replace="~{fragments/report :: chart(chart=${chart},
+            title=#{platform.report.revenue.payments.__${period.unit()}__(#{currency.__${chart.currency()}__})},
+            table='payments', countKey='platform.report.payments.count')}"></figure></th:block>
+</main>
+</body>
+</html>

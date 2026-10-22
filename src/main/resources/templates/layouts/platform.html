@@ -12,7 +12,7 @@
             <nav class="flex flex-wrap items-center gap-4 text-sm">
                 <th:block sec:authorize="hasRole('PLATFORM_ADMIN')">
                     <!--/* The current section (platformSection, PlatformModelAdvice) is underlined and aria-current. */-->
-                    <a th:each="link : ${ {'dashboard', 'stores', 'subscriptions', 'invoices', 'plans'} }"
+                    <a th:each="link : ${ {'dashboard', 'stores', 'subscriptions', 'invoices', 'plans', 'reports'} }"
                        th:href="${link == 'dashboard'} ? @{/platform} : @{/platform/{section}(section=${link})}"
                        th:attr="aria-current=${platformSection == link} ? 'page'"
                        class="underline-offset-8 hover:underline"

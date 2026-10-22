@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.unispark.ecommerce.report.Chart;
 import com.unispark.ecommerce.report.ReportPeriod;
 import com.unispark.ecommerce.report.StoreReports;
 import com.unispark.ecommerce.report.StoreReports.Total;
@@ -66,6 +67,8 @@ class ReportsController {
             Model model) {
         var chosen = period(period, from, to);
         model.addAttribute("report", report);
+        model.addAttribute("reportBase", "/admin/reports");
+        model.addAttribute("reportKeys", "report");
         model.addAttribute("reports", REPORTS);
         model.addAttribute("period", chosen);
         model.addAttribute("presets", ReportPeriod.PRESETS);
@@ -75,7 +78,10 @@ class ReportsController {
                 var sales = reports.sales(chosen);
                 model.addAttribute("sales", sales);
                 model.addAttribute("changes", changes(sales.totals(), sales.previous()));
-                model.addAttribute("charts", ColumnChart.of(sales.points(), chosen.unit(), locale));
+                model.addAttribute("charts", Chart.amounts(sales.points().stream()
+                        .map(point -> new Chart.Entry(point.group(), point.currency(), point.orders(),
+                                point.revenue().amount()))
+                        .toList(), chosen.unit(), locale));
             }
             case "products" -> model.addAttribute("products", reports.products(chosen));
             case "orders" -> {

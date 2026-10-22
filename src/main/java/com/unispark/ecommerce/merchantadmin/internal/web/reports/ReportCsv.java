@@ -1,7 +1,5 @@
 package com.unispark.ecommerce.merchantadmin.internal.web.reports;
 
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,14 +11,14 @@ import java.util.stream.Collectors;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Component;
 
+import com.unispark.ecommerce.report.Csv;
 import com.unispark.ecommerce.report.ReportPeriod;
 import com.unispark.ecommerce.report.StoreReports;
 import com.unispark.ecommerce.shared.Money;
 
 /**
- * A report's table as a CSV file: a header row in the admin's language, then plain values (dates as yyyy-MM-dd,
- * amounts without grouping, the currency in its own column) so a spreadsheet can sum them. UTF-8 with a byte order
- * mark, which Excel needs to read Arabic; cells are quoted when they hold a comma, quote or line break.
+ * A report's table as a CSV file ({@link Csv}): a header row in the admin's language, then plain values (dates as
+ * yyyy-MM-dd, amounts without grouping, the currency in its own column) so a spreadsheet can sum them.
  */
 @Component
 class ReportCsv {
@@ -56,7 +54,7 @@ class ReportCsv {
             return Optional.empty();
         }
         var rows = rows(report + "/" + chosen, period, locale);
-        return Optional.of(new File(report + "-" + chosen, encode(rows)));
+        return Optional.of(new File(report + "-" + chosen, Csv.encode(rows)));
     }
 
     private List<List<String>> rows(String table, ReportPeriod period, Locale locale) {
@@ -147,34 +145,5 @@ class ReportCsv {
 
     private static String blank(String value) {
         return value == null ? "" : value;
-    }
-
-    static byte[] encode(List<List<String>> rows) {
-        var out = new ByteArrayOutputStream();
-        out.writeBytes(new byte[] {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF});
-        var text = rows.stream()
-                .map(row -> row.stream().map(ReportCsv::cell).collect(Collectors.joining(",")))
-                .collect(Collectors.joining("\r\n", "", "\r\n"));
-        out.writeBytes(text.getBytes(StandardCharsets.UTF_8));
-        return out.toByteArray();
-    }
-
-    /**
-     * Quoted when needed. A cell starting with =, +, - or @ gets a leading apostrophe, so a spreadsheet shows it as
-     * text instead of running it as a formula (customer names and reasons are typed by shoppers and staff).
-     */
-    static String cell(String value) {
-        var text = value;
-        if (!text.isEmpty() && "=+-@".indexOf(text.charAt(0)) >= 0 && !isNumber(text)) {
-            text = "'" + text;
-        }
-        if (text.contains(",") || text.contains("\"") || text.contains("\n") || text.contains("\r")) {
-            return "\"" + text.replace("\"", "\"\"") + "\"";
-        }
-        return text;
-    }
-
-    private static boolean isNumber(String text) {
-        return text.matches("-?\\d+(\\.\\d+)?");
     }
 }

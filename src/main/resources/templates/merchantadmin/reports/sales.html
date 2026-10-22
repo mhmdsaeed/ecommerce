@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--/* Sales report (model: sales, StoreReports.Sales; changes, revenue change per currency against the period before
-       or null; charts, one ColumnChart per currency). Per currency: the revenue as the headline, against the period
+       or null; charts, one report.Chart per currency). Per currency: the revenue as the headline, against the period
        before; orders and the average order as ledger lines; then sales over the period as columns, with the same
        figures as a table underneath. */-->
 <html xmlns:th="http://www.thymeleaf.org"
@@ -11,7 +11,7 @@
 </head>
 <body>
 <main layout:fragment="content" class="max-w-4xl space-y-8">
-    <div th:replace="~{merchantadmin/reports/fragments :: top}"></div>
+    <div th:replace="~{fragments/report :: top}"></div>
 
     <p th:if="${sales.totals().isEmpty()}" class="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-gray-600"
        th:text="#{report.sales.none}">No sales in this period.</p>
@@ -38,7 +38,8 @@
     </section>
 
     <th:block th:each="chart : ${charts}">
-        <figure th:replace="~{merchantadmin/reports/fragments :: chart(chart=${chart}, unit=${period.unit()})}"></figure>
+        <figure th:replace="~{fragments/report :: chart(chart=${chart}, title=#{report.sales.chart.__${period.unit()}__(#{currency.__${chart.currency()}__})},
+                table='days', countKey='report.orders.count')}"></figure>
         <details class="report-table-toggle">
             <summary class="cursor-pointer text-sm text-brand-700 print:hidden" th:text="#{report.table.show}">Show as a table</summary>
             <table class="report-table mt-3">
@@ -52,8 +53,8 @@
                 <tbody>
                 <tr th:each="column : ${chart.columns()}">
                     <td th:text="${column.detail()}">1 Oct 2026</td>
-                    <td class="text-end tabular-nums" th:text="${column.orders()}">3</td>
-                    <td class="text-end tabular-nums"><bdi th:text="${@money.format(column.revenue())}">5,000</bdi></td>
+                    <td class="text-end tabular-nums" th:text="${column.count()}">3</td>
+                    <td class="text-end tabular-nums"><bdi th:text="${@money.format(column.money())}">5,000</bdi></td>
                 </tr>
                 </tbody>
             </table>

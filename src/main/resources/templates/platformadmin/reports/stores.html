@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<!--/* Platform stores (model: stores, PlatformReportQueries.Stores; chart, signups as counts; trialsAhead). Every store
+       by status now; signups over the period; where the period's new stores are now (trying, paying, stopped); how
+       many stopped in the period; trials ending soon, soonest first. */-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/platform}">
+<head>
+    <title th:text="#{platform.report.stores.title}">Stores</title>
+</head>
+<body>
+<main layout:fragment="content" class="max-w-4xl space-y-10">
+    <div th:replace="~{fragments/report :: top}"></div>
+
+    <section aria-labelledby="now-heading">
+        <h2 id="now-heading" class="text-lg font-semibold" th:text="#{platform.report.stores.now}">Stores now</h2>
+        <dl class="mt-3 flex flex-wrap gap-x-10 gap-y-3">
+            <div th:each="entry : ${stores.byStatus()}">
+                <dt class="flex items-center gap-1.5 text-sm text-gray-600">
+                    <span th:class="${entry.key == 'SUSPENDED' or entry.key == 'CLOSED'} ? 'store-mark store-mark--closed' : 'store-mark'" aria-hidden="true"></span>
+                    <span th:text="#{store.status.__${entry.key}__}">Active</span>
+                </dt>
+                <dd class="text-3xl font-bold tabular-nums" th:text="${#numbers.formatInteger(entry.value, 1)}">40</dd>
+            </div>
+        </dl>
+    </section>
+
+    <figure th:replace="~{fragments/report :: chart(chart=${chart},
+            title=#{platform.report.stores.signups.__${period.unit()}__}, table='signups', countKey='platform.report.stores.count')}"></figure>
+
+    <section aria-labelledby="cohort-heading" th:if="${stores.created() > 0}">
+        <h2 id="cohort-heading" class="text-lg font-semibold" th:text="#{platform.report.stores.cohort(${stores.created()})}">Where this period's 12 new stores are now</h2>
+        <ul class="report-bars mt-4">
+            <th:block th:each="stage : ${ {'PAYING', 'TRYING', 'STOPPED', 'NONE'} }" th:with="count=${stores.cohort().getOrDefault(stage, 0L)}">
+            <li th:if="${count > 0}">
+                <span th:text="#{platform.report.stores.stage.__${stage}__}">Paying</span>
+                <span class="report-bars__track" aria-hidden="true"><span th:style="|inline-size: ${count * 100 / stores.created()}%|"
+                      th:classappend="${stage == 'STOPPED'} ? 'report-bars__bar--lost'"></span></span>
+                <span class="tabular-nums font-semibold" th:text="${count}">5</span>
+            </li>
+            </th:block>
+        </ul>
+    </section>
+
+    <section aria-labelledby="stopped-heading">
+        <ul class="divide-y divide-gray-200 overflow-hidden rounded-lg border border-gray-200 bg-white">
+            <li class="border-s-4" th:classappend="${stores.stopped() > 0} ? 'border-s-amber-400' : 'border-s-transparent'">
+                <a th:href="@{/platform/subscriptions(status='CANCELLED')}" class="flex items-baseline gap-3 px-4 py-3 hover:bg-gray-50">
+                    <span id="stopped-heading" th:text="#{platform.report.stores.stopped}">Stopped in this period</span>
+                    <span aria-hidden="true" class="min-w-6 flex-1 border-b-2 border-dotted border-gray-300"></span>
+                    <span class="text-xl font-bold tabular-nums" th:classappend="${stores.stopped() == 0} ? 'text-gray-500'" th:text="${stores.stopped()}">1</span>
+                </a>
+            </li>
+        </ul>
+        <p class="mt-1 text-xs text-gray-500" th:text="#{platform.report.stores.stopped.hint}">Subscriptions cancelled or suspended whose last change falls in the period.</p>
+    </section>
+
+    <section aria-labelledby="trials-heading">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="trials-heading" class="text-lg font-semibold" th:text="#{platform.report.stores.trials(${trialsAhead})}">Trials ending in the next 14 days</h2>
+            <a th:replace="~{fragments/report :: csv(table='trials')}"></a>
+        </div>
+        <p th:if="${stores.trialsEnding().isEmpty()}" class="report-empty" th:text="#{platform.report.stores.trials.none}">No trial ends soon.</p>
+        <ul th:unless="${stores.trialsEnding().isEmpty()}" class="mt-3 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white text-sm">
+            <li th:each="trial : ${stores.trialsEnding()}" class="flex flex-wrap items-baseline justify-between gap-2 px-4 py-2.5">
+                <span>
+                    <a th:href="@{/platform/stores/{id}(id=${trial.storeId()})}" class="font-medium text-brand-700 hover:underline"
+                       th:text="${trial.name().in(#locale)}">Store</a>
+                    <bdi dir="ltr" class="text-gray-500" th:text="${trial.slug()}">slug</bdi>
+                </span>
+                <span th:text="#{platform.report.stores.trial.ends(${@dates.day(trial.ends())})}">Ends 30 Oct 2026</span>
+            </li>
+        </ul>
+    </section>
+</main>
+</body>
+</html>
