@@ -162,6 +162,10 @@ class OrderManagementIT {
         // HTMX fragments don't count.
         mvc.perform(get(MAIN + "/admin/products").session(staff).header("HX-Request", "true"))
                 .andExpect(content().string(not(containsString("بانتظار التأكيد"))));
+        // A form sent back with its mistakes is a full page too.
+        mvc.perform(post(MAIN + "/admin/settings/store").session(owner).with(csrf()).param("nameAr", ""))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("2 بانتظار التأكيد")));
 
         // The orders list's tabs: open is current; the "awaiting confirmation" tab counts both, in amber.
         mvc.perform(get(MAIN + "/admin/orders").session(staff))

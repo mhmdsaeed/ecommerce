@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.thymeleaf.context.LazyContextVariable;
 
 import com.unispark.ecommerce.billing.SubscriptionStatus;
 import com.unispark.ecommerce.billing.Subscriptions;
@@ -72,21 +73,26 @@ class AdminModelAdvice {
     }
 
     /**
-     * Orders waiting for the merchant's confirmation, for the badge on "Orders": on full pages only, so HTMX
-     * fragments and form posts don't pay for the count.
+     * Orders waiting for the merchant's confirmation, for the badge on "Orders". Counted only when a page draws the
+     * navigation (a full page, a form sent back with its mistakes included), so redirects and HTMX fragments don't
+     * pay for the count.
      */
     @ModelAttribute("ordersToConfirm")
-    Long ordersToConfirm(HttpServletRequest request) {
-        if (currentStaff() == null || adminSection(request) == null || !"GET".equals(request.getMethod())
-                || request.getHeader("HX-Request") != null) {
+    LazyContextVariable<Long> ordersToConfirm(HttpServletRequest request) {
+        if (currentStaff() == null || adminSection(request) == null) {
             return null;
         }
-        return orders.counts(clock.instant()).toConfirm();
+        return new LazyContextVariable<>() {
+            @Override
+            protected Long loadValue() {
+                return orders.counts(clock.instant()).toConfirm();
+            }
+        };
     }
 
     /**
-     * The member's light or dark choice, for the layout's data-scheme: on full pages only. Unlike the orders badge,
-     * a form sent back with mistakes (a POST that renders its page) needs it too, or the page turns light.
+     * The member's light or dark choice, for the layout's data-scheme: on full pages only, a form sent back with its
+     * mistakes (a POST that renders its page) included, or that page would turn light.
      */
     @ModelAttribute("colorScheme")
     String colorScheme(HttpServletRequest request) {
