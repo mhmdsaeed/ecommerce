@@ -1789,3 +1789,9 @@ The same now holds for every page without a light or dark choice: the line moved
 ## After M15: A warning when the stylesheet is missing (2026-10-22)
 
 Pages came up unstyled locally ("Refused to apply style from /css/app.css because its MIME type ('application/json') ..."). The stylesheet is written into target/classes only by the Maven build's Tailwind step; a rebuild of target/classes that skipped it (likely an IDE build) removed it, and apps started with `-Dtailwind.skip` never put it back, so `/css/app.css` answered Boot's JSON 404. Rebuilt with `scripts\tailwind.cmd`. To make this obvious next time, `StylesheetCheck` (shared, internal web) logs a warning at startup when `static/css/app.css` is not on the classpath, saying how to build it (`StylesheetCheckTest`).
+
+## After M15: Storefront at phone width in dark mode; a demo dollar rate (2026-10-22)
+
+demo1's home, a category, a product, the cart and checkout at 375 px, with the device set to dark and with Chrome's forced dark: every pair of screenshots is identical and light, so the "only light" line holds on phones. Layouts fit.
+
+A fresh local database (Docker came back empty) showed that the demo seed set no exchange rate: demo1 prices products and its Aleppo delivery in dollars but shows pounds, so checkout refused every order ("some prices are not available in the store's currency") and the cart showed dollars beside pounds. `LocalDemoPricing` (pricing, local profile) now gives each demo store 118.5 pounds per dollar, the rate the integration tests use, while it has no rate; a rate the merchant set is kept. `LocalDemoPricingIT` checks both. README mentions it.

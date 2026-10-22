@@ -48,7 +48,8 @@ Notifications go out through JobRunr a few seconds after each order event. Email
 new-order alert) land in Mailpit. Shopper texts and verification codes are written to the application log
 (`Message to +963…`), since no SMS or WhatsApp provider is integrated yet. Each order's admin page lists what was sent.
 
-demo1 also gets a small catalog (two categories, three products, generated images) the first time it has no products.
+demo1 also gets a small catalog (two categories, three products, generated images) the first time it has no products,
+and both demo stores get a dollar rate (118.5 pounds) while they have none, so prices in dollars convert at checkout.
 MinIO is published on host port 9100, not 9000, which other software often occupies; after pulling this change run
 `docker compose up -d minio`.
 
