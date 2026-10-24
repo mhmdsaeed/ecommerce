@@ -65,3 +65,5 @@ On Windows use `mvnw.cmd` and `scripts\tailwind.cmd`.
 `docker build -t ecommerce .` packages the jar from `./mvnw verify` into an image that runs with the `prod` profile.
 [docs/operations.md](docs/operations.md) covers setting up a fresh database, configuration, the reverse proxy,
 logs, rate limits, and backups.
+
+A test server on one always-on machine, online through a Cloudflare Tunnel: [deploy/tunnel/README.md](deploy/tunnel/README.md).

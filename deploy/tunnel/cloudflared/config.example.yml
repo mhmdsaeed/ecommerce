@@ -1,0 +1,13 @@
+# Copy to config.yml (never committed), then put your tunnel's id and your domain in place of the examples.
+tunnel: 00000000-0000-0000-0000-000000000000
+credentials-file: /etc/cloudflared/00000000-0000-0000-0000-000000000000.json
+
+# First match wins, so media comes before the wildcard that serves the stores.
+ingress:
+  - hostname: media.example.com
+    service: http://minio:9000
+  - hostname: example.com
+    service: http://app:8080
+  - hostname: "*.example.com"
+    service: http://app:8080
+  - service: http_status:404

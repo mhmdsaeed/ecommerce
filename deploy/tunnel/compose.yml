@@ -1,0 +1,101 @@
+# A test server on one always-on machine, online through a Cloudflare Tunnel (deploy/tunnel/README.md).
+# Everything runs here; nothing listens on a public port. Cloudflare terminates HTTPS and cloudflared, the only
+# piece that talks to the internet, opens the connection outward. Values come from .env next to this file.
+
+name: ecommerce-test
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+      DB_NAME: ecommerce
+      DB_OWNER_USER: app_owner
+      DB_OWNER_PASSWORD: ${DB_OWNER_PASSWORD:?set in .env}
+      DB_APP_USER: app_user
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:?set in .env}
+      DB_PLATFORM_USER: app_platform
+      DB_PLATFORM_PASSWORD: ${DB_PLATFORM_PASSWORD:?set in .env}
+    volumes:
+      # Creates the three roles and the database on the first start (docs/operations.md).
+      - ../../docker/postgres/init:/docker-entrypoint-initdb.d:ro
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ecommerce"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    image: chainguard/minio@sha256:2136d593beacf4461187035eca949fe49abd589d5079735025c711ca58fee0c8
+    restart: unless-stopped
+    command: ["server", "/data"]
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:?set in .env}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?set in .env}
+    volumes:
+      - minio-data:/data
+
+  # Catches every email the app sends; its inbox is only on this machine (http://localhost:8025).
+  mailpit:
+    image: axllent/mailpit:v1.31
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MAILPIT_PORT:-8025}:8025"
+
+  app:
+    # Built from the repository (deploy/tunnel/README.md, "The app image").
+    image: ${APP_IMAGE:-ecommerce:latest}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    environment:
+      APP_BASE_DOMAIN: ${DOMAIN:?set in .env}
+      DB_URL: jdbc:postgresql://postgres:5432/ecommerce
+      DB_OWNER_USER: app_owner
+      DB_OWNER_PASSWORD: ${DB_OWNER_PASSWORD}
+      DB_APP_USER: app_user
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD}
+      DB_PLATFORM_USER: app_platform
+      DB_PLATFORM_PASSWORD: ${DB_PLATFORM_PASSWORD}
+      PLATFORM_ADMIN_EMAIL: ${PLATFORM_ADMIN_EMAIL:-}
+      PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:-}
+      # The app reaches MinIO inside this network; browsers reach it as media.<domain> through the tunnel
+      # ("media" can never be a store's address).
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: media
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_PUBLIC_BASE_URL: https://media.${DOMAIN}/media
+      S3_PRESIGN_ENDPOINT: https://media.${DOMAIN}
+      # Creates the bucket and lets anyone read public/, as in local development.
+      S3_MANAGE_BUCKET: "true"
+      MAIL_HOST: mailpit
+      MAIL_PORT: "1025"
+      MAIL_SMTP_AUTH: "false"
+      MAIL_STARTTLS: "false"
+      MAIL_FROM: orders@${DOMAIN}
+      # No SMS or WhatsApp provider yet: write texts (checkout codes included) to the log in full, as local runs
+      # do, so testers can be given their codes. Production keeps this off.
+      APP_NOTIFICATION_LOG_CONTENT: ${LOG_MESSAGES:-true}
+      JWT_SECRET: ${JWT_SECRET:-}
+      BILLING_PAY_TO: ${BILLING_PAY_TO:-}
+
+  cloudflared:
+    image: cloudflare/cloudflared:2025.10.0
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "--config", "/etc/cloudflared/config.yml", "run"]
+    depends_on:
+      - app
+      - minio
+    volumes:
+      - ./cloudflared:/etc/cloudflared:ro
+
+volumes:
+  postgres-data:
+  minio-data:

@@ -13,3 +13,7 @@ target/
 .factorypath
 .sts4-cache/
 .DS_Store
+
+# Tunnel credentials and settings (deploy/tunnel/README.md)
+deploy/tunnel/cloudflared/*
+!deploy/tunnel/cloudflared/config.example.yml
