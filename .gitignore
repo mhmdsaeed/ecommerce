@@ -17,3 +17,4 @@ target/
 # Tunnel credentials and settings (deploy/tunnel/README.md)
 deploy/tunnel/cloudflared/*
 !deploy/tunnel/cloudflared/config.example.yml
+deploy/tunnel/backups/

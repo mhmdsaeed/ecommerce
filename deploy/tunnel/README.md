@@ -1,9 +1,9 @@
 # Test server on an always-on machine
 
-The whole platform (app, PostgreSQL, MinIO, Mailpit) runs with Docker on one machine. A Cloudflare Tunnel puts it
-online: the machine opens the connection outward, so it needs no public IP address and no open ports, and Cloudflare
-supplies HTTPS. It is for testing, not for real shops: there are no backups unless you take them, and the site is
-down whenever the machine is.
+The whole platform (app, PostgreSQL, MinIO, Mailpit) runs with Docker on one machine, with nightly backups and
+pgAdmin beside it. A Cloudflare Tunnel puts it online: the machine opens the connection outward, so it needs no
+public IP address and no open ports, and Cloudflare supplies HTTPS. It is for testing, not for real shops: the site
+is down whenever the machine is.
 
 What you need:
 
@@ -64,8 +64,8 @@ docker run --rm -v "${PWD}/cloudflared:/home/nonroot/.cloudflared" $cf tunnel ro
 ## 4. Settings
 
 Copy `.env.example` to `.env` and fill it in: the domain, a long random value for every `CHANGE_ME`
-(`openssl rand -hex 24` in Git Bash), and the first platform admin's email and password. Keep `.env` on the server
-only.
+(`openssl rand -hex 24` in Git Bash), the first platform admin's email and password, and pgAdmin's. Keep `.env` on
+the server only.
 
 ## 5. Start
 
@@ -85,6 +85,7 @@ the first platform admin. Then open:
 | A store | https://<slug>.example.com |
 | Platform admin | https://admin.example.com/platform/login |
 | Emails the app sent | http://localhost:8025, on the server only |
+| The database (pgAdmin) | http://localhost:5050, on the server only |
 
 Once you have signed in as the platform admin, delete the `PLATFORM_ADMIN_*` lines from `.env` and run
 `docker compose up -d` again.
@@ -102,10 +103,40 @@ setup wizard.
 - **A new version:** build and load the image again (step 2), then `docker compose up -d`. The database keeps its
   data; new migrations run on start.
 - **Stop:** `docker compose down`. Data stays in the Docker volumes `ecommerce-test_postgres-data` and
-  `ecommerce-test_minio-data`. `docker compose down -v` deletes it, as does a Docker Desktop reset.
-- **A copy of the database:**
-  `docker compose exec postgres pg_dump -U postgres -Fc -f /tmp/ecommerce.dump ecommerce`, then
-  `docker compose cp postgres:/tmp/ecommerce.dump .` (not `>`, which in Windows PowerShell spoils the file).
-  `docs/operations.md` covers restoring it.
+  `ecommerce-test_minio-data`. `docker compose down -v` deletes it, as does a Docker Desktop reset; the backups
+  below are what survives that.
 - **Who can see it:** everyone with the address. To keep it to your testers, put a Cloudflare Access policy
   (Zero Trust, free for up to 50 people) on `example.com` and `*.example.com`, letting in only their emails.
+
+## Backups
+
+The `backup` service backs up every night at 03:30 Syrian time, after the billing job. Each backup is two files in
+`deploy/tunnel/backups`: `ecommerce-<date>_<time>.dump` (the whole database) and `media-<date>_<time>.tar.gz`
+(every image). It keeps 14 days and deletes older ones. `BACKUP_DIR`, `BACKUP_TIME`, `BACKUP_KEEP_DAYS` and `TZ` in
+`.env` change that; git ignores the folder.
+
+- **Keep a copy off the machine.** Backups on the same disk do not survive a dead disk or a Docker Desktop reset.
+  Set `BACKUP_DIR` to a folder OneDrive or Google Drive syncs (for example
+  `BACKUP_DIR=C:\Users\<you>\OneDrive\shop-backups`), then `docker compose up -d`.
+- **Check it ran:** `docker compose logs backup` shows a `Backup <date>_<time>: ...` line for each.
+- **One now** (before an update, say): `docker compose exec backup sh /scripts/backup.sh`.
+- **Restore** one, which replaces the whole database and every image with the backup's:
+
+  ```powershell
+  docker compose stop app minio
+  docker compose exec backup sh /scripts/restore.sh 2026-10-29_0330
+  docker compose start minio app
+  ```
+
+  Give the date and time from the file names. The script refuses while the app or MinIO is running. Orders and
+  sign-ups made after that backup are lost, so take one first if you may want them back.
+
+## The database in pgAdmin
+
+pgAdmin runs at http://localhost:5050, on the server only: sign in with `PGADMIN_EMAIL` and `PGADMIN_PASSWORD`.
+The server *Shop database* is already listed; it asks for the database password, which is `POSTGRES_PASSWORD`.
+
+That is the PostgreSQL superuser: it sees every store's rows (row-level security does not apply to it) and can
+change or delete anything, so take a backup before editing data by hand. Keep pgAdmin off the tunnel. If you need it
+from elsewhere, add `pgadmin.example.com` → `http://pgadmin:80` to `cloudflared/config.yml` (above the wildcard)
+only behind a Cloudflare Access policy that lets in your email alone.
